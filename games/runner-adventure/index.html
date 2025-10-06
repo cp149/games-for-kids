@@ -158,12 +158,13 @@
 
                 // Frame configurations: [frameIndex, yOffset, minScale, maxScale]
                 // Using anchor("center") like obstacle (groundY - 20)
-                // Negative offset moves up from groundY
+                // Negative offset moves up from groundY (above ground)
+                // Positive offset moves down (will be blocked by ground rectangle)
                 this.decoConfigs = [
-                    { frame: 0, offset: -20, name: 'grass' },      // grass (row 1)
-                    { frame: 3, offset: -20, name: 'bush' },       // bush (row 1)
-                    { frame: 4, offset: 12, name: 'pebble' },      // pebble (row 2) - lower than mushroom
-                    { frame: 5, offset: 5, name: 'mushroom' }      // mushroom (row 2)
+                    { frame: 0, offset: -13, name: 'grass' },       // grass (row 1)
+                    { frame: 3, offset: -13, name: 'bush' },        // bush (row 1)
+                    { frame: 4, offset: -7, name: 'pebble' },       // pebble (row 2) - perfect
+                    { frame: 5, offset: -15, name: 'mushroom' }     // mushroom (row 2) - perfect
                 ];
 
                 this.spawnInterval = 0.5; // seconds
