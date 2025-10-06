@@ -54,7 +54,10 @@
 
         body {
             font-family: 'Segoe UI', 'Comic Sans MS', 'Chalkboard SE', cursive, sans-serif;
-            background: linear-gradient(135deg, #FFE5F1 0%, #E0F4FF 50%, #FFF9E6 100%);
+            background-image: url('assets/images/game-background.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: repeat;
             background-attachment: fixed;
             min-height: 100vh;
             display: flex;
@@ -62,45 +65,6 @@
             color: var(--text-dark);
             position: relative;
             overflow-x: hidden;
-        }
-
-        /* Animated floating shapes in background */
-        body::before {
-            content: '';
-            position: fixed;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(255, 182, 193, 0.3) 0%, transparent 70%);
-            border-radius: 50%;
-            top: -100px;
-            left: -100px;
-            animation: float1 20s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            width: 250px;
-            height: 250px;
-            background: radial-gradient(circle, rgba(135, 206, 250, 0.3) 0%, transparent 70%);
-            border-radius: 50%;
-            bottom: -80px;
-            right: -80px;
-            animation: float2 15s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        @keyframes float1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(100px, 100px) scale(1.1); }
-        }
-
-        @keyframes float2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(-80px, -80px) scale(1.15); }
         }
 
         /* Header Styles */
