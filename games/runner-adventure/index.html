@@ -11,93 +11,122 @@
             box-sizing: border-box;
         }
 
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Arial', sans-serif;
-            color: white;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        #game-container {
-            position: relative;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            border-radius: 10px;
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
         }
 
         canvas {
             display: block;
-            background: #87CEEB;
-        }
-
-        .info {
-            margin-top: 20px;
-            text-align: center;
-            background: rgba(255,255,255,0.1);
-            padding: 15px 30px;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-        }
-
-        .info p {
-            margin: 5px 0;
-            font-size: 1.1rem;
-        }
-
-        .controls {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            opacity: 0.8;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw !important;
+            height: 100vh !important;
         }
     </style>
 </head>
 <body>
-    <h1>🏃 Runner Adventure - Prototype</h1>
-
-    <div id="game-container"></div>
-
-    <div class="info">
-        <p><strong>Controls:</strong></p>
-        <div class="controls">
-            <p>🖱️ Click or 👆 Tap or ⌨️ SPACE to Jump</p>
-            <p>Press R to Restart after Game Over</p>
-        </div>
-    </div>
 
     <script type="module">
         // Import KAPLAY from CDN
         import kaplay from "https://unpkg.com/kaplay@3001.0.0/dist/kaplay.mjs";
 
-        // Initialize KAPLAY
+        // Initialize KAPLAY - defaults to fullscreen
         const k = kaplay({
-            width: 800,
-            height: 600,
-            background: [135, 206, 235], // Sky blue (will be replaced by image)
-            canvas: document.querySelector('#game-container canvas') || undefined,
-            parent: document.querySelector('#game-container'),
+            background: [135, 206, 235], // Sky blue
             gravity: 2400  // Increased gravity
         });
 
         // Load assets
-        k.loadSprite("player", "assets/images/player.png");
+        k.loadSprite("player-run", "assets/images/player-run.png", {
+            sliceX: 8,  // 8 frames horizontally
+            anims: {
+                run: { from: 0, to: 7, loop: true, speed: 10 }  // Loop through all 8 frames
+            }
+        });
         k.loadSprite("obstacle", "assets/images/obstacle.png");
         k.loadSprite("coin", "assets/images/coin.png");
         k.loadSprite("background", "assets/images/background.png");
+        k.loadSprite("ground-deco", "assets/images/deco.png", {
+            sliceX: 4,  // 4 columns
+            sliceY: 2   // 2 rows = 8 decorations total
+        });
+        k.loadSprite("mountains-range", "assets/images/mountains-range.png");
+        k.loadSprite("cloud", "assets/images/cloud.png");
+        k.loadSprite("cloud2", "assets/images/cloud2.png");
+
+        // Load background music
+        k.loadSound("bgMusic", "assets/sounds/background-music.mp3");
+
+        // Generate simple sound effects with Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playJumpSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playCoinSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playGameOverSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.4);
+
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.4);
+        }
+
+        // Wait for KAPLAY to be ready
+        k.onLoad(() => {
+            console.log("Canvas size:", k.width(), k.height());
+        });
 
         // Constants
         const GRAVITY = 1200;  // Gravity acceleration
         const JUMP_FORCE = 500;  // Jump force
-        const GROUND_Y = 500;
+        const GROUND_Y = 500;  // Fixed ground position
         const PLAYER_SPEED = 300;
         const OBSTACLE_SPEED = 300;
         const SPAWN_INTERVAL = 1.5;
@@ -105,6 +134,7 @@
         // Game state
         let score = 0;
         let gameSpeed = 1;
+        let highScore = parseInt(localStorage.getItem('runnerHighScore') || '0');
 
         // Colors (for fallback)
         const COLORS = {
@@ -114,9 +144,9 @@
             coin: [255, 215, 0]        // Gold
         };
 
-        // Wait for assets to load before starting
-        k.onLoading((progress) => {
-            console.log(`Loading: ${Math.floor(progress * 100)}%`);
+        // Wait for assets to load
+        k.onLoad(() => {
+            console.log("All assets loaded!");
         });
 
         // ===== GAME SCENE =====
@@ -124,95 +154,199 @@
             score = 0;
             gameSpeed = 1;
 
-            // Add background
+            // Play background music (loop)
+            const music = k.play("bgMusic", {
+                loop: true,
+                volume: 0.5
+            });
+
+            // Dynamic ground position - at bottom of screen
+            const groundY = k.height() - 100;
+
+            // Debug: show screen info
+            console.log("Screen:", k.width(), "x", k.height());
+            console.log("Ground Y:", groundY);
+            console.log("Player Y:", groundY - 45);
+
+            // Add fullscreen background
             k.add([
-                k.sprite("background"),
+                k.rect(k.width(), k.height()),
                 k.pos(0, 0),
-                k.scale(1),
+                k.color(135, 206, 235),
                 k.z(-10)
             ]);
 
             // Add ground
             const ground = k.add([
                 k.rect(k.width(), 100),
-                k.pos(0, GROUND_Y),
+                k.pos(0, groundY),
                 k.area(),
                 k.body({ isStatic: true }),
                 k.color(COLORS.ground),
                 "ground"
             ]);
 
-            // Add player (using sprite)
+            // Add player (using animated sprite)
             const player = k.add([
-                k.sprite("player", { flipX: true }),  // Flip to face right
-                k.pos(100, GROUND_Y - 60),
-                k.area({ scale: 0.5 }),  // Smaller collision box
-                k.scale(0.08),  // Much smaller
+                k.sprite("player-run"),
+                k.pos(100, groundY - 30),
+                k.area({ scale: 0.15 }),  // Much tighter collision box
+                k.scale(0.35),  // Larger size
                 k.anchor("center"),
                 "player",
                 {
                     velocityY: 0,
-                    isJumping: false,
-                    runBounce: 0  // For running animation
+                    isJumping: false
                 }
             ]);
 
-            // Manual gravity and physics + running animation
+            // Play running animation
+            player.play("run");
+
+            // Manual gravity and physics
+            let wasInAir = false;
             player.onUpdate(() => {
                 // Apply gravity
                 player.velocityY += GRAVITY * k.dt();
                 player.pos.y += player.velocityY * k.dt();
 
                 // Ground collision check
-                if (player.pos.y >= GROUND_Y - 60) {
-                    player.pos.y = GROUND_Y - 60;
+                if (player.pos.y >= groundY - 30) {
+                    player.pos.y = groundY - 30;
+
+                    // Landing dust effect
+                    if (wasInAir) {
+                        for (let i = 0; i < 6; i++) {
+                            k.add([
+                                k.circle(k.rand(2, 5)),
+                                k.pos(player.pos.x + k.rand(-15, 15), groundY),
+                                k.color(200, 180, 150),
+                                k.opacity(0.6),
+                                k.lifespan(0.3),
+                                k.move(k.rand(0, 360), k.rand(50, 100)),
+                                k.z(5)
+                            ]);
+                        }
+                    }
+
                     player.velocityY = 0;
                     player.isJumping = false;
-                }
-
-                // Running animation - bounce when on ground
-                if (!player.isJumping) {
-                    player.runBounce += k.dt() * 20;
-                    const bounce = Math.sin(player.runBounce) * 2;
-                    player.pos.y = GROUND_Y - 60 + bounce;
+                    wasInAir = false;
+                } else {
+                    wasInAir = true;
                 }
             });
 
+            // UI Background panels
+            k.add([
+                k.rect(280, 120, { radius: 8 }),
+                k.pos(20, 20),
+                k.color(0, 0, 0),
+                k.opacity(0.5),
+                k.z(99)
+            ]);
+
             // Score text
             const scoreText = k.add([
-                k.text(`Score: ${score}`, { size: 32 }),
-                k.pos(20, 20),
+                k.text(`Score: ${score}`, { size: 28 }),
+                k.pos(35, 30),
                 k.color(255, 255, 255),
+                k.z(100)
+            ]);
+
+            // High score text
+            const highScoreText = k.add([
+                k.text(`Best: ${highScore}`, { size: 22 }),
+                k.pos(35, 65),
+                k.color(255, 215, 0),
                 k.z(100)
             ]);
 
             // Speed indicator
             const speedText = k.add([
-                k.text(`Speed: ${gameSpeed.toFixed(1)}x`, { size: 24 }),
-                k.pos(20, 60),
-                k.color(255, 255, 255),
+                k.text(`Speed: ${gameSpeed.toFixed(1)}x`, { size: 20 }),
+                k.pos(35, 100),
+                k.color(150, 255, 150),
                 k.z(100)
             ]);
 
+            // Pause overlay (initially hidden)
+            const pauseOverlay = k.add([
+                k.rect(k.width(), k.height()),
+                k.pos(0, 0),
+                k.color(0, 0, 0),
+                k.opacity(0),
+                k.z(200)
+            ]);
+
+            const pauseText = k.add([
+                k.text("PAUSED", { size: 64 }),
+                k.pos(k.width() / 2, k.height() / 2 - 50),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.opacity(0),
+                k.z(201)
+            ]);
+
+            const pauseHint = k.add([
+                k.text("Press ENTER or Right Click to Resume", { size: 24 }),
+                k.pos(k.width() / 2, k.height() / 2 + 30),
+                k.anchor("center"),
+                k.color(200, 200, 200),
+                k.opacity(0),
+                k.z(201)
+            ]);
+
+            // Pause/Resume function
+            function togglePause() {
+                k.debug.paused = !k.debug.paused;
+
+                if (k.debug.paused) {
+                    // Show pause overlay
+                    music.pause();
+                    pauseOverlay.opacity = 0.7;
+                    pauseText.opacity = 1;
+                    pauseHint.opacity = 1;
+                } else {
+                    // Hide pause overlay
+                    music.play();
+                    pauseOverlay.opacity = 0;
+                    pauseText.opacity = 0;
+                    pauseHint.opacity = 0;
+                }
+            }
+
+            // Pause controls
+            k.onKeyPress("enter", togglePause);
+
+            // Right click to pause
+            document.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                togglePause();
+            });
+
             // Jump controls
             k.onKeyPress("space", () => {
-                if (!player.isJumping) {
+                if (!k.debug.paused && !player.isJumping) {
                     player.velocityY = -JUMP_FORCE;
                     player.isJumping = true;
+                    playJumpSound();
                 }
             });
 
             k.onClick(() => {
-                if (!player.isJumping) {
+                if (!k.debug.paused && !player.isJumping) {
                     player.velocityY = -JUMP_FORCE;
                     player.isJumping = true;
+                    playJumpSound();
                 }
             });
 
             k.onTouchStart(() => {
-                if (!player.isJumping) {
+                if (!k.debug.paused && !player.isJumping) {
                     player.velocityY = -JUMP_FORCE;
                     player.isJumping = true;
+                    playJumpSound();
                 }
             });
 
@@ -220,7 +354,7 @@
             k.loop(SPAWN_INTERVAL, () => {
                 const obstacle = k.add([
                     k.sprite("obstacle"),
-                    k.pos(k.width(), GROUND_Y - 40),
+                    k.pos(k.width(), groundY - 20),
                     k.area({ scale: 0.6 }),  // Smaller collision box
                     k.scale(0.08),  // Much smaller
                     k.anchor("center"),
@@ -232,7 +366,7 @@
 
             // Spawn coins (optional collectibles)
             k.loop(SPAWN_INTERVAL * 2, () => {
-                const yPos = k.rand(GROUND_Y - 200, GROUND_Y - 100);
+                const yPos = k.rand(groundY - 180, groundY - 80);
                 const coin = k.add([
                     k.sprite("coin"),
                     k.pos(k.width(), yPos),
@@ -250,8 +384,15 @@
                 score += k.dt() * 10 * gameSpeed;
                 scoreText.text = `Score: ${Math.floor(score)}`;
 
-                // Gradually increase speed
-                gameSpeed = 1 + Math.floor(score / 100) * 0.1;
+                // Update high score
+                if (Math.floor(score) > highScore) {
+                    highScore = Math.floor(score);
+                    highScoreText.text = `Best: ${highScore}`;
+                    localStorage.setItem('runnerHighScore', highScore.toString());
+                }
+
+                // Gradually increase speed with max cap at 3.5x (slower progression)
+                gameSpeed = Math.min(3.5, 1 + Math.floor(score / 200) * 0.1);
                 speedText.text = `Speed: ${gameSpeed.toFixed(1)}x`;
 
                 // Note: New obstacles will spawn at current gameSpeed
@@ -260,6 +401,8 @@
 
             // Collision with obstacles - Game Over
             player.onCollide("obstacle", () => {
+                playGameOverSound();
+                music.stop();
                 k.go("gameover", Math.floor(score));
             });
 
@@ -267,6 +410,7 @@
             player.onCollide("coin", (coin) => {
                 k.destroy(coin);
                 score += 50;
+                playCoinSound();
                 // Simple particle effect with coin sprites (no area - won't collide)
                 for (let i = 0; i < 8; i++) {
                     k.add([
@@ -282,80 +426,238 @@
                 }
             });
 
-            // Ground decoration (moving grass)
-            k.loop(0.2, () => {
+            // Ground decoration using cute sprite icons (only grass, bush, pebble, mushroom)
+            k.loop(0.5, () => {
+                const xPos = k.width();
+                const frameIndex = k.choose([0, 3, 4, 5]); // grass(0), bush(3), pebble(4), mushroom(5)
+                const scale = k.rand(0.12, 0.18);
+
+                // Offset for second row items
+                const baseOffsets = [0, 0, 0, 18, 268, 270, 240, 240];
+                const yOffset = baseOffsets[frameIndex] * scale;
+
                 k.add([
-                    k.rect(k.rand(5, 15), k.rand(10, 30)),
-                    k.pos(k.width(), GROUND_Y - k.rand(0, 20)),
-                    k.color(80, 150, 80),
+                    k.sprite("ground-deco", { frame: frameIndex }),
+                    k.pos(xPos, groundY + yOffset),
+                    k.scale(scale),
+                    k.anchor("bot"),
                     k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
                     k.offscreen({ destroy: true }),
                     k.z(-1)
                 ]);
             });
 
-            // Clouds in background
-            k.loop(3, () => {
-                const size = k.rand(40, 80);
+            // Falling flowers (decorative effect)
+            k.loop(2, () => {
+                const xPos = k.rand(0, k.width());
+                const flowerFrame = k.choose([1, 2, 6]); // yellow flower, pink flower, daisy
+                const scale = k.rand(0.08, 0.12);
+                const fallSpeed = k.rand(30, 60);
+                const sideSpeed = k.rand(-20, 20);
+
                 k.add([
-                    k.circle(size),
-                    k.pos(k.width(), k.rand(50, 200)),
-                    k.color(255, 255, 255),
+                    k.sprite("ground-deco", { frame: flowerFrame }),
+                    k.pos(xPos, k.rand(-50, 100)),
+                    k.scale(scale),
+                    k.anchor("center"),
+                    k.rotate(k.rand(0, 360)),
+                    k.opacity(0.8),
+                    k.offscreen({ destroy: true }),
+                    k.z(-2),
+                    {
+                        swayTime: 0,
+                        swaySpeed: k.rand(2, 4),
+                        swayAmount: k.rand(20, 40)
+                    }
+                ]);
+            });
+
+            // Update falling flowers with swaying motion
+            k.onUpdate(() => {
+                k.get("*").forEach(obj => {
+                    if (obj.swayTime !== undefined) {
+                        obj.swayTime += k.dt();
+                        // Sway left and right
+                        obj.pos.x += Math.sin(obj.swayTime * obj.swaySpeed) * obj.swayAmount * k.dt();
+                        // Fall down
+                        obj.pos.y += 40 * k.dt();
+                        // Gentle rotation
+                        obj.angle += 30 * k.dt();
+
+                        // Destroy if fallen past ground
+                        if (obj.pos.y > groundY + 100) {
+                            k.destroy(obj);
+                        }
+                    }
+                });
+            });
+
+            // Parallax background - continuous mountain range
+            k.loop(8, () => {
+                k.add([
+                    k.sprite("mountains-range"),
+                    k.pos(k.width(), groundY),
+                    k.scale(k.rand(0.3, 0.5)),
+                    k.anchor("bot"),
+                    k.opacity(0.4),
+                    k.move(k.LEFT, 30),  // Slower parallax
+                    k.offscreen({ destroy: true }),
+                    k.z(-5)
+                ]);
+            });
+
+            // Clouds in background (multiple layers, varied)
+            k.loop(4, () => {
+                const cloudType = k.choose(["cloud", "cloud2"]);
+                k.add([
+                    k.sprite(cloudType),
+                    k.pos(k.width(), k.rand(50, 250)),
+                    k.scale(k.rand(0.15, 0.3)),  // Even smaller clouds
+                    k.opacity(0.7),
+                    k.move(k.LEFT, 40),  // Medium speed
+                    k.offscreen({ destroy: true }),
+                    k.z(-3)
+                ]);
+            });
+
+            // Closer clouds (varied)
+            k.loop(6, () => {
+                const cloudType = k.choose(["cloud", "cloud2"]);
+                k.add([
+                    k.sprite(cloudType),
+                    k.pos(k.width(), k.rand(80, 300)),
+                    k.scale(k.rand(0.2, 0.4)),  // Even smaller clouds
                     k.opacity(0.5),
-                    k.move(k.LEFT, 50),
+                    k.move(k.LEFT, 60),  // Faster
                     k.offscreen({ destroy: true }),
                     k.z(-2)
                 ]);
             });
+
+            // Sun decoration
+            k.add([
+                k.circle(50),
+                k.pos(k.width() - 100, 100),
+                k.color(255, 220, 100),
+                k.opacity(0.8),
+                k.z(-10)
+            ]);
         });
 
         // ===== GAME OVER SCENE =====
         k.scene("gameover", (finalScore) => {
+            // Semi-transparent overlay
             k.add([
                 k.rect(k.width(), k.height()),
                 k.color(0, 0, 0),
                 k.opacity(0.7)
             ]);
 
+            // Game Over panel
             k.add([
-                k.text("Game Over!", { size: 64 }),
-                k.pos(k.width() / 2, k.height() / 2 - 100),
-                k.anchor("center"),
-                k.color(255, 100, 100)
-            ]);
-
-            k.add([
-                k.text(`Final Score: ${finalScore}`, { size: 32 }),
+                k.rect(500, 400, { radius: 16 }),
                 k.pos(k.width() / 2, k.height() / 2),
                 k.anchor("center"),
-                k.color(255, 255, 255)
+                k.color(40, 40, 60),
+                k.opacity(0.95),
+                k.z(1)
+            ]);
+
+            // Title
+            k.add([
+                k.text("Game Over!", { size: 56 }),
+                k.pos(k.width() / 2, k.height() / 2 - 130),
+                k.anchor("center"),
+                k.color(255, 100, 100),
+                k.z(2)
+            ]);
+
+            // Score section
+            k.add([
+                k.text("Score", { size: 24 }),
+                k.pos(k.width() / 2, k.height() / 2 - 50),
+                k.anchor("center"),
+                k.color(200, 200, 200),
+                k.z(2)
             ]);
 
             k.add([
-                k.text("Press SPACE or Click to Restart", { size: 24 }),
-                k.pos(k.width() / 2, k.height() / 2 + 80),
+                k.text(`${finalScore}`, { size: 48 }),
+                k.pos(k.width() / 2, k.height() / 2 - 10),
                 k.anchor("center"),
-                k.color(255, 255, 255)
+                k.color(255, 255, 255),
+                k.z(2)
             ]);
+
+            // High score indicator
+            const isNewRecord = finalScore >= highScore;
+            if (isNewRecord) {
+                k.add([
+                    k.text("🏆 NEW RECORD! 🏆", { size: 28 }),
+                    k.pos(k.width() / 2, k.height() / 2 + 45),
+                    k.anchor("center"),
+                    k.color(255, 215, 0),
+                    k.z(2)
+                ]);
+            } else {
+                k.add([
+                    k.text(`Best: ${highScore}`, { size: 24 }),
+                    k.pos(k.width() / 2, k.height() / 2 + 45),
+                    k.anchor("center"),
+                    k.color(255, 215, 0),
+                    k.z(2)
+                ]);
+            }
+
+            // Restart button background
+            const restartBtn = k.add([
+                k.rect(300, 60, { radius: 8 }),
+                k.pos(k.width() / 2, k.height() / 2 + 130),
+                k.anchor("center"),
+                k.color(100, 200, 100),
+                k.area(),
+                k.z(2),
+                "restart-btn"
+            ]);
+
+            // Restart button text
+            k.add([
+                k.text("RESTART", { size: 28 }),
+                k.pos(k.width() / 2, k.height() / 2 + 130),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.z(3)
+            ]);
+
+            // Button hover effect
+            restartBtn.onHover(() => {
+                restartBtn.color = k.rgb(120, 220, 120);
+            });
+
+            restartBtn.onHoverEnd(() => {
+                restartBtn.color = k.rgb(100, 200, 100);
+            });
 
             // Restart controls
             function restart() {
                 k.go("game");
             }
 
+            restartBtn.onClick(restart);
             k.onKeyPress("space", restart);
             k.onKeyPress("r", restart);
-            k.onClick(restart);
             k.onTouchStart(restart);
         });
 
         // ===== MENU SCENE =====
         k.scene("menu", () => {
-            // Add background to menu too
+            // Background - cover entire screen (may crop edges)
+            const bgScale = Math.max(k.width() / 512, k.height() / 512);
             k.add([
                 k.sprite("background"),
-                k.pos(0, 0),
-                k.scale(1),
+                k.pos(k.width() / 2, k.height() / 2),
+                k.anchor("center"),
+                k.scale(bgScale),
                 k.z(-10)
             ]);
 
@@ -364,13 +666,6 @@
                 k.pos(k.width() / 2, k.height() / 2 - 100),
                 k.anchor("center"),
                 k.color(255, 255, 255)
-            ]);
-
-            k.add([
-                k.text("KAPLAY Prototype", { size: 24 }),
-                k.pos(k.width() / 2, k.height() / 2 - 40),
-                k.anchor("center"),
-                k.color(200, 200, 200)
             ]);
 
             const startBtn = k.add([
@@ -408,19 +703,39 @@
                 k.go("game");
             });
 
-            // Instructions
+            // Instructions - Background panel for contrast
             k.add([
-                k.text("Controls: SPACE / Click / Tap to Jump", { size: 18 }),
-                k.pos(k.width() / 2, k.height() - 80),
+                k.rect(700, 150, { radius: 12 }),
+                k.pos(k.width() / 2, k.height() - 140),
                 k.anchor("center"),
-                k.color(200, 200, 200)
+                k.color(0, 0, 0),
+                k.opacity(0.7),
+                k.z(1)
+            ]);
+
+            // Instructions text
+            k.add([
+                k.text("🎮 Controls", { size: 28 }),
+                k.pos(k.width() / 2, k.height() - 180),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.z(2)
             ]);
 
             k.add([
-                k.text("Avoid obstacles, collect coins!", { size: 18 }),
-                k.pos(k.width() / 2, k.height() - 50),
+                k.text("SPACE / Click / Tap to Jump", { size: 22 }),
+                k.pos(k.width() / 2, k.height() - 140),
                 k.anchor("center"),
-                k.color(200, 200, 200)
+                k.color(255, 255, 255),
+                k.z(2)
+            ]);
+
+            k.add([
+                k.text("Avoid obstacles 🌵 • Collect coins 💰", { size: 20 }),
+                k.pos(k.width() / 2, k.height() - 100),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.z(2)
             ]);
         });
 
