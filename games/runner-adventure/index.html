@@ -82,11 +82,17 @@
         const k = kaplay({
             width: 800,
             height: 600,
-            background: [135, 206, 235], // Sky blue
+            background: [135, 206, 235], // Sky blue (will be replaced by image)
             canvas: document.querySelector('#game-container canvas') || undefined,
             parent: document.querySelector('#game-container'),
             gravity: 2400  // Increased gravity
         });
+
+        // Load assets
+        k.loadSprite("player", "assets/images/player.png");
+        k.loadSprite("obstacle", "assets/images/obstacle.png");
+        k.loadSprite("coin", "assets/images/coin.png");
+        k.loadSprite("background", "assets/images/background.png");
 
         // Constants
         const GRAVITY = 1200;  // Gravity acceleration
@@ -100,7 +106,7 @@
         let score = 0;
         let gameSpeed = 1;
 
-        // Colors
+        // Colors (for fallback)
         const COLORS = {
             player: [255, 200, 50],    // Yellow
             obstacle: [220, 50, 50],   // Red
@@ -108,10 +114,23 @@
             coin: [255, 215, 0]        // Gold
         };
 
+        // Wait for assets to load before starting
+        k.onLoading((progress) => {
+            console.log(`Loading: ${Math.floor(progress * 100)}%`);
+        });
+
         // ===== GAME SCENE =====
         k.scene("game", () => {
             score = 0;
             gameSpeed = 1;
+
+            // Add background
+            k.add([
+                k.sprite("background"),
+                k.pos(0, 0),
+                k.scale(1),
+                k.z(-10)
+            ]);
 
             // Add ground
             const ground = k.add([
@@ -123,20 +142,22 @@
                 "ground"
             ]);
 
-            // Add player (no k.body() - manual physics)
+            // Add player (using sprite)
             const player = k.add([
-                k.rect(40, 60),
+                k.sprite("player", { flipX: true }),  // Flip to face right
                 k.pos(100, GROUND_Y - 60),
-                k.area(),
-                k.color(COLORS.player),
+                k.area({ scale: 0.5 }),  // Smaller collision box
+                k.scale(0.08),  // Much smaller
+                k.anchor("center"),
                 "player",
                 {
                     velocityY: 0,
-                    isJumping: false
+                    isJumping: false,
+                    runBounce: 0  // For running animation
                 }
             ]);
 
-            // Manual gravity and physics
+            // Manual gravity and physics + running animation
             player.onUpdate(() => {
                 // Apply gravity
                 player.velocityY += GRAVITY * k.dt();
@@ -147,6 +168,13 @@
                     player.pos.y = GROUND_Y - 60;
                     player.velocityY = 0;
                     player.isJumping = false;
+                }
+
+                // Running animation - bounce when on ground
+                if (!player.isJumping) {
+                    player.runBounce += k.dt() * 20;
+                    const bounce = Math.sin(player.runBounce) * 2;
+                    player.pos.y = GROUND_Y - 60 + bounce;
                 }
             });
 
@@ -190,13 +218,13 @@
 
             // Spawn obstacles
             k.loop(SPAWN_INTERVAL, () => {
-                const height = k.rand(30, 80);
                 const obstacle = k.add([
-                    k.rect(30, height),
-                    k.pos(k.width(), GROUND_Y - height),
-                    k.area(),
+                    k.sprite("obstacle"),
+                    k.pos(k.width(), GROUND_Y - 40),
+                    k.area({ scale: 0.6 }),  // Smaller collision box
+                    k.scale(0.08),  // Much smaller
+                    k.anchor("center"),
                     k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
-                    k.color(COLORS.obstacle),
                     k.offscreen({ destroy: true }),
                     "obstacle"
                 ]);
@@ -206,13 +234,14 @@
             k.loop(SPAWN_INTERVAL * 2, () => {
                 const yPos = k.rand(GROUND_Y - 200, GROUND_Y - 100);
                 const coin = k.add([
-                    k.circle(15),
+                    k.sprite("coin"),
                     k.pos(k.width(), yPos),
-                    k.area(),
+                    k.area({ scale: 0.8 }),  // Slightly smaller collision for easier collection
+                    k.scale(0.05),  // Smaller coin
+                    k.anchor("center"),
                     k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
-                    k.color(COLORS.coin),
                     k.offscreen({ destroy: true }),
-                    "coin"
+                    "coin"  // Make sure it's tagged as coin, not obstacle
                 ]);
             });
 
@@ -238,15 +267,17 @@
             player.onCollide("coin", (coin) => {
                 k.destroy(coin);
                 score += 50;
-                // Simple particle effect
+                // Simple particle effect with coin sprites (no area - won't collide)
                 for (let i = 0; i < 8; i++) {
                     k.add([
-                        k.circle(3),
+                        k.sprite("coin"),
                         k.pos(coin.pos),
-                        k.color(COLORS.coin),
+                        k.scale(0.03),
                         k.opacity(1),
                         k.lifespan(0.3),
-                        k.move(k.rand(0, 360), k.rand(100, 200))
+                        k.move(k.rand(0, 360), k.rand(100, 200)),
+                        k.z(10)  // Above everything
+                        // NOTE: No k.area() so particles won't trigger collisions
                     ]);
                 }
             });
@@ -320,6 +351,14 @@
 
         // ===== MENU SCENE =====
         k.scene("menu", () => {
+            // Add background to menu too
+            k.add([
+                k.sprite("background"),
+                k.pos(0, 0),
+                k.scale(1),
+                k.z(-10)
+            ]);
+
             k.add([
                 k.text("Runner Adventure", { size: 56 }),
                 k.pos(k.width() / 2, k.height() / 2 - 100),
@@ -340,6 +379,7 @@
                 k.anchor("center"),
                 k.color(100, 200, 100),
                 k.area(),
+                k.opacity(0.9),
                 "button"
             ]);
 
