@@ -22,6 +22,95 @@ This file contains important guidelines for Claude when working on this project.
 - All UI text must go through internationalization
 - Provide language switching functionality
 
+## Project Structure 📁
+
+### Game Directory Structure
+
+**IMPORTANT: Each game MUST have its own directory under `games/`**
+
+```
+games/
+├── game-name/                    # Each game has its own directory
+│   ├── index.html               # Main game file
+│   ├── styles.css               # Game styles (optional, can be inline)
+│   ├── script.js                # Game logic (optional, can be inline)
+│   ├── README.md                # Game-specific README
+│   ├── assets/                  # Game assets
+│   │   ├── images/             # Images for this game
+│   │   └── sounds/             # Sounds for this game
+│   └── docs/                    # Game-specific documentation
+│       ├── design.md           # Game design document
+│       ├── decisions.md        # Architecture decisions for this game
+│       └── user-guide.md       # How to play (multi-language)
+```
+
+### Documentation Rules
+
+**Project-level docs:** `/docs/` (shared knowledge, lessons learned, best practices)
+```
+docs/
+├── development-logs/           # Overall project progress
+├── lessons-learned/            # Project-wide lessons
+├── architecture/               # Shared architecture decisions
+├── best-practices/             # Team-wide best practices
+└── knowledge-base/             # Shared knowledge
+```
+
+**Game-specific docs:** `games/[game-name]/docs/` (only for that specific game)
+```
+games/memory-match/docs/
+├── design.md                   # This game's design
+├── decisions.md                # This game's technical decisions
+└── user-guide.md               # How to play this game
+```
+
+### File Location Rules
+
+When creating a new game:
+
+1. **Create game directory:** `games/[game-name]/`
+2. **All game files go in that directory:** HTML, CSS, JS, assets
+3. **Game documentation goes in:** `games/[game-name]/docs/`
+4. **NOT in:** `.claude/`, `/docs/`, or project root
+
+### Example: Memory Match Game
+
+```
+games/memory-match/
+├── index.html                          # The game
+├── README.md                           # What this game is
+├── assets/
+│   ├── images/
+│   │   ├── cat.png                    # Animal card images
+│   │   ├── dog.png
+│   │   └── ...
+│   └── sounds/
+│       ├── flip.mp3                   # Game sounds
+│       └── match.mp3
+└── docs/
+    ├── design.md                      # Game design for memory match
+    ├── decisions.md                   # Why we chose certain approaches
+    └── user-guide.md                  # How to play memory match
+```
+
+### Wrong Locations ❌
+
+```
+❌ .claude/docs/game-design.md         # Wrong: game docs in agent directory
+❌ docs/memory-match-design.md         # Wrong: game docs in project docs
+❌ memory-match.html                   # Wrong: game in project root
+❌ games/memory-match.html             # Wrong: game file directly in games/
+```
+
+### Correct Locations ✅
+
+```
+✅ games/memory-match/index.html       # Correct: game in its directory
+✅ games/memory-match/docs/design.md   # Correct: game docs with game
+✅ games/memory-match/assets/cat.png   # Correct: assets with game
+✅ docs/lessons-learned/2025-01-05.md  # Correct: project-wide lessons
+```
+
 ## Code Examples
 
 ### ✅ CORRECT
