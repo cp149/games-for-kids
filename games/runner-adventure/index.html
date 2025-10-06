@@ -357,33 +357,41 @@
                 // Add rotation and special effects for star
                 if (coinType.name === "star") {
                     coin.sparkleTimer = 0;
-                    coin.onUpdate(() => {
+                    const updateHandler = coin.onUpdate(() => {
+                        // Check if coin is destroyed or off-screen
+                        if (!coin.exists() || coin.pos.x < -100) {
+                            return;
+                        }
+
                         // Rotation
                         coin.angle += 360 * this.k.dt();
 
-                        // Sparkle particles
-                        coin.sparkleTimer += this.k.dt();
-                        if (coin.sparkleTimer >= 0.15) {
-                            coin.sparkleTimer = 0;
-                            // Spawn small sparkle particles
-                            const angle = this.k.rand(0, 360);
-                            const dist = this.k.rand(15, 25);
-                            const sparklePos = coin.pos.add(this.k.Vec2.fromAngle(angle).scale(dist));
+                        // Sparkle particles (only if on screen)
+                        if (coin.pos.x < this.k.width() + 50) {
+                            coin.sparkleTimer += this.k.dt();
+                            if (coin.sparkleTimer >= 0.15) {
+                                coin.sparkleTimer = 0;
+                                // Spawn small sparkle particles
+                                const angle = this.k.rand(0, 360);
+                                const dist = this.k.rand(15, 25);
+                                const sparklePos = coin.pos.add(this.k.Vec2.fromAngle(angle).scale(dist));
 
-                            this.k.add([
-                                this.k.rect(3, 3),
-                                this.k.pos(sparklePos),
-                                this.k.color(255, 255, 200),
-                                this.k.opacity(1),
-                                this.k.anchor("center"),
-                                this.k.lifespan(0.3),
-                                this.k.z(5)
-                            ]);
+                                this.k.add([
+                                    this.k.rect(3, 3),
+                                    this.k.pos(sparklePos),
+                                    this.k.color(255, 255, 200),
+                                    this.k.opacity(1),
+                                    this.k.anchor("center"),
+                                    this.k.lifespan(0.3),
+                                    this.k.z(5)
+                                ]);
+                            }
                         }
                     });
                 } else if (coinType.rotate) {
                     // Rotation only for other rotating coins
                     coin.onUpdate(() => {
+                        if (!coin.exists()) return;
                         coin.angle += 360 * this.k.dt();
                     });
                 }
@@ -405,13 +413,13 @@
                         ]);
 
                         outerGlow.onUpdate(() => {
-                            if (coin.exists()) {
-                                outerGlow.pos = coin.pos;
-                                const pulse = 1 + Math.sin(this.k.time() * 2) * 0.4;
-                                outerGlow.scale = this.k.vec2(pulse, pulse);
-                            } else {
-                                this.k.destroy(outerGlow);
+                            if (!coin.exists() || !outerGlow.exists()) {
+                                if (outerGlow.exists()) this.k.destroy(outerGlow);
+                                return;
                             }
+                            outerGlow.pos = coin.pos;
+                            const pulse = 1 + Math.sin(this.k.time() * 2) * 0.4;
+                            outerGlow.scale = this.k.vec2(pulse, pulse);
                         });
 
                         // Inner glow (smaller, faster pulse)
@@ -427,13 +435,13 @@
                         ]);
 
                         innerGlow.onUpdate(() => {
-                            if (coin.exists()) {
-                                innerGlow.pos = coin.pos;
-                                const pulse = 1 + Math.sin(this.k.time() * 5) * 0.5;
-                                innerGlow.scale = this.k.vec2(pulse, pulse);
-                            } else {
-                                this.k.destroy(innerGlow);
+                            if (!coin.exists() || !innerGlow.exists()) {
+                                if (innerGlow.exists()) this.k.destroy(innerGlow);
+                                return;
                             }
+                            innerGlow.pos = coin.pos;
+                            const pulse = 1 + Math.sin(this.k.time() * 5) * 0.5;
+                            innerGlow.scale = this.k.vec2(pulse, pulse);
                         });
 
                         coin.glowEffect = [outerGlow, innerGlow];
@@ -451,13 +459,13 @@
                         ]);
 
                         glow.onUpdate(() => {
-                            if (coin.exists()) {
-                                glow.pos = coin.pos;
-                                const pulse = 1 + Math.sin(this.k.time() * 3) * 0.3;
-                                glow.scale = this.k.vec2(pulse, pulse);
-                            } else {
-                                this.k.destroy(glow);
+                            if (!coin.exists() || !glow.exists()) {
+                                if (glow.exists()) this.k.destroy(glow);
+                                return;
                             }
+                            glow.pos = coin.pos;
+                            const pulse = 1 + Math.sin(this.k.time() * 3) * 0.3;
+                            glow.scale = this.k.vec2(pulse, pulse);
                         });
 
                         coin.glowEffect = glow;
@@ -902,6 +910,12 @@
             // Collision with obstacles - Game Over
             player.onCollide("obstacle", (obstacle) => {
                 if (invincible) {
+                    // Prevent double destruction
+                    if (!obstacle.exists()) return;
+
+                    // Save position before destruction
+                    const obstaclePos = obstacle.pos.clone();
+
                     // Destroy obstacle instead of game over
                     k.destroy(obstacle);
 
@@ -914,7 +928,7 @@
 
                         k.add([
                             k.rect(6, 6),
-                            k.pos(obstacle.pos),
+                            k.pos(obstaclePos),
                             k.color(rgb[0], rgb[1], rgb[2]),
                             k.opacity(1),
                             k.anchor("center"),
@@ -1040,6 +1054,8 @@
 
                 // Animate score popup
                 scorePopup.onUpdate(() => {
+                    if (!scorePopup.exists()) return;
+
                     scorePopup.pos = scorePopup.pos.add(scorePopup.vel.scale(k.dt()));
                     scorePopup.opacity -= k.dt() * 0.8;
 
@@ -1116,9 +1132,12 @@
                                         expandSpeed: 200
                                     }
                                 ]).onUpdate(function() {
+                                    if (!this.exists()) return;
                                     this.radius += this.expandSpeed * k.dt();
                                     this.opacity -= k.dt() * 2;
-                                    if (this.opacity <= 0) k.destroy(this);
+                                    if (this.opacity <= 0 && this.exists()) {
+                                        k.destroy(this);
+                                    }
                                 });
                             });
                         }
@@ -1187,6 +1206,8 @@
 
                 // Add update behavior directly to flower
                 flower.onUpdate(() => {
+                    if (!flower.exists()) return;
+
                     flower.swayTime += k.dt();
                     // Sway left and right
                     flower.pos.x += Math.sin(flower.swayTime * flower.swaySpeed) * flower.swayAmount * k.dt();
@@ -1196,7 +1217,7 @@
                     flower.angle += 30 * k.dt();
 
                     // Destroy if fallen past ground
-                    if (flower.pos.y > groundY + 100) {
+                    if (flower.pos.y > groundY + 100 && flower.exists()) {
                         k.destroy(flower);
                     }
                 });
