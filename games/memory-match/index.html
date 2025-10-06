@@ -766,6 +766,199 @@
 
         const i18n = new SimpleI18n(messages, 'en');
 
+        // Sound Manager using Web Audio API
+        class SoundManager {
+            constructor() {
+                this.enabled = true;
+                this.bgmVolume = 0.3;
+                this.sfxVolume = 0.5;
+
+                // Create Audio Context for sound effects
+                this.audioContext = null;
+
+                // Background music
+                this.bgm = new Audio('assets/sounds/bgm-main.mp3');
+                this.bgm.loop = true;
+                this.bgm.volume = this.bgmVolume;
+
+                // Try to initialize Audio Context (needs user interaction)
+                this.initAudioContext();
+            }
+
+            initAudioContext() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.warn('Web Audio API not supported');
+                }
+            }
+
+            // Start background music
+            startBGM() {
+                if (this.enabled && this.bgm.paused) {
+                    this.bgm.play().catch(e => {
+                        // Autoplay might be blocked, will play after user interaction
+                    });
+                }
+            }
+
+            // Stop background music
+            stopBGM() {
+                this.bgm.pause();
+            }
+
+            // Toggle sound on/off
+            toggle() {
+                this.enabled = !this.enabled;
+                if (this.enabled) {
+                    this.startBGM();
+                } else {
+                    this.stopBGM();
+                }
+                return this.enabled;
+            }
+
+            // Play card flip sound
+            playCardFlip() {
+                if (!this.enabled || !this.audioContext) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.1);
+
+                gainNode.gain.setValueAtTime(this.sfxVolume * 0.3, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.15);
+            }
+
+            // Play match success sound
+            playMatchSuccess() {
+                if (!this.enabled || !this.audioContext) return;
+
+                const times = [0, 0.1, 0.2];
+                const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5 (major chord)
+
+                times.forEach((time, index) => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(frequencies[index], this.audioContext.currentTime + time);
+
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.4, this.audioContext.currentTime + time);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + time + 0.5);
+
+                    oscillator.start(this.audioContext.currentTime + time);
+                    oscillator.stop(this.audioContext.currentTime + time + 0.5);
+                });
+            }
+
+            // Play match fail sound
+            playMatchFail() {
+                if (!this.enabled || !this.audioContext) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
+
+                gainNode.gain.setValueAtTime(this.sfxVolume * 0.2, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.3);
+            }
+
+            // Play victory sound
+            playVictory() {
+                if (!this.enabled || !this.audioContext) return;
+
+                // Triumphant fanfare
+                const melody = [
+                    { freq: 523.25, time: 0, duration: 0.2 },    // C5
+                    { freq: 659.25, time: 0.2, duration: 0.2 },  // E5
+                    { freq: 783.99, time: 0.4, duration: 0.2 },  // G5
+                    { freq: 1046.50, time: 0.6, duration: 0.6 }  // C6
+                ];
+
+                melody.forEach(note => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(note.freq, this.audioContext.currentTime + note.time);
+
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.5, this.audioContext.currentTime + note.time);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + note.time + note.duration);
+
+                    oscillator.start(this.audioContext.currentTime + note.time);
+                    oscillator.stop(this.audioContext.currentTime + note.time + note.duration);
+                });
+            }
+
+            // Play button click sound
+            playButtonClick() {
+                if (!this.enabled || !this.audioContext) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+
+                gainNode.gain.setValueAtTime(this.sfxVolume * 0.2, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.05);
+
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.05);
+            }
+
+            // Play star rating sound
+            playStar(starNumber) {
+                if (!this.enabled || !this.audioContext) return;
+
+                const baseFreq = 800;
+                const freq = baseFreq + (starNumber * 200); // Higher pitch for each star
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(freq * 1.5, this.audioContext.currentTime + 0.1);
+
+                gainNode.gain.setValueAtTime(this.sfxVolume * 0.3, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.4);
+
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.4);
+            }
+        }
+
         // Game State
         class MemoryGame {
             constructor() {
@@ -776,7 +969,6 @@
                 this.timer = 0;
                 this.timerInterval = null;
                 this.isProcessing = false;
-                this.soundEnabled = true;
 
                 this.animals = [
                     { name: 'cat', image: 'assets/images/cat.png' },
@@ -786,6 +978,9 @@
                     { name: 'elephant', image: 'assets/images/elephant.png' },
                     { name: 'lion', image: 'assets/images/lion.png' }
                 ];
+
+                // Initialize sound manager
+                this.soundManager = new SoundManager();
 
                 this.initializeGame();
                 this.setupEventListeners();
@@ -866,6 +1061,9 @@
             flipCard(index) {
                 const cardElement = document.querySelector(`[data-index="${index}"]`);
                 cardElement.classList.add('flipped');
+
+                // Start BGM on first interaction
+                this.soundManager.startBGM();
             }
 
             checkMatch() {
@@ -897,6 +1095,8 @@
                 card1.classList.add('matched');
                 card2.classList.add('matched');
 
+                this.soundManager.playMatchSuccess();
+
                 this.matchedPairs++;
                 this.flippedCards = [];
                 this.isProcessing = false;
@@ -910,6 +1110,8 @@
                 const card1 = document.querySelector(`[data-index="${index1}"]`);
                 const card2 = document.querySelector(`[data-index="${index2}"]`);
 
+                this.soundManager.playMatchFail();
+
                 card1.classList.remove('flipped');
                 card2.classList.remove('flipped');
 
@@ -920,9 +1122,20 @@
             handleVictory() {
                 this.stopTimer();
 
+                // Play victory sound
+                this.soundManager.playVictory();
+
                 // Calculate star rating
                 const stars = this.getStarRating(this.moves);
+                const starCount = stars.length / 2; // Count ⭐ symbols
                 const encouragement = this.getEncouragementMessage(this.moves);
+
+                // Play star sounds with delay
+                for (let i = 1; i <= starCount; i++) {
+                    setTimeout(() => {
+                        this.soundManager.playStar(i);
+                    }, 800 + (i * 200));
+                }
 
                 // Update victory modal
                 document.getElementById('finalTime').textContent = this.formatTime(this.timer);
@@ -991,10 +1204,12 @@
 
             setupEventListeners() {
                 document.getElementById('newGameButton').addEventListener('click', () => {
+                    this.soundManager.playButtonClick();
                     this.resetGame();
                 });
 
                 document.getElementById('playAgainButton').addEventListener('click', () => {
+                    this.soundManager.playButtonClick();
                     this.resetGame();
                 });
 
@@ -1047,8 +1262,9 @@
             }
 
             toggleSound() {
-                this.soundEnabled = !this.soundEnabled;
-                document.getElementById('soundIcon').textContent = this.soundEnabled ? '🔊' : '🔇';
+                const enabled = this.soundManager.toggle();
+                document.getElementById('soundIcon').textContent = enabled ? '🔊' : '🔇';
+                this.soundManager.playButtonClick();
             }
         }
 
