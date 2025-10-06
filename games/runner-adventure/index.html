@@ -149,6 +149,53 @@
             console.log("All assets loaded!");
         });
 
+        // ===== GROUND DECORATOR CLASS =====
+        class GroundDecorator {
+            constructor(k, groundY, speed) {
+                this.k = k;
+                this.groundY = groundY;
+                this.speed = speed;
+
+                // Frame configurations: [frameIndex, yOffset, minScale, maxScale]
+                // Using anchor("center") like obstacle (groundY - 20)
+                // Negative offset moves up from groundY
+                this.decoConfigs = [
+                    { frame: 0, offset: -20, name: 'grass' },      // grass (row 1)
+                    { frame: 3, offset: -20, name: 'bush' },       // bush (row 1)
+                    { frame: 4, offset: 12, name: 'pebble' },      // pebble (row 2) - lower than mushroom
+                    { frame: 5, offset: 5, name: 'mushroom' }      // mushroom (row 2)
+                ];
+
+                this.spawnInterval = 0.5; // seconds
+                this.minScale = 0.13;
+                this.maxScale = 0.19;
+            }
+
+            spawn() {
+                const config = this.k.choose(this.decoConfigs);
+                const scale = this.k.rand(this.minScale, this.maxScale);
+                // Use same anchor as obstacle for consistency
+                const yOffset = config.offset;
+
+                this.k.add([
+                    this.k.sprite("ground-deco", { frame: config.frame }),
+                    this.k.pos(this.k.width(), this.groundY + yOffset),
+                    this.k.scale(scale),
+                    this.k.anchor("center"),  // Same as obstacle
+                    this.k.move(this.k.LEFT, this.speed),
+                    this.k.offscreen({ destroy: true }),
+                    this.k.z(-1),
+                    `ground-deco-${config.name}`
+                ]);
+            }
+
+            startSpawning() {
+                return this.k.loop(this.spawnInterval, () => {
+                    this.spawn();
+                });
+            }
+        }
+
         // ===== GAME SCENE =====
         k.scene("game", () => {
             score = 0;
@@ -189,7 +236,7 @@
             // Add player (using animated sprite)
             const player = k.add([
                 k.sprite("player-run"),
-                k.pos(100, groundY - 30),
+                k.pos(100, groundY - 25),
                 k.area({ scale: 0.15 }),  // Much tighter collision box
                 k.scale(0.35),  // Larger size
                 k.anchor("center"),
@@ -211,8 +258,8 @@
                 player.pos.y += player.velocityY * k.dt();
 
                 // Ground collision check
-                if (player.pos.y >= groundY - 30) {
-                    player.pos.y = groundY - 30;
+                if (player.pos.y >= groundY - 25) {
+                    player.pos.y = groundY - 25;
 
                     // Landing dust effect
                     if (wasInAir) {
@@ -426,26 +473,9 @@
                 }
             });
 
-            // Ground decoration using cute sprite icons (only grass, bush, pebble, mushroom)
-            k.loop(0.5, () => {
-                const xPos = k.width();
-                const frameIndex = k.choose([0, 3, 4, 5]); // grass(0), bush(3), pebble(4), mushroom(5)
-                const scale = k.rand(0.12, 0.18);
-
-                // Offset for second row items
-                const baseOffsets = [0, 0, 0, 18, 268, 270, 240, 240];
-                const yOffset = baseOffsets[frameIndex] * scale;
-
-                k.add([
-                    k.sprite("ground-deco", { frame: frameIndex }),
-                    k.pos(xPos, groundY + yOffset),
-                    k.scale(scale),
-                    k.anchor("bot"),
-                    k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
-                    k.offscreen({ destroy: true }),
-                    k.z(-1)
-                ]);
-            });
+            // Ground decoration using GroundDecorator class
+            const groundDecorator = new GroundDecorator(k, groundY, OBSTACLE_SPEED * gameSpeed);
+            groundDecorator.startSpawning();
 
             // Falling flowers (decorative effect)
             k.loop(2, () => {
