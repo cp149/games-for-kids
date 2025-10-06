@@ -215,7 +215,7 @@ Match Triggered (t=0)
 
 1. **Open the game:**
    ```
-   /home/wxcd/mgame/games/memory-match/index.html
+   /games/memory-match/index.html
    ```
 
 2. **Play and observe:**

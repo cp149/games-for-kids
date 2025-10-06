@@ -59,7 +59,7 @@ oscillator.onended = () => {
 | Paint Time | 12-18ms | 4-8ms | 60% faster |
 
 ## Files Modified
-- `/home/wxcd/mgame/games/memory-match/index.html` (~120 lines changed)
+- `/games/memory-match/index.html` (~120 lines changed)
 
 ## Testing
 Open browser DevTools → Performance tab → Record while playing

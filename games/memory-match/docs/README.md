@@ -271,19 +271,19 @@ This directory contains comprehensive documentation for the **Visual Feedback En
 ### Play the Enhanced Game
 ```bash
 # Open in browser
-/home/wxcd/mgame/games/memory-match/index.html
+/games/memory-match/index.html
 ```
 
 ### View Interactive Demo
 ```bash
 # Open showcase
-/home/wxcd/mgame/games/memory-match/docs/VISUAL_SHOWCASE.html
+/games/memory-match/docs/VISUAL_SHOWCASE.html
 ```
 
 ### Read Documentation
 ```bash
 # Start here
-/home/wxcd/mgame/games/memory-match/docs/VISUAL_FEEDBACK_IMPROVEMENTS.md
+/games/memory-match/docs/VISUAL_FEEDBACK_IMPROVEMENTS.md
 ```
 
 ---

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extensions Demo - All Features</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        #game-container {
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background: #87CEEB;
+        }
+
+        .info {
+            margin-top: 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+        }
+
+        .info p {
+            margin: 5px 0;
+            font-size: 1rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .feature {
+            padding: 5px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Extension Showcase</h1>
+
+    <div id="game-container"></div>
+
+    <div class="info">
+        <p><strong>Demonstrates all 4 extensions working together:</strong></p>
+        <div class="features">
+            <div class="feature">✅ SimpleI18n - Multi-language (1/2/3 keys)</div>
+            <div class="feature">✅ ScoreManager - Scoring & combos</div>
+            <div class="feature">✅ TextToSpeech - Voice feedback (T to toggle)</div>
+            <div class="feature">✅ UIComponents - Buttons, modals, stars</div>
+        </div>
+        <p style="margin-top: 15px;"><strong>Controls:</strong> Click coins to collect | T = Toggle TTS | 1/2/3 = Languages</p>
+    </div>
+
+    <script type="module">
+        // Import KAPLAY
+        import kaplay from "https://unpkg.com/kaplay@3001.0.0/dist/kaplay.mjs";
+
+        // Import all extensions
+        import { SimpleI18n } from './i18n/SimpleI18n.js';
+        import { ScoreManager } from './scoring/ScoreManager.js';
+        import { TextToSpeech } from './tts/TextToSpeech.js';
+        import { UIComponents } from './ui/UIComponents.js';
+
+        // Initialize KAPLAY
+        const k = kaplay({
+            width: 800,
+            height: 600,
+            background: [135, 206, 235],
+            parent: document.querySelector('#game-container')
+        });
+
+        // Initialize extensions
+        const i18n = new SimpleI18n('en');
+        const score = new ScoreManager({
+            starThresholds: [50, 150, 300],
+            comboTimeout: 2
+        });
+        const tts = new TextToSpeech(i18n, {
+            rate: 0.9,
+            pitch: 1.1,
+            volume: 0.8
+        });
+        const ui = new UIComponents(k, i18n);
+
+        // Add translations
+        i18n.addTranslations({
+            en: {
+                title: "Extension Showcase",
+                start: "Start Demo",
+                instructions: "Click coins to collect!",
+                score: "Score",
+                combo: "Combo",
+                stars: "Stars",
+                tts_on: "TTS: ON",
+                tts_off: "TTS: OFF",
+                game_over: "Demo Complete!",
+                final_score: "Final Score: {0}",
+                retry: "Play Again",
+                menu: "Main Menu",
+                coin_collected: "Coin collected!",
+                combo_started: "Combo started!",
+                new_high_score: "New high score!",
+                welcome: "Welcome! Collect coins to score points."
+            },
+            zh: {
+                title: "扩展展示",
+                start: "开始演示",
+                instructions: "点击金币收集！",
+                score: "得分",
+                combo: "连击",
+                stars: "星星",
+                tts_on: "语音：开",
+                tts_off: "语音：关",
+                game_over: "演示完成！",
+                final_score: "最终得分：{0}",
+                retry: "再玩一次",
+                menu: "主菜单",
+                coin_collected: "收集了金币！",
+                combo_started: "连击开始！",
+                new_high_score: "新高分！",
+                welcome: "欢迎！收集金币得分。"
+            },
+            ja: {
+                title: "拡張機能ショーケース",
+                start: "デモ開始",
+                instructions: "コインをクリックして収集！",
+                score: "スコア",
+                combo: "コンボ",
+                stars: "星",
+                tts_on: "音声：オン",
+                tts_off: "音声：オフ",
+                game_over: "デモ完了！",
+                final_score: "最終スコア：{0}",
+                retry: "もう一度",
+                menu: "メインメニュー",
+                coin_collected: "コインを集めた！",
+                combo_started: "コンボスタート！",
+                new_high_score: "新記録！",
+                welcome: "ようこそ！コインを集めてポイントを獲得。"
+            }
+        });
+
+        // Update UI when language changes
+        i18n.onLanguageChange(() => {
+            // Scene will be recreated, so just reload the scene
+            k.go(k.getSceneName());
+        });
+
+        // ===== MENU SCENE =====
+        k.scene("menu", () => {
+            // Title
+            k.add([
+                k.text(i18n.t('title'), { size: 56 }),
+                k.pos(k.center().sub(0, 150)),
+                k.anchor('center'),
+                k.color(255, 255, 255)
+            ]);
+
+            // Start button
+            ui.createButton(
+                k.center(),
+                'start',
+                () => {
+                    tts.speakKey('welcome');
+                    k.go('game');
+                },
+                { width: 250, height: 70, fontSize: 28 }
+            );
+
+            // Instructions
+            k.add([
+                k.text(i18n.t('instructions'), { size: 20 }),
+                k.pos(k.center().add(0, 100)),
+                k.anchor('center'),
+                k.color(255, 255, 255)
+            ]);
+
+            // Language selector info
+            k.add([
+                k.text('Press 1=EN, 2=CN, 3=JP to change language', { size: 16 }),
+                k.pos(k.center().add(0, 150)),
+                k.anchor('center'),
+                k.color(200, 200, 200)
+            ]);
+
+            // TTS status
+            const ttsStatus = k.add([
+                k.text(i18n.t(tts.isEnabled() ? 'tts_on' : 'tts_off'), { size: 16 }),
+                k.pos(k.center().add(0, 180)),
+                k.anchor('center'),
+                k.color(200, 200, 200)
+            ]);
+
+            k.onKeyPress('t', () => {
+                tts.toggle();
+                ttsStatus.text = i18n.t(tts.isEnabled() ? 'tts_on' : 'tts_off');
+            });
+        });
+
+        // ===== GAME SCENE =====
+        k.scene("game", () => {
+            score.reset();
+            let coinsCollected = 0;
+            const maxCoins = 10;
+
+            // Score display
+            const scoreText = k.add([
+                k.text(`${i18n.t('score')}: ${score.getScore()}`, { size: 28 }),
+                k.pos(20, 20),
+                k.color(255, 255, 255)
+            ]);
+
+            // Combo display
+            const comboText = k.add([
+                k.text('', { size: 24 }),
+                k.pos(20, 60),
+                k.color(255, 200, 0)
+            ]);
+
+            // Progress bar
+            const progressBar = ui.createProgressBar(
+                { x: k.width() / 2, y: 30 },
+                {
+                    maxValue: maxCoins,
+                    currentValue: 0,
+                    width: 300,
+                    showText: true
+                }
+            );
+
+            // Star display
+            const starDisplay = ui.createStars(
+                { x: k.width() - 150, y: 60 },
+                0,
+                { size: 40, spacing: 50 }
+            );
+
+            // Update score display
+            score.on('scoreChange', () => {
+                scoreText.text = `${i18n.t('score')}: ${score.getScore()}`;
+                starDisplay.update(score.getStars());
+            });
+
+            // Update combo display
+            score.on('comboChange', (combo, multiplier) => {
+                if (combo > 0) {
+                    comboText.text = `${i18n.t('combo')}: ${combo}x (${multiplier}x)`;
+                    if (combo === 3) {
+                        tts.speakKey('combo_started');
+                    }
+                } else {
+                    comboText.text = '';
+                }
+            });
+
+            // New high score
+            score.on('newHighScore', () => {
+                tts.speakKey('new_high_score');
+                ui.showToast('new_high_score', {
+                    duration: 3,
+                    color: [255, 215, 0]
+                });
+            });
+
+            // Spawn coins randomly
+            function spawnCoin() {
+                if (coinsCollected >= maxCoins) return;
+
+                const x = k.rand(100, k.width() - 100);
+                const y = k.rand(150, k.height() - 100);
+
+                const coin = k.add([
+                    k.circle(20),
+                    k.pos(x, y),
+                    k.area(),
+                    k.color(255, 215, 0),
+                    k.outline(3, k.rgb(200, 150, 0)),
+                    k.scale(1),
+                    'coin'
+                ]);
+
+                // Hover effect
+                coin.onHover(() => {
+                    coin.scale = k.vec2(1.2, 1.2);
+                    k.setCursor('pointer');
+                });
+
+                coin.onHoverEnd(() => {
+                    coin.scale = k.vec2(1, 1);
+                    k.setCursor('default');
+                });
+
+                // Click to collect
+                coin.onClick(() => {
+                    k.destroy(coin);
+                    coinsCollected++;
+                    score.increaseCombo();
+                    score.addPoints(10);
+                    progressBar.update(coinsCollected);
+
+                    // TTS feedback
+                    tts.speakKey('coin_collected');
+
+                    // Particle effect
+                    for (let i = 0; i < 8; i++) {
+                        k.add([
+                            k.circle(5),
+                            k.pos(coin.pos),
+                            k.color(255, 215, 0),
+                            k.lifespan(0.5),
+                            k.move(k.rand(0, 360), k.rand(100, 200))
+                        ]);
+                    }
+
+                    // Check if done
+                    if (coinsCollected >= maxCoins) {
+                        k.wait(1, () => {
+                            k.go('gameover', score.getStats());
+                        });
+                    } else {
+                        // Spawn next coin
+                        k.wait(0.5, spawnCoin);
+                    }
+                });
+            }
+
+            // Start spawning
+            spawnCoin();
+        });
+
+        // ===== GAME OVER SCENE =====
+        k.scene("gameover", (stats) => {
+            // Title
+            k.add([
+                k.text(i18n.t('game_over'), { size: 56 }),
+                k.pos(k.center().sub(0, 180)),
+                k.anchor('center'),
+                k.color(255, 255, 255)
+            ]);
+
+            // Final score
+            k.add([
+                k.text(i18n.t('final_score', stats.score), { size: 32 }),
+                k.pos(k.center().sub(0, 100)),
+                k.anchor('center'),
+                k.color(255, 255, 255)
+            ]);
+
+            // Stars
+            ui.createStars(
+                k.center().sub(0, 30),
+                stats.stars,
+                { size: 60, spacing: 80 }
+            );
+
+            // Stats
+            k.add([
+                k.text(`High Score: ${stats.highScore}`, { size: 24 }),
+                k.pos(k.center().add(0, 60)),
+                k.anchor('center'),
+                k.color(200, 200, 200)
+            ]);
+
+            // Menu
+            ui.createMenu([
+                { text: 'retry', onClick: () => k.go('game') },
+                { text: 'menu', onClick: () => k.go('menu') }
+            ], { startY: k.center().y + 150, spacing: 70 });
+        });
+
+        // ===== GLOBAL CONTROLS =====
+
+        // Language switching
+        k.onKeyPress('1', () => i18n.setLanguage('en'));
+        k.onKeyPress('2', () => i18n.setLanguage('zh'));
+        k.onKeyPress('3', () => i18n.setLanguage('ja'));
+
+        // TTS toggle
+        k.onKeyPress('t', () => {
+            const enabled = tts.toggle();
+            ui.showToast(enabled ? 'tts_on' : 'tts_off', {
+                duration: 1,
+                position: 'top',
+                color: enabled ? [100, 220, 100] : [220, 80, 80]
+            });
+        });
+
+        // Start with menu
+        k.go("menu");
+    </script>
+</body>
+</html>

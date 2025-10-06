@@ -833,7 +833,7 @@ This game successfully:
 
 ## Contact & Support
 
-**Game Location**: `/home/wxcd/mgame/games/memory-match/`
+**Game Location**: `/games/memory-match/`
 **Documentation**: `games/memory-match/docs/`
 **Main README**: `games/memory-match/README.md`
 **User Guide**: `games/memory-match/docs/user-guide.md`

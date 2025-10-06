@@ -439,7 +439,7 @@ python -m http.server 8000
 
 ### Game Location
 ```
-/home/wxcd/mgame/games/memory-match/
+/games/memory-match/
 ```
 
 ---

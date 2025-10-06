@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runner Adventure - Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        #game-container {
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background: #87CEEB;
+        }
+
+        .info {
+            margin-top: 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .info p {
+            margin: 5px 0;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏃 Runner Adventure - Prototype</h1>
+
+    <div id="game-container"></div>
+
+    <div class="info">
+        <p><strong>Controls:</strong></p>
+        <div class="controls">
+            <p>🖱️ Click or 👆 Tap or ⌨️ SPACE to Jump</p>
+            <p>Press R to Restart after Game Over</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import KAPLAY from CDN
+        import kaplay from "https://unpkg.com/kaplay@3001.0.0/dist/kaplay.mjs";
+
+        // Initialize KAPLAY
+        const k = kaplay({
+            width: 800,
+            height: 600,
+            background: [135, 206, 235], // Sky blue
+            canvas: document.querySelector('#game-container canvas') || undefined,
+            parent: document.querySelector('#game-container'),
+            gravity: 2400  // Increased gravity
+        });
+
+        // Constants
+        const GRAVITY = 1200;  // Gravity acceleration
+        const JUMP_FORCE = 500;  // Jump force
+        const GROUND_Y = 500;
+        const PLAYER_SPEED = 300;
+        const OBSTACLE_SPEED = 300;
+        const SPAWN_INTERVAL = 1.5;
+
+        // Game state
+        let score = 0;
+        let gameSpeed = 1;
+
+        // Colors
+        const COLORS = {
+            player: [255, 200, 50],    // Yellow
+            obstacle: [220, 50, 50],   // Red
+            ground: [100, 200, 100],   // Green
+            coin: [255, 215, 0]        // Gold
+        };
+
+        // ===== GAME SCENE =====
+        k.scene("game", () => {
+            score = 0;
+            gameSpeed = 1;
+
+            // Add ground
+            const ground = k.add([
+                k.rect(k.width(), 100),
+                k.pos(0, GROUND_Y),
+                k.area(),
+                k.body({ isStatic: true }),
+                k.color(COLORS.ground),
+                "ground"
+            ]);
+
+            // Add player (no k.body() - manual physics)
+            const player = k.add([
+                k.rect(40, 60),
+                k.pos(100, GROUND_Y - 60),
+                k.area(),
+                k.color(COLORS.player),
+                "player",
+                {
+                    velocityY: 0,
+                    isJumping: false
+                }
+            ]);
+
+            // Manual gravity and physics
+            player.onUpdate(() => {
+                // Apply gravity
+                player.velocityY += GRAVITY * k.dt();
+                player.pos.y += player.velocityY * k.dt();
+
+                // Ground collision check
+                if (player.pos.y >= GROUND_Y - 60) {
+                    player.pos.y = GROUND_Y - 60;
+                    player.velocityY = 0;
+                    player.isJumping = false;
+                }
+            });
+
+            // Score text
+            const scoreText = k.add([
+                k.text(`Score: ${score}`, { size: 32 }),
+                k.pos(20, 20),
+                k.color(255, 255, 255),
+                k.z(100)
+            ]);
+
+            // Speed indicator
+            const speedText = k.add([
+                k.text(`Speed: ${gameSpeed.toFixed(1)}x`, { size: 24 }),
+                k.pos(20, 60),
+                k.color(255, 255, 255),
+                k.z(100)
+            ]);
+
+            // Jump controls
+            k.onKeyPress("space", () => {
+                if (!player.isJumping) {
+                    player.velocityY = -JUMP_FORCE;
+                    player.isJumping = true;
+                }
+            });
+
+            k.onClick(() => {
+                if (!player.isJumping) {
+                    player.velocityY = -JUMP_FORCE;
+                    player.isJumping = true;
+                }
+            });
+
+            k.onTouchStart(() => {
+                if (!player.isJumping) {
+                    player.velocityY = -JUMP_FORCE;
+                    player.isJumping = true;
+                }
+            });
+
+            // Spawn obstacles
+            k.loop(SPAWN_INTERVAL, () => {
+                const height = k.rand(30, 80);
+                const obstacle = k.add([
+                    k.rect(30, height),
+                    k.pos(k.width(), GROUND_Y - height),
+                    k.area(),
+                    k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
+                    k.color(COLORS.obstacle),
+                    k.offscreen({ destroy: true }),
+                    "obstacle"
+                ]);
+            });
+
+            // Spawn coins (optional collectibles)
+            k.loop(SPAWN_INTERVAL * 2, () => {
+                const yPos = k.rand(GROUND_Y - 200, GROUND_Y - 100);
+                const coin = k.add([
+                    k.circle(15),
+                    k.pos(k.width(), yPos),
+                    k.area(),
+                    k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
+                    k.color(COLORS.coin),
+                    k.offscreen({ destroy: true }),
+                    "coin"
+                ]);
+            });
+
+            // Update score
+            k.onUpdate(() => {
+                score += k.dt() * 10 * gameSpeed;
+                scoreText.text = `Score: ${Math.floor(score)}`;
+
+                // Gradually increase speed
+                gameSpeed = 1 + Math.floor(score / 100) * 0.1;
+                speedText.text = `Speed: ${gameSpeed.toFixed(1)}x`;
+
+                // Note: New obstacles will spawn at current gameSpeed
+                // Existing obstacles keep their spawn speed (simpler and avoids errors)
+            });
+
+            // Collision with obstacles - Game Over
+            player.onCollide("obstacle", () => {
+                k.go("gameover", Math.floor(score));
+            });
+
+            // Collect coins
+            player.onCollide("coin", (coin) => {
+                k.destroy(coin);
+                score += 50;
+                // Simple particle effect
+                for (let i = 0; i < 8; i++) {
+                    k.add([
+                        k.circle(3),
+                        k.pos(coin.pos),
+                        k.color(COLORS.coin),
+                        k.opacity(1),
+                        k.lifespan(0.3),
+                        k.move(k.rand(0, 360), k.rand(100, 200))
+                    ]);
+                }
+            });
+
+            // Ground decoration (moving grass)
+            k.loop(0.2, () => {
+                k.add([
+                    k.rect(k.rand(5, 15), k.rand(10, 30)),
+                    k.pos(k.width(), GROUND_Y - k.rand(0, 20)),
+                    k.color(80, 150, 80),
+                    k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
+                    k.offscreen({ destroy: true }),
+                    k.z(-1)
+                ]);
+            });
+
+            // Clouds in background
+            k.loop(3, () => {
+                const size = k.rand(40, 80);
+                k.add([
+                    k.circle(size),
+                    k.pos(k.width(), k.rand(50, 200)),
+                    k.color(255, 255, 255),
+                    k.opacity(0.5),
+                    k.move(k.LEFT, 50),
+                    k.offscreen({ destroy: true }),
+                    k.z(-2)
+                ]);
+            });
+        });
+
+        // ===== GAME OVER SCENE =====
+        k.scene("gameover", (finalScore) => {
+            k.add([
+                k.rect(k.width(), k.height()),
+                k.color(0, 0, 0),
+                k.opacity(0.7)
+            ]);
+
+            k.add([
+                k.text("Game Over!", { size: 64 }),
+                k.pos(k.width() / 2, k.height() / 2 - 100),
+                k.anchor("center"),
+                k.color(255, 100, 100)
+            ]);
+
+            k.add([
+                k.text(`Final Score: ${finalScore}`, { size: 32 }),
+                k.pos(k.width() / 2, k.height() / 2),
+                k.anchor("center"),
+                k.color(255, 255, 255)
+            ]);
+
+            k.add([
+                k.text("Press SPACE or Click to Restart", { size: 24 }),
+                k.pos(k.width() / 2, k.height() / 2 + 80),
+                k.anchor("center"),
+                k.color(255, 255, 255)
+            ]);
+
+            // Restart controls
+            function restart() {
+                k.go("game");
+            }
+
+            k.onKeyPress("space", restart);
+            k.onKeyPress("r", restart);
+            k.onClick(restart);
+            k.onTouchStart(restart);
+        });
+
+        // ===== MENU SCENE =====
+        k.scene("menu", () => {
+            k.add([
+                k.text("Runner Adventure", { size: 56 }),
+                k.pos(k.width() / 2, k.height() / 2 - 100),
+                k.anchor("center"),
+                k.color(255, 255, 255)
+            ]);
+
+            k.add([
+                k.text("KAPLAY Prototype", { size: 24 }),
+                k.pos(k.width() / 2, k.height() / 2 - 40),
+                k.anchor("center"),
+                k.color(200, 200, 200)
+            ]);
+
+            const startBtn = k.add([
+                k.rect(200, 60, { radius: 8 }),
+                k.pos(k.width() / 2, k.height() / 2 + 60),
+                k.anchor("center"),
+                k.color(100, 200, 100),
+                k.area(),
+                "button"
+            ]);
+
+            k.add([
+                k.text("Start Game", { size: 24 }),
+                k.pos(k.width() / 2, k.height() / 2 + 60),
+                k.anchor("center"),
+                k.color(255, 255, 255)
+            ]);
+
+            // Button hover effect
+            startBtn.onHover(() => {
+                startBtn.color = k.rgb(120, 220, 120);
+            });
+
+            startBtn.onHoverEnd(() => {
+                startBtn.color = k.rgb(100, 200, 100);
+            });
+
+            // Start game
+            startBtn.onClick(() => {
+                k.go("game");
+            });
+
+            k.onKeyPress("space", () => {
+                k.go("game");
+            });
+
+            // Instructions
+            k.add([
+                k.text("Controls: SPACE / Click / Tap to Jump", { size: 18 }),
+                k.pos(k.width() / 2, k.height() - 80),
+                k.anchor("center"),
+                k.color(200, 200, 200)
+            ]);
+
+            k.add([
+                k.text("Avoid obstacles, collect coins!", { size: 18 }),
+                k.pos(k.width() / 2, k.height() - 50),
+                k.anchor("center"),
+                k.color(200, 200, 200)
+            ]);
+        });
+
+        // Start with menu
+        k.go("menu");
+    </script>
+</body>
+</html>

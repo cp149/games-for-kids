@@ -17,7 +17,7 @@ pip install google-genai python-dotenv
 
 ## Step 3: Configure (30 seconds)
 
-Create a `.env` file in the project root (`/home/wxcd/mgame/.env`):
+Create a `.env` file in the project root (`/.env`):
 
 ```env
 GEMINI_API_KEY=your_api_key_here

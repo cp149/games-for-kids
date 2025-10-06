@@ -264,6 +264,161 @@ game-styles.css
 魔法厨师.png
 ```
 
+## Path Usage Standards 🔗
+
+### CRITICAL: Always Use Relative Paths
+
+**NEVER use absolute paths in code** - they will break when deployed to GitHub Pages or other hosting platforms.
+
+### ✅ CORRECT (Relative Paths)
+
+```html
+<!-- In games/memory-match/index.html -->
+<img src="assets/images/cat.png">
+<script src="js/game.js"></script>
+<link rel="stylesheet" href="styles/main.css">
+<audio src="assets/sounds/bgm.mp3"></audio>
+
+<!-- Linking to another game from homepage -->
+<a href="games/memory-match/index.html">Play Memory Match</a>
+
+<!-- In games/runner-adventure/index.html -->
+<img src="assets/images/character.png">
+<script src="src/core/engine.js" type="module"></script>
+```
+
+```javascript
+// In JavaScript - relative paths
+const bgImage = new Image();
+bgImage.src = 'assets/images/background.png';  // ✅ Relative
+
+// Loading modules
+import { GameEngine } from './core/engine.js';  // ✅ Relative
+import { Player } from '../entities/player.js';  // ✅ Relative
+
+// Loading JSON data
+fetch('data/levels.json')  // ✅ Relative
+  .then(response => response.json());
+```
+
+```css
+/* In CSS files */
+.background {
+  background-image: url('../images/bg.png');  /* ✅ Relative */
+}
+
+@font-face {
+  src: url('../fonts/game-font.woff2');  /* ✅ Relative */
+}
+```
+
+### ❌ WRONG (Absolute Paths)
+
+```html
+<!-- These will BREAK when published -->
+<img src="/home/wxcd/mgame/games/memory-match/assets/images/cat.png">  ❌
+<script src="/Users/dev/projects/mgame/js/game.js"></script>  ❌
+<link href="C:\Projects\mgame\styles\main.css">  ❌
+
+<!-- Wrong: absolute path from server root -->
+<a href="/games/memory-match/index.html">  ❌ Breaks on GitHub Pages
+```
+
+```javascript
+// WRONG - absolute paths
+const bgImage = new Image();
+bgImage.src = '/home/wxcd/mgame/assets/bg.png';  // ❌ Will break
+
+// WRONG - absolute from root
+fetch('/data/levels.json')  // ❌ May break on subpath deployments
+```
+
+### Path Examples by Location
+
+**From `games/memory-match/index.html`:**
+```html
+<!-- Assets in same game -->
+<img src="assets/images/cat.png">              <!-- ✅ Same game assets -->
+<audio src="assets/sounds/flip.mp3">           <!-- ✅ Same game sounds -->
+
+<!-- Back to homepage -->
+<a href="../../index.html">Home</a>            <!-- ✅ Navigate up -->
+
+<!-- Other game -->
+<a href="../runner-adventure/index.html">      <!-- ✅ Sibling game -->
+```
+
+**From `games/runner-adventure/src/entities/player.js`:**
+```javascript
+// Importing from other modules
+import { GameEngine } from '../core/engine.js';     // ✅ Up one, then core
+import { Vector2D } from '../../utils/math.js';      // ✅ Up two, then utils
+import { CONSTANTS } from '../config/constants.js';  // ✅ Sibling directory
+
+// Loading assets
+const sprite = new Image();
+sprite.src = '../../assets/images/player.png';       // ✅ Up to game root
+```
+
+**From `index.html` (homepage):**
+```html
+<!-- Linking to games -->
+<a href="games/memory-match/index.html">       <!-- ✅ Down into games -->
+<a href="games/runner-adventure/index.html">   <!-- ✅ Down into games -->
+
+<!-- Assets in root -->
+<link rel="stylesheet" href="styles/main.css"> <!-- ✅ Root level assets -->
+```
+
+### GitHub Pages Deployment
+
+When deployed to GitHub Pages at `https://username.github.io/games-for-kids/`:
+
+**✅ Relative paths work perfectly:**
+```html
+<!-- In games/memory-match/index.html -->
+<img src="assets/images/cat.png">
+<!-- Resolves to: https://username.github.io/games-for-kids/games/memory-match/assets/images/cat.png -->
+```
+
+**❌ Absolute paths break:**
+```html
+<img src="/assets/images/cat.png">
+<!-- Tries: https://username.github.io/assets/images/cat.png -->
+<!-- WRONG! Missing /games-for-kids/ prefix -->
+```
+
+### Module Imports (ES6)
+
+```javascript
+// ✅ CORRECT - Always use relative paths with ./ or ../
+import { Player } from './entities/player.js';
+import { GameEngine } from '../core/engine.js';
+import { utils } from '../../utils/helpers.js';
+
+// ❌ WRONG - Absolute or bare imports
+import { Player } from '/src/entities/player.js';  // ❌
+import { GameEngine } from 'core/engine.js';       // ❌ (needs ./ prefix)
+```
+
+### Path Best Practices
+
+1. **Always start with `./` or `../`** for relative paths
+2. **Test paths work from file's actual location**
+3. **Use consistent depth** - don't mix `../../` with absolute
+4. **Avoid going up too many levels** - restructure if needed
+5. **No hardcoded domain names** - use relative for portability
+
+### Path Testing Checklist
+
+Before committing, verify:
+- [ ] No absolute file system paths (`/home/`, `C:\`, etc.)
+- [ ] No absolute web paths starting with `/` (unless intentional)
+- [ ] All asset references use relative paths
+- [ ] All module imports use `./` or `../` prefix
+- [ ] Paths work when opened locally (file://)
+- [ ] Paths will work on GitHub Pages (https://)
+
 ## Documentation Standards
 
 ### Code Documentation (JSDoc) - English
