@@ -740,13 +740,13 @@
 
                 if (k.debug.paused) {
                     // Show pause overlay
-                    music.pause();
+                    music.paused = true;
                     pauseOverlay.opacity = 0.7;
                     pauseText.opacity = 1;
                     pauseHint.opacity = 1;
                 } else {
                     // Hide pause overlay
-                    music.play();
+                    music.paused = false;
                     pauseOverlay.opacity = 0;
                     pauseText.opacity = 0;
                     pauseHint.opacity = 0;
@@ -771,8 +771,9 @@
                 }
             });
 
-            k.onClick(() => {
-                if (!k.debug.paused && !player.isJumping) {
+            k.onMousePress((mouseBtn) => {
+                // Only jump on left click (button 0)
+                if (mouseBtn === "left" && !k.debug.paused && !player.isJumping) {
                     player.velocityY = -JUMP_FORCE;
                     player.isJumping = true;
                     playJumpSound();
