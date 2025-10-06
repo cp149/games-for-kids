@@ -137,6 +137,61 @@
             oscillator.stop(audioCtx.currentTime + 0.2);
         }
 
+        function playSpecialCoinSound(type) {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            let pitch1, pitch2;
+            if (type === "star") {
+                pitch1 = 1000;
+                pitch2 = 1500;
+            } else if (type === "diamond") {
+                pitch1 = 1200;
+                pitch2 = 1600;
+            } else { // ruby
+                pitch1 = 900;
+                pitch2 = 1300;
+            }
+
+            oscillator.frequency.setValueAtTime(pitch1, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(pitch2, audioCtx.currentTime + 0.15);
+
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        }
+
+        // HSL to RGB conversion for rainbow effect
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
         // Wait for KAPLAY to be ready
         k.onLoad(() => {
             console.log("Canvas size:", k.width(), k.height());
@@ -216,6 +271,209 @@
             }
         }
 
+        class CoinSpawner {
+            constructor(k, groundY, speed) {
+                this.k = k;
+                this.groundY = groundY;
+                this.speed = speed;
+
+                // Coin type configurations
+                this.coinTypes = [
+                    {
+                        name: "star",
+                        probability: 2,  // 2%
+                        color: [255, 255, 150],  // Brighter yellow (almost white-yellow)
+                        scale: 0.08,  // Larger than other coins
+                        value: 100,
+                        rotate: true,
+                        special: true
+                    },
+                    {
+                        name: "diamond",
+                        probability: 5,  // 5%
+                        color: [0, 255, 255],
+                        scale: 0.06,
+                        value: 500,
+                        rotate: false,
+                        special: true
+                    },
+                    {
+                        name: "ruby",
+                        probability: 10,  // 10%
+                        color: [255, 50, 50],
+                        scale: 0.055,
+                        value: 200,
+                        rotate: false,
+                        special: true
+                    },
+                    {
+                        name: "coin",
+                        probability: 83,  // 83%
+                        color: [255, 215, 0],
+                        scale: 0.05,
+                        value: 50,
+                        rotate: false,
+                        special: false
+                    }
+                ];
+            }
+
+            selectCoinType() {
+                const rand = this.k.rand(0, 100);
+                let cumulative = 0;
+
+                for (const type of this.coinTypes) {
+                    cumulative += type.probability;
+                    if (rand < cumulative) {
+                        return type;
+                    }
+                }
+
+                // Fallback to regular coin
+                return this.coinTypes[this.coinTypes.length - 1];
+            }
+
+            spawn() {
+                const yPos = this.k.rand(this.groundY - 180, this.groundY - 80);
+                const coinType = this.selectCoinType();
+
+                const coin = this.k.add([
+                    this.k.sprite("coin"),
+                    this.k.pos(this.k.width(), yPos),
+                    this.k.area({ scale: 0.8 }),
+                    this.k.scale(coinType.scale),
+                    this.k.anchor("center"),
+                    this.k.color(...coinType.color),  // Spread array to RGB values
+                    this.k.move(this.k.LEFT, this.speed),
+                    this.k.offscreen({ destroy: true }),
+                    "collectible"  // Universal tag for all coins
+                ]);
+
+                // Explicitly set custom properties
+                coin.coinType = coinType.name;
+                coin.coinValue = coinType.value;
+                coin.isSpecial = coinType.special;
+
+                // Add rotation and special effects for star
+                if (coinType.name === "star") {
+                    coin.sparkleTimer = 0;
+                    coin.onUpdate(() => {
+                        // Rotation
+                        coin.angle += 360 * this.k.dt();
+
+                        // Sparkle particles
+                        coin.sparkleTimer += this.k.dt();
+                        if (coin.sparkleTimer >= 0.15) {
+                            coin.sparkleTimer = 0;
+                            // Spawn small sparkle particles
+                            const angle = this.k.rand(0, 360);
+                            const dist = this.k.rand(15, 25);
+                            const sparklePos = coin.pos.add(this.k.Vec2.fromAngle(angle).scale(dist));
+
+                            this.k.add([
+                                this.k.rect(3, 3),
+                                this.k.pos(sparklePos),
+                                this.k.color(255, 255, 200),
+                                this.k.opacity(1),
+                                this.k.anchor("center"),
+                                this.k.lifespan(0.3),
+                                this.k.z(5)
+                            ]);
+                        }
+                    });
+                } else if (coinType.rotate) {
+                    // Rotation only for other rotating coins
+                    coin.onUpdate(() => {
+                        coin.angle += 360 * this.k.dt();
+                    });
+                }
+
+                // Add glow effect for special coins
+                if (coinType.special) {
+                    // For star, add double glow with different pulse speeds
+                    if (coinType.name === "star") {
+                        // Outer glow (larger, slower pulse)
+                        const outerGlow = this.k.add([
+                            this.k.circle(25),
+                            this.k.pos(coin.pos),
+                            this.k.color(255, 255, 100),
+                            this.k.opacity(0.4),
+                            this.k.anchor("center"),
+                            this.k.z(-2),
+                            this.k.move(this.k.LEFT, this.speed),
+                            this.k.offscreen({ destroy: true })
+                        ]);
+
+                        outerGlow.onUpdate(() => {
+                            if (coin.exists()) {
+                                outerGlow.pos = coin.pos;
+                                const pulse = 1 + Math.sin(this.k.time() * 2) * 0.4;
+                                outerGlow.scale = this.k.vec2(pulse, pulse);
+                            } else {
+                                this.k.destroy(outerGlow);
+                            }
+                        });
+
+                        // Inner glow (smaller, faster pulse)
+                        const innerGlow = this.k.add([
+                            this.k.circle(15),
+                            this.k.pos(coin.pos),
+                            this.k.color(255, 255, 200),
+                            this.k.opacity(0.6),
+                            this.k.anchor("center"),
+                            this.k.z(-1),
+                            this.k.move(this.k.LEFT, this.speed),
+                            this.k.offscreen({ destroy: true })
+                        ]);
+
+                        innerGlow.onUpdate(() => {
+                            if (coin.exists()) {
+                                innerGlow.pos = coin.pos;
+                                const pulse = 1 + Math.sin(this.k.time() * 5) * 0.5;
+                                innerGlow.scale = this.k.vec2(pulse, pulse);
+                            } else {
+                                this.k.destroy(innerGlow);
+                            }
+                        });
+
+                        coin.glowEffect = [outerGlow, innerGlow];
+                    } else {
+                        // Single glow for ruby and diamond
+                        const glow = this.k.add([
+                            this.k.circle(15),
+                            this.k.pos(coin.pos),
+                            this.k.color(...coinType.color),
+                            this.k.opacity(0.3),
+                            this.k.anchor("center"),
+                            this.k.z(-1),
+                            this.k.move(this.k.LEFT, this.speed),
+                            this.k.offscreen({ destroy: true })
+                        ]);
+
+                        glow.onUpdate(() => {
+                            if (coin.exists()) {
+                                glow.pos = coin.pos;
+                                const pulse = 1 + Math.sin(this.k.time() * 3) * 0.3;
+                                glow.scale = this.k.vec2(pulse, pulse);
+                            } else {
+                                this.k.destroy(glow);
+                            }
+                        });
+
+                        coin.glowEffect = glow;
+                    }
+                }
+
+                return coin;
+            }
+
+            startSpawning(interval = 3) {
+                return this.k.loop(interval, () => {
+                    this.spawn();
+                });
+            }
+        }
+
         // ===== GAME SCENE =====
         k.scene("game", () => {
             score = 0;
@@ -223,6 +481,9 @@
             let combo = 0;
             let comboTimer = 0;
             const COMBO_TIMEOUT = 3; // seconds
+            let invincible = false;
+            let invincibleTimer = 0;
+            const INVINCIBLE_DURATION = 5; // seconds
 
             // Combo multiplier calculation
             function getComboMultiplier(comboCount) {
@@ -327,13 +588,23 @@
                     wasInAir = true;
                 }
 
-                // Trail effect when combo is active
-                if (combo >= 5) {
+                // Trail effect when combo is active or invincible
+                if (combo >= 5 || invincible) {
                     trailTimer += k.dt();
                     if (trailTimer >= 0.05) { // Spawn trail every 0.05 seconds
                         trailTimer = 0;
-                        const color = getComboColor(combo);
-                        const trailIntensity = Math.min(combo / 20, 1); // Max at 20 combo
+
+                        let color, trailIntensity;
+                        if (invincible) {
+                            // Rainbow trail for invincibility
+                            const hue = (k.time() * 300) % 360;
+                            color = hslToRgb(hue / 360, 1, 0.5);
+                            trailIntensity = 0.5;
+                        } else {
+                            // Combo trail
+                            color = getComboColor(combo);
+                            trailIntensity = Math.min(combo / 20, 1) * 0.3;
+                        }
 
                         k.add([
                             k.sprite("player-run", { frame: player.frame }),
@@ -341,7 +612,7 @@
                             k.scale(player.scale),
                             k.anchor("center"),
                             k.color(color[0], color[1], color[2]),
-                            k.opacity(0.3 * trailIntensity),
+                            k.opacity(trailIntensity),
                             k.lifespan(0.2),
                             k.z(-1)
                         ]);
@@ -413,6 +684,19 @@
                 k.color(255, 255, 0),
                 k.z(101),
                 k.opacity(0)
+            ]);
+
+            // Invincible status display
+            const invincibleText = k.add([
+                k.text("", { size: 24 }),
+                k.pos(k.width() - 35, 30),
+                k.anchor("topright"),
+                k.color(255, 215, 0),
+                k.z(100),
+                k.opacity(0),
+                {
+                    pulseTime: 0
+                }
             ]);
 
             // Pause overlay (initially hidden)
@@ -509,20 +793,9 @@
                 ]);
             });
 
-            // Spawn coins (optional collectibles)
-            k.loop(SPAWN_INTERVAL * 2, () => {
-                const yPos = k.rand(groundY - 180, groundY - 80);
-                const coin = k.add([
-                    k.sprite("coin"),
-                    k.pos(k.width(), yPos),
-                    k.area({ scale: 0.8 }),  // Slightly smaller collision for easier collection
-                    k.scale(0.05),  // Smaller coin
-                    k.anchor("center"),
-                    k.move(k.LEFT, OBSTACLE_SPEED * gameSpeed),
-                    k.offscreen({ destroy: true }),
-                    "coin"  // Make sure it's tagged as coin, not obstacle
-                ]);
-            });
+            // Spawn coins using CoinSpawner class
+            const coinSpawner = new CoinSpawner(k, groundY, OBSTACLE_SPEED * gameSpeed);
+            coinSpawner.startSpawning(SPAWN_INTERVAL * 2);
 
             // Update score
             k.onUpdate(() => {
@@ -595,19 +868,90 @@
                 background.baseColor[2] += (background.targetColor[2] - background.baseColor[2]) * k.dt() * 2;
                 background.color = k.rgb(background.baseColor[0], background.baseColor[1], background.baseColor[2]);
 
+                // Update invincible timer
+                if (invincible) {
+                    invincibleTimer += k.dt();
+
+                    if (invincibleTimer >= INVINCIBLE_DURATION) {
+                        invincible = false;
+                        invincibleTimer = 0;
+                        invincibleText.opacity = 0;
+                    } else {
+                        const timeLeft = INVINCIBLE_DURATION - invincibleTimer;
+                        invincibleText.text = `⭐ ${timeLeft.toFixed(1)}s`;
+
+                        // Pulse animation
+                        invincibleText.pulseTime += k.dt() * 6;
+                        const pulseScale = 1 + Math.sin(invincibleText.pulseTime) * 0.15;
+                        invincibleText.scale = k.vec2(pulseScale, pulseScale);
+                        invincibleText.opacity = 1;
+
+                        // Rainbow color cycling
+                        const hue = (k.time() * 200) % 360;
+                        const rgb = hslToRgb(hue / 360, 1, 0.5);
+                        invincibleText.color = k.rgb(rgb[0], rgb[1], rgb[2]);
+                    }
+                } else {
+                    invincibleText.opacity = 0;
+                }
+
                 // Note: New obstacles will spawn at current gameSpeed
                 // Existing obstacles keep their spawn speed (simpler and avoids errors)
             });
 
             // Collision with obstacles - Game Over
-            player.onCollide("obstacle", () => {
-                playGameOverSound();
-                music.stop();
-                k.go("gameover", Math.floor(score));
+            player.onCollide("obstacle", (obstacle) => {
+                if (invincible) {
+                    // Destroy obstacle instead of game over
+                    k.destroy(obstacle);
+
+                    // Particle burst effect
+                    for (let i = 0; i < 12; i++) {
+                        const angle = k.rand(0, 360);
+                        const speed = k.rand(100, 250);
+                        const hue = (k.time() * 200 + i * 30) % 360;
+                        const rgb = hslToRgb(hue / 360, 1, 0.5);
+
+                        k.add([
+                            k.rect(6, 6),
+                            k.pos(obstacle.pos),
+                            k.color(rgb[0], rgb[1], rgb[2]),
+                            k.opacity(1),
+                            k.anchor("center"),
+                            k.lifespan(0.4),
+                            k.move(angle, speed),
+                            k.z(99)
+                        ]);
+                    }
+                } else {
+                    playGameOverSound();
+                    music.stop();
+                    k.go("gameover", Math.floor(score));
+                }
             });
 
-            // Collect coins
-            player.onCollide("coin", (coin) => {
+            // Generic coin collection handler
+            function collectCoin(coin, coinType) {
+                // Prevent double collection
+                if (coin.collected) return;
+                coin.collected = true;
+
+                const coinValue = coin.coinValue || 50;
+                const isStar = coinType === "star";
+
+                // Destroy glow effect if it exists
+                if (coin.glowEffect) {
+                    if (Array.isArray(coin.glowEffect)) {
+                        // Star has multiple glows
+                        coin.glowEffect.forEach(glow => {
+                            if (glow.exists()) k.destroy(glow);
+                        });
+                    } else if (coin.glowEffect.exists()) {
+                        // Single glow
+                        k.destroy(coin.glowEffect);
+                    }
+                }
+
                 k.destroy(coin);
 
                 // Check combo level before increment
@@ -641,55 +985,177 @@
                     }
 
                     // Screen flash effect
-                    const flash = k.add([
+                    k.add([
                         k.rect(k.width(), k.height()),
                         k.pos(0, 0),
                         k.color(color[0], color[1], color[2]),
                         k.opacity(0.3),
-                        k.z(98)
+                        k.z(98),
+                        k.lifespan(0.1)
                     ]);
-                    k.wait(0.1, () => k.destroy(flash));
                 }
 
                 // Calculate score with multiplier
                 const multiplier = getComboMultiplier(combo);
-                const coinScore = Math.floor(50 * multiplier);
+                const coinScore = Math.floor(coinValue * multiplier);
                 score += coinScore;
 
-                playCoinSound();
+                // Play appropriate sound
+                if (coinType === "coin") {
+                    playCoinSound();
+                } else {
+                    playSpecialCoinSound(coinType);
+                }
 
                 // Show score popup at coin position
+                let popupColor, popupSize;
+                if (isStar) {
+                    popupColor = [255, 255, 0];
+                    popupSize = 36;
+                } else if (coinType === "diamond") {
+                    popupColor = [0, 255, 255]; // Cyan for diamond
+                    popupSize = 32;
+                } else if (coinType === "ruby") {
+                    popupColor = [255, 50, 50]; // Red for ruby
+                    popupSize = 28;
+                } else {
+                    popupColor = [255, 215, 0]; // Gold for regular coins
+                    popupSize = 24;
+                }
+
                 const scorePopup = k.add([
-                    k.text(`+${coinScore}`, { size: 24 }),
+                    k.text(`+${coinScore}`, { size: popupSize }),
                     k.pos(coin.pos),
                     k.anchor("center"),
-                    k.color(getComboColor(combo)),
+                    k.color(popupColor),
                     k.opacity(1),
-                    k.lifespan(1),
+                    k.lifespan(1.2),
                     k.z(102),
                     {
-                        vel: k.vec2(0, -100)
+                        vel: k.vec2(0, -120),
+                        pulseTime: 0,
+                        isSpecial: coinType !== "coin"
                     }
                 ]);
 
                 // Animate score popup
                 scorePopup.onUpdate(() => {
                     scorePopup.pos = scorePopup.pos.add(scorePopup.vel.scale(k.dt()));
-                    scorePopup.opacity -= k.dt();
+                    scorePopup.opacity -= k.dt() * 0.8;
+
+                    // Pulse effect for all special coins
+                    if (scorePopup.isSpecial) {
+                        scorePopup.pulseTime += k.dt() * 8;
+                        scorePopup.scale = k.vec2(1 + Math.sin(scorePopup.pulseTime) * 0.2);
+                    }
                 });
-                // Simple particle effect with coin sprites (no area - won't collide)
-                for (let i = 0; i < 8; i++) {
-                    k.add([
-                        k.sprite("coin"),
-                        k.pos(coin.pos),
-                        k.scale(0.03),
-                        k.opacity(1),
-                        k.lifespan(0.3),
-                        k.move(k.rand(0, 360), k.rand(100, 200)),
-                        k.z(10)  // Above everything
-                        // NOTE: No k.area() so particles won't trigger collisions
-                    ]);
+
+                // Star special effect - activate invincibility
+                if (isStar) {
+                    invincible = true;
+                    invincibleTimer = 0;
+
+                    // Rainbow explosion at collection point
+                    for (let i = 0; i < 30; i++) {
+                        const angle = k.rand(0, 360);
+                        const speed = k.rand(150, 400);
+                        const hue = (i * 12) % 360;
+                        const rgb = hslToRgb(hue / 360, 1, 0.5);
+
+                        k.add([
+                            k.rect(10, 10),
+                            k.pos(coin.pos),
+                            k.color(rgb[0], rgb[1], rgb[2]),
+                            k.opacity(1),
+                            k.anchor("center"),
+                            k.lifespan(0.8),
+                            k.move(angle, speed),
+                            k.z(99)
+                        ]);
+                    }
+
+                    // Full screen rainbow flash
+                    const flashColors = [
+                        [255, 0, 0],
+                        [255, 127, 0],
+                        [255, 255, 0],
+                        [0, 255, 0],
+                        [0, 0, 255]
+                    ];
+
+                    for (let i = 0; i < flashColors.length; i++) {
+                        k.wait(i * 0.05, () => {
+                            const flash = k.add([
+                                k.rect(k.width(), k.height()),
+                                k.pos(0, 0),
+                                k.color(flashColors[i]),
+                                k.opacity(0.2),
+                                k.z(97),
+                                k.lifespan(0.05)
+                            ]);
+                        });
+                    }
+                } else {
+                    // Add extra effect for special coins (ruby/diamond)
+                    if (coinType === "ruby" || coinType === "diamond") {
+                        const specialColor = coinType === "ruby" ? [255, 50, 50] : [0, 255, 255];
+                        const coinPos = coin.pos.clone(); // Save position before coin is destroyed
+
+                        // Expanding ring effect
+                        for (let i = 0; i < 3; i++) {
+                            const delay = i * 0.1;
+                            k.wait(delay, () => {
+                                k.add([
+                                    k.circle(20 + i * 10),
+                                    k.pos(coinPos),
+                                    k.outline(4, specialColor),
+                                    k.anchor("center"),
+                                    k.opacity(0.8),
+                                    k.z(99),
+                                    {
+                                        expandSpeed: 200
+                                    }
+                                ]).onUpdate(function() {
+                                    this.radius += this.expandSpeed * k.dt();
+                                    this.opacity -= k.dt() * 2;
+                                    if (this.opacity <= 0) k.destroy(this);
+                                });
+                            });
+                        }
+
+                        // Burst particles
+                        for (let i = 0; i < 12; i++) {
+                            k.add([
+                                k.rect(6, 6),
+                                k.pos(coinPos),
+                                k.color(specialColor),
+                                k.opacity(1),
+                                k.anchor("center"),
+                                k.lifespan(0.5),
+                                k.move(k.rand(0, 360), k.rand(150, 250)),
+                                k.z(10)
+                            ]);
+                        }
+                    }
+
+                    // Regular coin particle effect
+                    for (let i = 0; i < 8; i++) {
+                        k.add([
+                            k.sprite("coin"),
+                            k.pos(coin.pos),
+                            k.scale(0.03),
+                            k.opacity(1),
+                            k.lifespan(0.3),
+                            k.move(k.rand(0, 360), k.rand(100, 200)),
+                            k.z(10)
+                        ]);
+                    }
                 }
+            }
+
+            // Collect all coin types with unified tag
+            player.onCollide("collectible", (coin) => {
+                collectCoin(coin, coin.coinType);
             });
 
             // Ground decoration using GroundDecorator class
@@ -701,10 +1167,8 @@
                 const xPos = k.rand(0, k.width());
                 const flowerFrame = k.choose([1, 2, 6]); // yellow flower, pink flower, daisy
                 const scale = k.rand(0.08, 0.12);
-                const fallSpeed = k.rand(30, 60);
-                const sideSpeed = k.rand(-20, 20);
 
-                k.add([
+                const flower = k.add([
                     k.sprite("ground-deco", { frame: flowerFrame }),
                     k.pos(xPos, k.rand(-50, 100)),
                     k.scale(scale),
@@ -713,30 +1177,27 @@
                     k.opacity(0.8),
                     k.offscreen({ destroy: true }),
                     k.z(-2),
+                    "falling-flower",
                     {
                         swayTime: 0,
                         swaySpeed: k.rand(2, 4),
                         swayAmount: k.rand(20, 40)
                     }
                 ]);
-            });
 
-            // Update falling flowers with swaying motion
-            k.onUpdate(() => {
-                k.get("*").forEach(obj => {
-                    if (obj.swayTime !== undefined) {
-                        obj.swayTime += k.dt();
-                        // Sway left and right
-                        obj.pos.x += Math.sin(obj.swayTime * obj.swaySpeed) * obj.swayAmount * k.dt();
-                        // Fall down
-                        obj.pos.y += 40 * k.dt();
-                        // Gentle rotation
-                        obj.angle += 30 * k.dt();
+                // Add update behavior directly to flower
+                flower.onUpdate(() => {
+                    flower.swayTime += k.dt();
+                    // Sway left and right
+                    flower.pos.x += Math.sin(flower.swayTime * flower.swaySpeed) * flower.swayAmount * k.dt();
+                    // Fall down
+                    flower.pos.y += 40 * k.dt();
+                    // Gentle rotation
+                    flower.angle += 30 * k.dt();
 
-                        // Destroy if fallen past ground
-                        if (obj.pos.y > groundY + 100) {
-                            k.destroy(obj);
-                        }
+                    // Destroy if fallen past ground
+                    if (flower.pos.y > groundY + 100) {
+                        k.destroy(flower);
                     }
                 });
             });
