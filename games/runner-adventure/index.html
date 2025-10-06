@@ -118,6 +118,25 @@
             oscillator.stop(audioCtx.currentTime + 0.4);
         }
 
+        function playComboUpSound(level) {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Higher pitch for higher combo levels
+            const basePitch = 600 + (level * 200);
+            oscillator.frequency.setValueAtTime(basePitch, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(basePitch * 1.5, audioCtx.currentTime + 0.2);
+
+            gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        }
+
         // Wait for KAPLAY to be ready
         k.onLoad(() => {
             console.log("Canvas size:", k.width(), k.height());
@@ -201,6 +220,25 @@
         k.scene("game", () => {
             score = 0;
             gameSpeed = 1;
+            let combo = 0;
+            let comboTimer = 0;
+            const COMBO_TIMEOUT = 3; // seconds
+
+            // Combo multiplier calculation
+            function getComboMultiplier(comboCount) {
+                if (comboCount < 5) return 1;
+                if (comboCount < 10) return 1.5;
+                if (comboCount < 20) return 2;
+                return 3;
+            }
+
+            // Combo color based on level
+            function getComboColor(comboCount) {
+                if (comboCount < 5) return [255, 255, 255]; // white
+                if (comboCount < 10) return [255, 255, 0]; // yellow
+                if (comboCount < 20) return [255, 165, 0]; // orange
+                return [255, 0, 0]; // red
+            }
 
             // Play background music (loop)
             const music = k.play("bgMusic", {
@@ -217,11 +255,15 @@
             console.log("Player Y:", groundY - 45);
 
             // Add fullscreen background
-            k.add([
+            const background = k.add([
                 k.rect(k.width(), k.height()),
                 k.pos(0, 0),
                 k.color(135, 206, 235),
-                k.z(-10)
+                k.z(-10),
+                {
+                    baseColor: [135, 206, 235],
+                    targetColor: [135, 206, 235]
+                }
             ]);
 
             // Add ground
@@ -253,6 +295,7 @@
 
             // Manual gravity and physics
             let wasInAir = false;
+            let trailTimer = 0;
             player.onUpdate(() => {
                 // Apply gravity
                 player.velocityY += GRAVITY * k.dt();
@@ -282,6 +325,27 @@
                     wasInAir = false;
                 } else {
                     wasInAir = true;
+                }
+
+                // Trail effect when combo is active
+                if (combo >= 5) {
+                    trailTimer += k.dt();
+                    if (trailTimer >= 0.05) { // Spawn trail every 0.05 seconds
+                        trailTimer = 0;
+                        const color = getComboColor(combo);
+                        const trailIntensity = Math.min(combo / 20, 1); // Max at 20 combo
+
+                        k.add([
+                            k.sprite("player-run", { frame: player.frame }),
+                            k.pos(player.pos),
+                            k.scale(player.scale),
+                            k.anchor("center"),
+                            k.color(color[0], color[1], color[2]),
+                            k.opacity(0.3 * trailIntensity),
+                            k.lifespan(0.2),
+                            k.z(-1)
+                        ]);
+                    }
                 }
             });
 
@@ -316,6 +380,39 @@
                 k.pos(35, 100),
                 k.color(150, 255, 150),
                 k.z(100)
+            ]);
+
+            // Combo display
+            const comboText = k.add([
+                k.text("", { size: 32 }),
+                k.pos(k.width() / 2, 80),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.z(100),
+                k.opacity(0),
+                k.scale(1),
+                {
+                    pulseTime: 0
+                }
+            ]);
+
+            // Combo timer bar (progress bar)
+            const comboBarBg = k.add([
+                k.rect(300, 8),
+                k.pos(k.width() / 2, 115),
+                k.anchor("center"),
+                k.color(50, 50, 50),
+                k.z(100),
+                k.opacity(0)
+            ]);
+
+            const comboBar = k.add([
+                k.rect(300, 8),
+                k.pos(k.width() / 2, 115),
+                k.anchor("center"),
+                k.color(255, 255, 0),
+                k.z(101),
+                k.opacity(0)
             ]);
 
             // Pause overlay (initially hidden)
@@ -443,6 +540,61 @@
                 gameSpeed = Math.min(3.5, 1 + Math.floor(score / 200) * 0.1);
                 speedText.text = `Speed: ${gameSpeed.toFixed(1)}x`;
 
+                // Update combo timer
+                if (combo > 0) {
+                    comboTimer += k.dt();
+
+                    // Check timeout
+                    if (comboTimer >= COMBO_TIMEOUT) {
+                        combo = 0;
+                        comboTimer = 0;
+                        comboText.opacity = 0;
+                        comboBarBg.opacity = 0;
+                        comboBar.opacity = 0;
+                        background.targetColor = [135, 206, 235]; // Reset to sky blue
+                    } else {
+                        // Show combo display
+                        const multiplier = getComboMultiplier(combo);
+                        comboText.text = `${combo} COMBO x${multiplier.toFixed(1)}`;
+                        const color = getComboColor(combo);
+                        comboText.color = k.rgb(color[0], color[1], color[2]);
+                        comboText.opacity = 1;
+
+                        // Pulse animation
+                        comboText.pulseTime += k.dt() * 5;
+                        const pulseScale = 1 + Math.sin(comboText.pulseTime) * 0.15;
+                        comboText.scale = k.vec2(pulseScale, pulseScale);
+
+                        // Update progress bar
+                        const timeLeft = COMBO_TIMEOUT - comboTimer;
+                        const progress = timeLeft / COMBO_TIMEOUT;
+                        comboBar.width = 300 * progress;
+                        comboBar.color = k.rgb(color[0], color[1], color[2]);
+                        comboBarBg.opacity = 0.5;
+                        comboBar.opacity = 0.8;
+
+                        // Change background tint based on combo level
+                        if (combo >= 20) {
+                            background.targetColor = [155, 180, 255]; // Intense blue-purple
+                        } else if (combo >= 10) {
+                            background.targetColor = [145, 200, 245]; // Light purple-blue
+                        } else if (combo >= 5) {
+                            background.targetColor = [140, 210, 240]; // Slightly tinted
+                        }
+                    }
+                } else {
+                    comboText.opacity = 0;
+                    comboBarBg.opacity = 0;
+                    comboBar.opacity = 0;
+                    background.targetColor = [135, 206, 235]; // Sky blue
+                }
+
+                // Smoothly transition background color
+                background.baseColor[0] += (background.targetColor[0] - background.baseColor[0]) * k.dt() * 2;
+                background.baseColor[1] += (background.targetColor[1] - background.baseColor[1]) * k.dt() * 2;
+                background.baseColor[2] += (background.targetColor[2] - background.baseColor[2]) * k.dt() * 2;
+                background.color = k.rgb(background.baseColor[0], background.baseColor[1], background.baseColor[2]);
+
                 // Note: New obstacles will spawn at current gameSpeed
                 // Existing obstacles keep their spawn speed (simpler and avoids errors)
             });
@@ -457,8 +609,74 @@
             // Collect coins
             player.onCollide("coin", (coin) => {
                 k.destroy(coin);
-                score += 50;
+
+                // Check combo level before increment
+                const oldLevel = Math.floor((combo) / 5);
+
+                // Update combo
+                combo++;
+                comboTimer = 0; // Reset timer
+
+                // Check if combo level increased
+                const newLevel = Math.floor((combo) / 5);
+                if (newLevel > oldLevel && combo >= 5) {
+                    playComboUpSound(newLevel);
+
+                    // Burst effect at combo text position
+                    for (let i = 0; i < 15; i++) {
+                        const angle = k.rand(0, 360);
+                        const speed = k.rand(150, 300);
+                        const color = getComboColor(combo);
+
+                        k.add([
+                            k.rect(8, 8),
+                            k.pos(k.width() / 2, 80),
+                            k.color(color[0], color[1], color[2]),
+                            k.opacity(1),
+                            k.anchor("center"),
+                            k.lifespan(0.5),
+                            k.move(angle, speed),
+                            k.z(99)
+                        ]);
+                    }
+
+                    // Screen flash effect
+                    const flash = k.add([
+                        k.rect(k.width(), k.height()),
+                        k.pos(0, 0),
+                        k.color(color[0], color[1], color[2]),
+                        k.opacity(0.3),
+                        k.z(98)
+                    ]);
+                    k.wait(0.1, () => k.destroy(flash));
+                }
+
+                // Calculate score with multiplier
+                const multiplier = getComboMultiplier(combo);
+                const coinScore = Math.floor(50 * multiplier);
+                score += coinScore;
+
                 playCoinSound();
+
+                // Show score popup at coin position
+                const scorePopup = k.add([
+                    k.text(`+${coinScore}`, { size: 24 }),
+                    k.pos(coin.pos),
+                    k.anchor("center"),
+                    k.color(getComboColor(combo)),
+                    k.opacity(1),
+                    k.lifespan(1),
+                    k.z(102),
+                    {
+                        vel: k.vec2(0, -100)
+                    }
+                ]);
+
+                // Animate score popup
+                scorePopup.onUpdate(() => {
+                    scorePopup.pos = scorePopup.pos.add(scorePopup.vel.scale(k.dt()));
+                    scorePopup.opacity -= k.dt();
+                });
                 // Simple particle effect with coin sprites (no area - won't collide)
                 for (let i = 0; i < 8; i++) {
                     k.add([
