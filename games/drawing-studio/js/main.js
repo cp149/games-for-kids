@@ -10,6 +10,7 @@ import { TemplateSelector } from './ui/TemplateSelector.js';
 import { Artwork } from './models/Artwork.js';
 import { BucketFillTool } from './tools/BucketFillTool.js';
 import { addAnimatedClass } from './utils/helpers.js';
+import { MusicManager } from './core/MusicManager.js';
 
 class DrawingStudioApp {
     constructor() {
@@ -17,6 +18,7 @@ class DrawingStudioApp {
         this.storageManager = null;
         this.gallery = null;
         this.templateSelector = null;
+        this.musicManager = null;
         this.currentTool = 'brush';
         this.currentArtworkId = null;
     }
@@ -61,11 +63,18 @@ class DrawingStudioApp {
         // Set up template callback
         this.templateSelector.onSelect(async (template) => await this.loadTemplate(template));
 
+        // Initialize music
+        this.musicManager = new MusicManager();
+
         // Set up UI
         this.setupToolButtons();
         this.setupSizeControl();
         this.setupColorPalette();
         this.setupActionButtons();
+        this.setupMusicControl();
+
+        // Start music on first user interaction
+        this.setupFirstInteraction();
 
         // Set up responsive canvas
         this.setupResponsiveCanvas();
@@ -412,6 +421,64 @@ class DrawingStudioApp {
             this.currentArtworkId = null;
         }
         console.log(`Artwork deleted: ${artwork.id}`);
+    }
+
+    /**
+     * Set up first interaction to start music
+     */
+    setupFirstInteraction() {
+        let musicStarted = false;
+
+        const startMusic = () => {
+            if (!musicStarted && !this.musicManager.isMuted) {
+                this.musicManager.start();
+                musicStarted = true;
+                console.log('Music started after user interaction');
+            }
+        };
+
+        // Listen for any user interaction
+        document.addEventListener('click', startMusic, { once: true });
+        document.addEventListener('touchstart', startMusic, { once: true });
+        document.addEventListener('keydown', startMusic, { once: true });
+    }
+
+    /**
+     * Set up music control button
+     */
+    setupMusicControl() {
+        const musicBtn = document.getElementById('music-btn');
+        if (!musicBtn) {
+            console.warn('Music button not found');
+            return;
+        }
+
+        // Set initial state
+        this.updateMusicButton(musicBtn);
+
+        // Toggle music on click
+        musicBtn.addEventListener('click', () => {
+            this.musicManager.toggleMute();
+            this.updateMusicButton(musicBtn);
+            addAnimatedClass(musicBtn, 'pulse');
+        });
+
+        console.log('Music control set up');
+    }
+
+    /**
+     * Update music button appearance
+     */
+    updateMusicButton(button) {
+        const state = this.musicManager.getState();
+
+        if (state.isMuted) {
+            button.textContent = '🔇 Music OFF';
+            button.classList.add('muted');
+        } else {
+            button.textContent = '🎵 Music ON';
+            button.classList.remove('muted');
+        }
     }
 
     /**
