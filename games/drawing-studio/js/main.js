@@ -190,7 +190,7 @@ class DrawingStudioApp {
                 // Fun feedback
                 clearBtn.textContent = '✨ Cleared!';
                 setTimeout(() => {
-                    clearBtn.textContent = '🗑️ Clear Canvas';
+                    clearBtn.textContent = '🗑️ Clear';
                 }, 1500);
             }
         });
