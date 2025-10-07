@@ -261,4 +261,97 @@ export class DrawingEngine {
             isDrawing: this.isDrawing
         };
     }
+
+    /**
+     * Get canvas as data URL
+     * @param {string} type - Image type (default: 'image/png')
+     * @param {number} quality - Image quality for JPEG (0-1)
+     * @returns {string}
+     */
+    getDataURL(type = 'image/png', quality = 0.95) {
+        return this.canvas.toDataURL(type, quality);
+    }
+
+    /**
+     * Generate thumbnail
+     * @param {number} maxSize - Maximum width/height in pixels
+     * @returns {string} Thumbnail data URL
+     */
+    generateThumbnail(maxSize = 200) {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+
+        // Calculate thumbnail dimensions (preserve aspect ratio)
+        const scale = Math.min(maxSize / this.canvas.width, maxSize / this.canvas.height);
+        tempCanvas.width = Math.floor(this.canvas.width * scale);
+        tempCanvas.height = Math.floor(this.canvas.height * scale);
+
+        // Draw scaled image
+        tempCtx.drawImage(this.canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+
+        // Return as JPEG for smaller size
+        return tempCanvas.toDataURL('image/jpeg', 0.7);
+    }
+
+    /**
+     * Load image data onto canvas
+     * @param {string} dataURL - Image data URL
+     * @returns {Promise<void>}
+     */
+    async loadFromDataURL(dataURL) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+
+            img.onload = () => {
+                // Clear canvas
+                this.clear();
+
+                // Draw image
+                this.ctx.drawImage(img, 0, 0);
+
+                // Save state
+                this.saveState();
+
+                console.log('Image loaded onto canvas');
+                resolve();
+            };
+
+            img.onerror = () => {
+                reject(new Error('Failed to load image'));
+            };
+
+            img.src = dataURL;
+        });
+    }
+
+    /**
+     * Download canvas as PNG file
+     * @param {string} filename - Filename (without extension)
+     */
+    downloadAsPNG(filename = 'artwork') {
+        const dataURL = this.canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `${filename}.png`;
+        link.href = dataURL;
+        link.click();
+        console.log(`Downloaded: ${filename}.png`);
+    }
+
+    /**
+     * Check if canvas is blank
+     * @returns {boolean}
+     */
+    isCanvasBlank() {
+        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const data = imageData.data;
+
+        // Check if all pixels are white or transparent
+        for (let i = 0; i < data.length; i += 4) {
+            // Check if pixel is not white (255,255,255) and not transparent (alpha = 0)
+            if (data[i] !== 255 || data[i + 1] !== 255 || data[i + 2] !== 255 || data[i + 3] !== 0) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

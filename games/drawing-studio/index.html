@@ -8,12 +8,6 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>🎨 Drawing Studio</h1>
-        <p class="subtitle">Create amazing art!</p>
-    </div>
-
     <!-- Main Application Container -->
     <div class="app-container">
         <!-- Toolbar -->
@@ -45,10 +39,21 @@
 
             <!-- Action Buttons -->
             <section class="toolbar-section">
-                <h3>⚡ Actions</h3>
                 <div class="action-buttons">
+                    <button id="template-btn" class="action-btn btn-template" title="Choose coloring template">
+                        🎨 Template
+                    </button>
+                    <button id="save-btn" class="action-btn btn-save" title="Save your artwork">
+                        💾 Save
+                    </button>
+                    <button id="gallery-btn" class="action-btn btn-gallery" title="View your artworks">
+                        🖼️ Gallery
+                    </button>
+                    <button id="export-btn" class="action-btn btn-export" title="Download as PNG">
+                        📥 Export
+                    </button>
                     <button id="clear-btn" class="action-btn btn-clear" title="Clear canvas">
-                        🗑️ Clear Canvas
+                        🗑️ Clear
                     </button>
                 </div>
             </section>
