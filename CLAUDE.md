@@ -2,6 +2,19 @@
 
 This file contains important guidelines for Claude when working on this project.
 
+## ⚡ Output Policy - CRITICAL
+
+**BE CONCISE. MINIMIZE TOKEN USAGE.**
+
+- Keep responses short and direct
+- No unnecessary preamble or postamble
+- No lengthy explanations unless asked
+- No repetitive summaries
+- Answer questions directly without elaboration
+- Only provide details when specifically requested
+- Use bullet points instead of paragraphs when possible
+- Skip obvious statements
+
 ## Language Policy 🌍
 
 ### Communication: Chinese (中文)

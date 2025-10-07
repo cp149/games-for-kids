@@ -551,14 +551,16 @@
         k.loadSprite("cloud2", "assets/images/cloud2.png");
 
         // Load background music tracks
-        k.loadSound("bgMusic1", "assets/sounds/quirky-music.mp3");      // 搞怪音乐
-        k.loadSound("bgMusic2", "assets/sounds/catchy-music.mp3");      // 魔性音乐
-        k.loadSound("bgMusic3", "assets/sounds/fast-music.mp3");        // 快节奏音乐
+        k.loadSound("bgMusic1", "assets/sounds/quirky-music.mp3");
+        k.loadSound("bgMusic2", "assets/sounds/catchy-music.mp3");
+        k.loadSound("bgMusic3", "assets/sounds/fast-music.mp3");
+        k.loadSound("bgMusic4", "assets/sounds/funny1.mp3");
+        k.loadSound("bgMusic5", "assets/sounds/funny2.mp3");
 
         // Debug: Check if sounds are loaded
         k.onLoad(() => {
             console.log("✓ All assets loaded");
-            console.log("✓ Music tracks ready:", ["bgMusic1", "bgMusic2", "bgMusic3"]);
+            console.log("✓ Music tracks ready:", ["bgMusic1", "bgMusic2", "bgMusic3", "bgMusic4", "bgMusic5"]);
         });
 
         // Wait for KAPLAY to be ready
@@ -909,7 +911,7 @@
             }
 
             // Music playlist with random rotation
-            const musicTracks = ["bgMusic1", "bgMusic2", "bgMusic3"];
+            const musicTracks = ["bgMusic1", "bgMusic2", "bgMusic3", "bgMusic4", "bgMusic5"];
             let currentMusic = null;
 
             function playRandomMusic() {
