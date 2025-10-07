@@ -108,6 +108,7 @@ export class ComboSystem {
      * Reset combo to 0
      */
     reset() {
+        if (this.combo === 0) return; // Already at 0, nothing to do
         this.combo = 0;
         this.comboTimer = 0;
         if (this.onComboChange) {
@@ -119,6 +120,7 @@ export class ComboSystem {
      * Get time remaining until combo expires
      */
     getTimeLeft() {
+        if (this.combo === 0) return 0;
         return Math.max(0, this.timeout - this.comboTimer);
     }
 

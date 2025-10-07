@@ -62,12 +62,12 @@ export class SimpleI18n {
         let text = langData[key];
 
         // Fallback to default language if not found
-        if (!text && this.currentLang !== this.defaultLang) {
+        if (text === undefined && this.currentLang !== this.defaultLang) {
             text = this.translations[this.defaultLang]?.[key];
         }
 
         // If still not found, return the key itself
-        if (!text) {
+        if (text === undefined) {
             console.warn(`Translation missing for key: "${key}" in language: "${this.currentLang}"`);
             return key;
         }

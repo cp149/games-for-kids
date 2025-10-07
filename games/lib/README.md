@@ -390,6 +390,17 @@ Additional generic modules that could be added:
 - `SaveManager.js` - Game save system
 - `AchievementSystem.js` - Achievement system
 
+## 🧪 Testing
+
+See [TESTING.md](./TESTING.md) for detailed testing strategy and guidelines.
+
+**Quick Summary:**
+- ✅ **Highly Testable:** ColorUtils, SimpleI18n, ScoreManager, ComboSystem
+- ⚠️ **Moderately Testable:** AudioUtils, TextToSpeech (requires mocking)
+- 🔴 **Integration Testing:** ParticleEffects, UIComponents (KAPLAY-dependent)
+
+**Recommended Framework:** [Vitest](https://vitest.dev/) (same as KAPLAY uses)
+
 ## 📄 License
 
 These utilities are free to use in any KAPLAY project.

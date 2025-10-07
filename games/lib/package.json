@@ -1,0 +1,29 @@
+{
+  "name": "kaplay-game-extensions",
+  "version": "1.0.0",
+  "description": "Reusable game system modules for KAPLAY games",
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:run": "vitest run"
+  },
+  "keywords": [
+    "kaplay",
+    "game",
+    "library",
+    "particles",
+    "combo",
+    "score",
+    "i18n",
+    "ui"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitest/ui": "^2.1.9",
+    "jsdom": "^26.1.0",
+    "vitest": "^2.1.9"
+  }
+}
