@@ -29,9 +29,143 @@
             width: 100vw !important;
             height: 100vh !important;
         }
+
+        #video {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 160px;
+            height: 120px;
+            border: 3px solid #4CAF50;
+            border-radius: 12px;
+            z-index: 1000;
+            transform: scaleX(-1); /* Mirror video */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            display: none; /* Hidden by default */
+        }
+
+        #pose-status {
+            position: fixed;
+            top: 150px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            min-width: 160px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        #pose-status.active {
+            background: rgba(76, 175, 80, 0.9);
+            border: 2px solid #4CAF50;
+        }
+
+        #pose-selector {
+            position: fixed;
+            top: 200px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4CAF50;
+            border-radius: 12px;
+            padding: 15px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        #pose-selector.visible {
+            display: block;
+        }
+
+        #change-pose-btn {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            background: rgba(100, 150, 200, 0.9);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        #change-pose-btn.visible {
+            display: block;
+        }
+
+        #change-pose-btn:hover {
+            background: rgba(120, 170, 220, 1);
+        }
+
+        .pose-option {
+            background: rgba(60, 100, 60, 0.9);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 150px;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .pose-option:hover {
+            background: rgba(80, 140, 80, 0.9);
+            transform: translateX(-3px);
+        }
+
+        .pose-option.selected {
+            background: rgba(100, 200, 100, 0.9);
+            border: 2px solid #4CAF50;
+        }
+
+        #toggle-camera {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        #toggle-camera:hover {
+            background: rgba(76, 175, 80, 1);
+        }
     </style>
 </head>
 <body>
+    <video id="video" autoplay playsinline></video>
+    <div id="pose-status">🎮 Camera Off</div>
+    <div id="pose-selector">
+        <div style="color: #fff; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Choose Pose:</div>
+        <button class="pose-option" data-pose="one-hand">🙋 One Hand Up</button>
+        <button class="pose-option" data-pose="arms-spread">🔀 Spread Arms</button>
+        <button class="pose-option" data-pose="one-leg">🦩 One Leg Up</button>
+        <button class="pose-option" data-pose="hands-up">🤦 Hands On Head</button>
+    </div>
+    <button id="change-pose-btn">🔄 Change Pose</button>
+    <button id="toggle-camera">📷 Start Camera</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
     <script type="module">
         // Import KAPLAY from CDN
@@ -48,6 +182,349 @@
             playSpecialCoinSound
         } from '../lib/audio/AudioUtils.js';
         import { hslToRgb } from '../lib/utils/ColorUtils.js';
+
+        // ===== MEDIAPIPE POSE DETECTION =====
+        let isHandsUpPose = false;
+        let lastJumpTime = 0;
+        const JUMP_COOLDOWN = 500; // ms
+        let cameraActive = false;
+        let pose = null;
+        let camera = null;
+        let selectedPoseType = null; // Start with no selection
+        let poseSelected = false;
+
+        const videoElement = document.getElementById('video');
+        const poseStatus = document.getElementById('pose-status');
+        const toggleButton = document.getElementById('toggle-camera');
+        const poseSelector = document.getElementById('pose-selector');
+        const changePoseBtn = document.getElementById('change-pose-btn');
+
+        // Initialize pose selector buttons
+        document.querySelectorAll('.pose-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update selected pose
+                selectedPoseType = btn.dataset.pose;
+                poseSelected = true;
+
+                // Update UI
+                document.querySelectorAll('.pose-option').forEach(b => {
+                    b.classList.remove('selected');
+                });
+                btn.classList.add('selected');
+
+                // Hide selector and show change button
+                poseSelector.classList.remove('visible');
+                if (cameraActive) {
+                    changePoseBtn.classList.add('visible');
+                }
+
+                // Update status display
+                poseStatus.textContent = `🎮 ${getPoseDescription()}`;
+                console.log('Pose selected:', selectedPoseType);
+
+                // Dispatch custom event to notify menu scene
+                window.dispatchEvent(new CustomEvent('poseSelected'));
+            });
+        });
+
+        // Change pose button
+        changePoseBtn.addEventListener('click', () => {
+            poseSelector.classList.add('visible');
+            changePoseBtn.classList.remove('visible');
+        });
+
+        // Initialize MediaPipe Pose
+        function initPose() {
+            pose = new Pose({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                }
+            });
+
+            pose.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                smoothSegmentation: false,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            pose.onResults(onPoseResults);
+        }
+
+        // Pose detection functions
+
+        // 1. Single hand raised
+        function detectOneHandUp(landmarks) {
+            if (!landmarks || landmarks.length === 0) return false;
+
+            const nose = landmarks[0];
+            const leftEar = landmarks[7];
+            const rightEar = landmarks[8];
+            const leftWrist = landmarks[15];
+            const rightWrist = landmarks[16];
+            const leftShoulder = landmarks[11];
+            const rightShoulder = landmarks[12];
+            const leftElbow = landmarks[13];
+            const rightElbow = landmarks[14];
+
+            if (!leftWrist || !rightWrist || !nose || !leftShoulder || !rightShoulder) {
+                return false;
+            }
+
+            // Calculate head level (use ear if available, otherwise nose)
+            const headLevel = (leftEar && rightEar) ? Math.min(leftEar.y, rightEar.y, nose.y) : nose.y;
+
+            // Left hand detection
+            const leftHandRaised =
+                leftWrist.y < headLevel &&  // Wrist above head level
+                leftWrist.y < leftShoulder.y - 0.2 &&  // Well above shoulder
+                (leftElbow ? leftWrist.y < leftElbow.y : true);  // Wrist above elbow (arm extended)
+
+            // Right hand detection
+            const rightHandRaised =
+                rightWrist.y < headLevel &&  // Wrist above head level
+                rightWrist.y < rightShoulder.y - 0.2 &&  // Well above shoulder
+                (rightElbow ? rightWrist.y < rightElbow.y : true);  // Wrist above elbow (arm extended)
+
+            // Only one hand should be raised (not both)
+            return (leftHandRaised && !rightHandRaised) || (!leftHandRaised && rightHandRaised);
+        }
+
+        // 2. Arms spread wide (T-pose)
+        function detectArmsSpread(landmarks) {
+            if (!landmarks || landmarks.length === 0) return false;
+
+            const leftWrist = landmarks[15];
+            const rightWrist = landmarks[16];
+            const leftShoulder = landmarks[11];
+            const rightShoulder = landmarks[12];
+            const leftElbow = landmarks[13];
+            const rightElbow = landmarks[14];
+
+            if (!leftWrist || !rightWrist || !leftShoulder || !rightShoulder) {
+                return false;
+            }
+
+            // Calculate shoulder width
+            const shoulderWidth = Math.abs(rightShoulder.x - leftShoulder.x);
+
+            // Arms should be spread wide (wrists far from body center)
+            const bodyCenter = (leftShoulder.x + rightShoulder.x) / 2;
+            const leftArmSpread = Math.abs(leftWrist.x - bodyCenter) > shoulderWidth * 0.8;
+            const rightArmSpread = Math.abs(rightWrist.x - bodyCenter) > shoulderWidth * 0.8;
+
+            // Wrists should be roughly at shoulder height (±0.15)
+            const leftAtShoulderHeight = Math.abs(leftWrist.y - leftShoulder.y) < 0.15;
+            const rightAtShoulderHeight = Math.abs(rightWrist.y - rightShoulder.y) < 0.15;
+
+            return leftArmSpread && rightArmSpread && leftAtShoulderHeight && rightAtShoulderHeight;
+        }
+
+        // 3. One leg raised (standing on one leg)
+        function detectOneLegRaised(landmarks) {
+            if (!landmarks || landmarks.length === 0) return false;
+
+            const leftHip = landmarks[23];
+            const rightHip = landmarks[24];
+            const leftKnee = landmarks[25];
+            const rightKnee = landmarks[26];
+            const leftAnkle = landmarks[27];
+            const rightAnkle = landmarks[28];
+
+            if (!leftHip || !rightHip || !leftKnee || !rightKnee || !leftAnkle || !rightAnkle) {
+                return false;
+            }
+
+            // Calculate hip level
+            const hipLevel = (leftHip.y + rightHip.y) / 2;
+
+            // Check if one knee is raised significantly above hip level
+            const leftKneeRaised = leftKnee.y < hipLevel - 0.1;
+            const rightKneeRaised = rightKnee.y < hipLevel - 0.1;
+
+            return leftKneeRaised || rightKneeRaised;
+        }
+
+        // 4. Hands on head (抱头/捂头)
+        function detectHandsOnHead(landmarks) {
+            if (!landmarks || landmarks.length === 0) return false;
+
+            const nose = landmarks[0];
+            const leftEar = landmarks[7];
+            const rightEar = landmarks[8];
+            const leftWrist = landmarks[15];
+            const rightWrist = landmarks[16];
+            const leftShoulder = landmarks[11];
+            const rightShoulder = landmarks[12];
+
+            // Check if essential points are detected
+            if (!leftWrist || !rightWrist || !nose || !leftShoulder || !rightShoulder || !leftEar || !rightEar) {
+                return false;
+            }
+
+            // Both wrists must be above shoulders
+            const leftHandUp = leftWrist.y < leftShoulder.y;
+            const rightHandUp = rightWrist.y < rightShoulder.y;
+
+            if (!leftHandUp || !rightHandUp) return false;
+
+            // Hands should be at head level or above (near nose/ears)
+            const headTop = Math.min(nose.y, leftEar.y, rightEar.y);
+            const leftAtHeadLevel = leftWrist.y < headTop + 0.1 && leftWrist.y > headTop - 0.15;
+            const rightAtHeadLevel = rightWrist.y < headTop + 0.1 && rightWrist.y > headTop - 0.15;
+
+            if (!leftAtHeadLevel || !rightAtHeadLevel) return false;
+
+            // Hands should be close to head horizontally (near ears)
+            const headWidth = Math.abs(leftEar.x - rightEar.x);
+            const headCenterX = (leftEar.x + rightEar.x) / 2;
+
+            // Check if hands are close to the sides or back of head
+            const leftNearHead = Math.abs(leftWrist.x - leftEar.x) < headWidth * 0.6;
+            const rightNearHead = Math.abs(rightWrist.x - rightEar.x) < headWidth * 0.6;
+
+            return leftNearHead && rightNearHead;
+        }
+
+        // Master detection function that calls the appropriate detector
+        function detectPose(landmarks) {
+            if (!selectedPoseType) {
+                return false; // No pose selected
+            }
+            switch(selectedPoseType) {
+                case 'one-hand':
+                    return detectOneHandUp(landmarks);
+                case 'arms-spread':
+                    return detectArmsSpread(landmarks);
+                case 'one-leg':
+                    return detectOneLegRaised(landmarks);
+                case 'hands-up':
+                    return detectHandsOnHead(landmarks);
+                default:
+                    return false;
+            }
+        }
+
+        // Get pose description for UI
+        function getPoseDescription() {
+            if (!selectedPoseType) {
+                return 'No pose selected';
+            }
+            switch(selectedPoseType) {
+                case 'one-hand':
+                    return '🙋 Raise One Hand';
+                case 'arms-spread':
+                    return '🔀 Spread Arms';
+                case 'one-leg':
+                    return '🦩 Raise One Leg';
+                case 'hands-up':
+                    return '🤦 Hands On Head';
+                default:
+                    return 'Unknown pose';
+            }
+        }
+
+        function onPoseResults(results) {
+            if (!results.poseLandmarks) {
+                isHandsUpPose = false;
+                poseStatus.textContent = '👋 No pose detected';
+                poseStatus.classList.remove('active');
+                return;
+            }
+
+            const detected = detectPose(results.poseLandmarks);
+
+            if (detected !== isHandsUpPose) {
+                isHandsUpPose = detected;
+
+                if (isHandsUpPose) {
+                    poseStatus.textContent = getPoseDescription() + ' - Jump!';
+                    poseStatus.classList.add('active');
+                } else {
+                    poseStatus.textContent = `🎮 ${getPoseDescription()}`;
+                    poseStatus.classList.remove('active');
+                }
+            }
+        }
+
+        // Start camera
+        async function startCamera() {
+            try {
+                if (!pose) {
+                    initPose();
+                }
+
+                camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        if (pose && cameraActive) {
+                            await pose.send({image: videoElement});
+                        }
+                    },
+                    width: 640,
+                    height: 480
+                });
+
+                await camera.start();
+                cameraActive = true;
+                videoElement.style.display = 'block';
+
+                // Show pose selector if no pose selected yet
+                if (!poseSelected) {
+                    poseSelector.classList.add('visible');
+                    poseStatus.textContent = '👆 Choose a pose first';
+                } else {
+                    changePoseBtn.classList.add('visible');
+                    poseStatus.textContent = `🎮 ${getPoseDescription()}`;
+                }
+
+                toggleButton.textContent = '📷 Stop Camera';
+
+                // Notify menu scene that camera started
+                window.dispatchEvent(new CustomEvent('cameraStarted'));
+
+                console.log('Camera started successfully');
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                poseStatus.textContent = '❌ Camera error';
+            }
+        }
+
+        // Stop camera
+        function stopCamera() {
+            if (camera) {
+                camera.stop();
+                camera = null;
+            }
+            cameraActive = false;
+            isHandsUpPose = false;
+            videoElement.style.display = 'none';
+            poseSelector.classList.remove('visible');
+            changePoseBtn.classList.remove('visible');
+            poseStatus.textContent = '🎮 Camera Off';
+            poseStatus.classList.remove('active');
+            toggleButton.textContent = '📷 Start Camera';
+        }
+
+        // Toggle camera
+        toggleButton.addEventListener('click', () => {
+            if (cameraActive) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        });
+
+        // Check if pose jump is ready (with cooldown)
+        function canPoseJump() {
+            const now = Date.now();
+            if (isHandsUpPose && (now - lastJumpTime > JUMP_COOLDOWN)) {
+                lastJumpTime = now;
+                return true;
+            }
+            return false;
+        }
 
         // Initialize KAPLAY - defaults to fullscreen
         const k = kaplay({
@@ -73,8 +550,16 @@
         k.loadSprite("cloud", "assets/images/cloud.png");
         k.loadSprite("cloud2", "assets/images/cloud2.png");
 
-        // Load background music
-        k.loadSound("bgMusic", "assets/sounds/background-music.mp3");
+        // Load background music tracks
+        k.loadSound("bgMusic1", "assets/sounds/quirky-music.mp3");      // 搞怪音乐
+        k.loadSound("bgMusic2", "assets/sounds/catchy-music.mp3");      // 魔性音乐
+        k.loadSound("bgMusic3", "assets/sounds/fast-music.mp3");        // 快节奏音乐
+
+        // Debug: Check if sounds are loaded
+        k.onLoad(() => {
+            console.log("✓ All assets loaded");
+            console.log("✓ Music tracks ready:", ["bgMusic1", "bgMusic2", "bgMusic3"]);
+        });
 
         // Wait for KAPLAY to be ready
         k.onLoad(() => {
@@ -423,10 +908,45 @@
                 return [255, 0, 0]; // red
             }
 
-            // Play background music (loop)
-            const music = k.play("bgMusic", {
-                loop: true,
-                volume: 0.5
+            // Music playlist with random rotation
+            const musicTracks = ["bgMusic1", "bgMusic2", "bgMusic3"];
+            let currentMusic = null;
+
+            function playRandomMusic() {
+                try {
+                    // Stop current music if playing
+                    if (currentMusic) {
+                        currentMusic.stop();
+                    }
+
+                    // Randomly select a track
+                    const randomTrack = k.choose(musicTracks);
+                    console.log(`🎵 Attempting to play: ${randomTrack}`);
+
+                    currentMusic = k.play(randomTrack, {
+                        volume: 0.5
+                    });
+
+                    console.log(`✓ Now playing: ${randomTrack}`);
+
+                    // When this track ends, play another random one
+                    currentMusic.onEnd(() => {
+                        console.log(`Track ${randomTrack} ended, switching...`);
+                        playRandomMusic();
+                    });
+                } catch (error) {
+                    console.error("❌ Error playing music:", error);
+                    // Try again after 2 seconds if failed
+                    k.wait(2, () => {
+                        playRandomMusic();
+                    });
+                }
+            }
+
+            // Start playing music after a short delay (helps with browser autoplay policy)
+            k.wait(0.5, () => {
+                console.log("Starting background music...");
+                playRandomMusic();
             });
 
             // Dynamic ground position - at bottom of screen
@@ -480,6 +1000,13 @@
             let wasInAir = false;
             let trailTimer = 0;
             player.onUpdate(() => {
+                // Check pose detection for jump
+                if (canPoseJump() && !player.isJumping && !k.debug.paused) {
+                    player.velocityY = -JUMP_FORCE;
+                    player.isJumping = true;
+                    playJumpSound();
+                }
+
                 // Apply gravity
                 player.velocityY += GRAVITY * k.dt();
                 player.pos.y += player.velocityY * k.dt();
@@ -654,13 +1181,13 @@
 
                 if (k.debug.paused) {
                     // Show pause overlay
-                    music.paused = true;
+                    if (currentMusic) currentMusic.paused = true;
                     pauseOverlay.opacity = 0.7;
                     pauseText.opacity = 1;
                     pauseHint.opacity = 1;
                 } else {
                     // Hide pause overlay
-                    music.paused = false;
+                    if (currentMusic) currentMusic.paused = false;
                     pauseOverlay.opacity = 0;
                     pauseText.opacity = 0;
                     pauseHint.opacity = 0;
@@ -844,7 +1371,7 @@
                     }
                 } else {
                     playGameOverSound();
-                    music.stop();
+                    if (currentMusic) currentMusic.stop();
                     k.go("gameover", Math.floor(score));
                 }
             });
@@ -1303,73 +1830,127 @@
                 k.color(255, 255, 255)
             ]);
 
-            const startBtn = k.add([
-                k.rect(200, 60, { radius: 8 }),
+            // Instructions
+            const step1Text = k.add([
+                k.text("Step 1: Click '📷 Start Camera' button →", { size: 22 }),
+                k.pos(k.width() / 2, k.height() / 2 - 20),
+                k.anchor("center"),
+                k.color(255, 255, 100),
+                k.z(2),
+                "step1-text"
+            ]);
+
+            const step2Text = k.add([
+                k.text("Step 2: Choose Pose", { size: 24 }),
+                k.pos(k.width() / 2, k.height() / 2 + 20),
+                k.anchor("center"),
+                k.color(200, 200, 200),
+                k.z(2),
+                "step2-text"
+            ]);
+
+            const step3Text = k.add([
+                k.text("Step 3: Start Game", { size: 24 }),
                 k.pos(k.width() / 2, k.height() / 2 + 60),
                 k.anchor("center"),
-                k.color(100, 200, 100),
+                k.color(150, 150, 150),
+                k.z(2),
+                "step3-text"
+            ]);
+
+            const startBtn = k.add([
+                k.rect(200, 60, { radius: 8 }),
+                k.pos(k.width() / 2, k.height() / 2 + 120),
+                k.anchor("center"),
+                k.color(60, 100, 60),
                 k.area(),
                 k.opacity(0.9),
                 "button"
             ]);
 
+            // Listen for camera start
+            const handleCameraStarted = () => {
+                step1Text.color = k.rgb(100, 255, 100); // Green - completed
+                step2Text.color = k.rgb(255, 255, 100); // Yellow - active
+            };
+            window.addEventListener('cameraStarted', handleCameraStarted);
+
+            // Listen for pose selection
+            const handlePoseSelected = () => {
+                step2Text.color = k.rgb(100, 255, 100); // Green - completed
+                step3Text.color = k.rgb(255, 255, 100); // Yellow - active
+                startBtn.color = k.rgb(100, 200, 100); // Enable button
+            };
+            window.addEventListener('poseSelected', handlePoseSelected);
+
+            // Clean up listeners when leaving scene
+            k.onSceneLeave(() => {
+                window.removeEventListener('cameraStarted', handleCameraStarted);
+                window.removeEventListener('poseSelected', handlePoseSelected);
+            });
+
             k.add([
                 k.text("Start Game", { size: 24 }),
-                k.pos(k.width() / 2, k.height() / 2 + 60),
+                k.pos(k.width() / 2, k.height() / 2 + 120),
                 k.anchor("center"),
                 k.color(255, 255, 255)
             ]);
 
             // Button hover effect
             startBtn.onHover(() => {
-                startBtn.color = k.rgb(120, 220, 120);
+                if (poseSelected) {
+                    startBtn.color = k.rgb(120, 220, 120);
+                }
             });
 
             startBtn.onHoverEnd(() => {
-                startBtn.color = k.rgb(100, 200, 100);
+                if (poseSelected) {
+                    startBtn.color = k.rgb(100, 200, 100);
+                }
             });
 
-            // Start game
-            startBtn.onClick(() => {
+            // Start game (only if camera started AND pose selected)
+            function tryStartGame() {
+                // Check Step 1: Camera must be started
+                if (!cameraActive) {
+                    // Flash Step 1 as warning
+                    const step1 = k.get("step1-text")[0];
+                    if (step1) {
+                        step1.color = k.rgb(255, 100, 100);
+                        k.wait(0.3, () => {
+                            step1.color = k.rgb(255, 255, 100);
+                        });
+                    }
+                    return;
+                }
+
+                // Check Step 2: Pose must be selected
+                if (!poseSelected) {
+                    // Flash Step 2 as warning
+                    const step2 = k.get("step2-text")[0];
+                    if (step2) {
+                        step2.color = k.rgb(255, 100, 100);
+                        k.wait(0.3, () => {
+                            step2.color = k.rgb(255, 255, 100);
+                        });
+                    }
+                    return;
+                }
+
+                // All steps completed - start game
+                poseSelector.classList.remove('visible');
                 k.go("game");
-            });
+            }
 
-            k.onKeyPress("space", () => {
-                k.go("game");
-            });
+            startBtn.onClick(tryStartGame);
+            k.onKeyPress("space", tryStartGame);
 
-            // Instructions - Background panel for contrast
+            // Instructions at bottom
             k.add([
-                k.rect(700, 150, { radius: 12 }),
-                k.pos(k.width() / 2, k.height() - 140),
+                k.text("Controls: SPACE / Click / Tap / Pose • Avoid 🌵 • Collect 💰", { size: 18 }),
+                k.pos(k.width() / 2, k.height() - 40),
                 k.anchor("center"),
-                k.color(0, 0, 0),
-                k.opacity(0.7),
-                k.z(1)
-            ]);
-
-            // Instructions text
-            k.add([
-                k.text("🎮 Controls", { size: 28 }),
-                k.pos(k.width() / 2, k.height() - 180),
-                k.anchor("center"),
-                k.color(255, 255, 255),
-                k.z(2)
-            ]);
-
-            k.add([
-                k.text("SPACE / Click / Tap to Jump", { size: 22 }),
-                k.pos(k.width() / 2, k.height() - 140),
-                k.anchor("center"),
-                k.color(255, 255, 255),
-                k.z(2)
-            ]);
-
-            k.add([
-                k.text("Avoid obstacles 🌵 • Collect coins 💰", { size: 20 }),
-                k.pos(k.width() / 2, k.height() - 100),
-                k.anchor("center"),
-                k.color(255, 255, 255),
+                k.color(200, 200, 200),
                 k.z(2)
             ]);
         });
