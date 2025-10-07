@@ -8,22 +8,19 @@
  * All drawing tools extend this class
  */
 export class Tool {
-    constructor(name, sizes = { small: 3, medium: 8, large: 15 }) {
+    constructor(name, defaultWidth = 8) {
         this.name = name;
-        this.sizes = sizes;
-        this.currentSize = 'medium';
+        this.lineWidth = defaultWidth;
         this.color = '#000000';
     }
 
     /**
-     * Set tool size
-     * @param {string} size - 'small', 'medium', or 'large'
+     * Set line width directly
+     * @param {number} width - Line width in pixels
      */
-    setSize(size) {
-        if (this.sizes[size]) {
-            this.currentSize = size;
-            console.log(`${this.name} size set to ${size} (${this.getLineWidth()}px)`);
-        }
+    setLineWidth(width) {
+        this.lineWidth = Math.max(1, Math.min(50, width)); // Clamp between 1-50
+        console.log(`${this.name} line width set to ${this.lineWidth}px`);
     }
 
     /**
@@ -31,7 +28,7 @@ export class Tool {
      * @returns {number}
      */
     getLineWidth() {
-        return this.sizes[this.currentSize];
+        return this.lineWidth;
     }
 
     /**
@@ -98,11 +95,7 @@ export class Tool {
  */
 export class BrushTool extends Tool {
     constructor() {
-        super('Brush', {
-            small: 3,
-            medium: 8,
-            large: 15
-        });
+        super('Brush', 8); // Default 8px
     }
 }
 
@@ -112,11 +105,7 @@ export class BrushTool extends Tool {
  */
 export class EraserTool extends Tool {
     constructor() {
-        super('Eraser', {
-            small: 10,
-            medium: 20,
-            large: 40
-        });
+        super('Eraser', 20); // Default 20px
     }
 
     /**
@@ -220,12 +209,12 @@ export class ToolManager {
     }
 
     /**
-     * Set tool size
-     * @param {string} size
+     * Set tool line width
+     * @param {number} width
      */
-    setSize(size) {
+    setLineWidth(width) {
         if (this.activeTool) {
-            this.activeTool.setSize(size);
+            this.activeTool.setLineWidth(width);
         }
     }
 

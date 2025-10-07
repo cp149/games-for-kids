@@ -29,8 +29,9 @@
             <!-- Size Selector -->
             <section class="toolbar-section">
                 <h3>📏 Size</h3>
-                <div id="size-buttons" class="size-buttons">
-                    <!-- Dynamically populated -->
+                <div class="size-control">
+                    <input type="range" id="size-slider" min="1" max="50" value="8" />
+                    <span class="size-value" id="size-value">8px</span>
                 </div>
             </section>
 
@@ -58,7 +59,7 @@
             <div class="canvas-wrapper">
                 <canvas id="canvas" width="1000" height="700"></canvas>
                 <div class="canvas-info">
-                    ✨ Draw with mouse or touch! Use keyboard: B (brush), E (eraser), Ctrl+Z (undo)
+                    ✨ Draw with mouse or touch! Use keyboard: B (brush), E (eraser)
                 </div>
             </div>
         </main>

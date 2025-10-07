@@ -10,7 +10,6 @@ class DrawingStudioApp {
     constructor() {
         this.engine = null;
         this.currentTool = 'brush';
-        this.currentSize = 'medium';
     }
 
     /**
@@ -24,7 +23,7 @@ class DrawingStudioApp {
 
         // Set up UI
         this.setupToolButtons();
-        this.setupSizeButtons();
+        this.setupSizeControl();
         this.setupColorPalette();
         this.setupActionButtons();
 
@@ -71,28 +70,21 @@ class DrawingStudioApp {
     }
 
     /**
-     * Set up size selector buttons
+     * Set up size control
      */
-    setupSizeButtons() {
-        const sizes = ['small', 'medium', 'large'];
-        const container = document.getElementById('size-buttons');
+    setupSizeControl() {
+        const sizeSlider = document.getElementById('size-slider');
+        const sizeValue = document.getElementById('size-value');
 
-        sizes.forEach(size => {
-            const button = document.createElement('button');
-            button.className = 'size-btn';
-            button.dataset.size = size;
-            button.textContent = size.charAt(0).toUpperCase() + size.slice(1);
-
-            // Set active state for current size
-            if (size === this.currentSize) {
-                button.classList.add('active');
+        sizeSlider.addEventListener('input', (e) => {
+            const width = parseInt(e.target.value, 10);
+            if (!isNaN(width)) {
+                this.engine.setLineWidth(width);
+                sizeValue.textContent = `${width}px`;
             }
-
-            button.addEventListener('click', () => this.selectSize(size));
-            container.appendChild(button);
         });
 
-        console.log(`${sizes.length} size buttons created`);
+        console.log('Size control set up');
     }
 
     /**
@@ -122,37 +114,16 @@ class DrawingStudioApp {
     }
 
     /**
-     * Set up action buttons (undo, redo, clear)
+     * Set up action buttons (clear)
      */
     setupActionButtons() {
-        const undoBtn = document.getElementById('undo-btn');
-        const redoBtn = document.getElementById('redo-btn');
         const clearBtn = document.getElementById('clear-btn');
-
-        // Undo button
-        undoBtn.addEventListener('click', async () => {
-            const success = await this.engine.undo();
-            if (success) {
-                addAnimatedClass(undoBtn, 'pulse');
-            }
-            this.updateHistoryButtons();
-        });
-
-        // Redo button
-        redoBtn.addEventListener('click', async () => {
-            const success = await this.engine.redo();
-            if (success) {
-                addAnimatedClass(redoBtn, 'pulse');
-            }
-            this.updateHistoryButtons();
-        });
 
         // Clear button
         clearBtn.addEventListener('click', () => {
             if (confirm('Clear your drawing? This cannot be undone.')) {
                 this.engine.clear();
                 addAnimatedClass(clearBtn, 'pulse');
-                this.updateHistoryButtons();
 
                 // Fun feedback
                 clearBtn.textContent = '✨ Cleared!';
@@ -162,21 +133,7 @@ class DrawingStudioApp {
             }
         });
 
-        // Initial state
-        this.updateHistoryButtons();
-
         console.log('Action buttons set up');
-    }
-
-    /**
-     * Update undo/redo button states
-     */
-    updateHistoryButtons() {
-        const undoBtn = document.getElementById('undo-btn');
-        const redoBtn = document.getElementById('redo-btn');
-
-        undoBtn.disabled = !this.engine.canUndo();
-        redoBtn.disabled = !this.engine.canRedo();
     }
 
     /**
@@ -192,6 +149,13 @@ class DrawingStudioApp {
                 btn.classList.toggle('active', btn.dataset.tool === toolId);
             });
 
+            // Update size slider and value display to current tool's line width
+            const sizeSlider = document.getElementById('size-slider');
+            const sizeValue = document.getElementById('size-value');
+            const toolInfo = this.engine.getActiveToolInfo();
+            sizeSlider.value = toolInfo.lineWidth;
+            sizeValue.textContent = `${toolInfo.lineWidth}px`;
+
             // Add animation
             const activeBtn = document.querySelector(`.tool-btn[data-tool="${toolId}"]`);
             if (activeBtn) {
@@ -202,27 +166,6 @@ class DrawingStudioApp {
         }
     }
 
-    /**
-     * Select a size
-     * @param {string} size
-     */
-    selectSize(size) {
-        this.engine.setSize(size);
-        this.currentSize = size;
-
-        // Update UI
-        document.querySelectorAll('.size-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.size === size);
-        });
-
-        // Add animation
-        const activeBtn = document.querySelector(`.size-btn[data-size="${size}"]`);
-        if (activeBtn) {
-            addAnimatedClass(activeBtn, 'pulse');
-        }
-
-        console.log(`Size selected: ${size}`);
-    }
 
     /**
      * Select a color
@@ -276,18 +219,6 @@ class DrawingStudioApp {
      */
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Undo: Ctrl+Z or Cmd+Z
-            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-                e.preventDefault();
-                this.engine.undo().then(() => this.updateHistoryButtons());
-            }
-
-            // Redo: Ctrl+Y or Cmd+Shift+Z
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-                e.preventDefault();
-                this.engine.redo().then(() => this.updateHistoryButtons());
-            }
-
             // Tool shortcuts: B for brush, E for eraser
             if (!e.ctrlKey && !e.metaKey && !e.altKey) {
                 if (e.key === 'b' || e.key === 'B') {
@@ -299,7 +230,7 @@ class DrawingStudioApp {
         });
 
         console.log('Keyboard shortcuts set up');
-        console.log('Shortcuts: Ctrl+Z (undo), Ctrl+Y (redo), B (brush), E (eraser)');
+        console.log('Shortcuts: B (brush), E (eraser)');
     }
 }
 

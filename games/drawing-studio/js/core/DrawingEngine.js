@@ -135,11 +135,11 @@ export class DrawingEngine {
     }
 
     /**
-     * Set tool size
-     * @param {string} size - 'small', 'medium', or 'large'
+     * Set tool line width
+     * @param {number} width - Line width in pixels (1-50)
      */
-    setSize(size) {
-        this.toolManager.setSize(size);
+    setLineWidth(width) {
+        this.toolManager.setLineWidth(width);
     }
 
     /**
@@ -232,7 +232,6 @@ export class DrawingEngine {
         const tool = this.toolManager.getActiveTool();
         return {
             name: tool.name,
-            size: tool.currentSize,
             lineWidth: tool.getLineWidth(),
             color: tool.color
         };
