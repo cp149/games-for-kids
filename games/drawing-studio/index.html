@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Drawing Studio - Phase 1</title>
+    <meta name="description" content="A fun drawing and painting game for children aged 3-14+">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🎨 Drawing Studio</h1>
+        <p class="subtitle">Create amazing art!</p>
+    </div>
+
+    <!-- Main Application Container -->
+    <div class="app-container">
+        <!-- Toolbar -->
+        <aside class="toolbar">
+            <!-- Tool Selector -->
+            <section class="toolbar-section">
+                <h3>🛠️ Tools</h3>
+                <div id="tool-buttons" class="tool-buttons">
+                    <!-- Dynamically populated -->
+                </div>
+            </section>
+
+            <!-- Size Selector -->
+            <section class="toolbar-section">
+                <h3>📏 Size</h3>
+                <div id="size-buttons" class="size-buttons">
+                    <!-- Dynamically populated -->
+                </div>
+            </section>
+
+            <!-- Color Palette -->
+            <section class="toolbar-section">
+                <h3>🎨 Colors</h3>
+                <div id="color-palette" class="color-palette">
+                    <!-- Dynamically populated -->
+                </div>
+            </section>
+
+            <!-- Action Buttons -->
+            <section class="toolbar-section">
+                <h3>⚡ Actions</h3>
+                <div class="action-buttons">
+                    <button id="clear-btn" class="action-btn btn-clear" title="Clear canvas">
+                        🗑️ Clear Canvas
+                    </button>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Canvas Area -->
+        <main class="canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="canvas" width="1000" height="700"></canvas>
+                <div class="canvas-info">
+                    ✨ Draw with mouse or touch! Use keyboard: B (brush), E (eraser), Ctrl+Z (undo)
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

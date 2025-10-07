@@ -1,0 +1,45 @@
+GAME DIRECTOR COORDINATION TASK
+================================
+
+Project: Multi-Age Drawing Studio Game
+Technology: Native HTML5 Canvas API (no engines)
+Target Directory: /home/wxcd/mgame/games/drawing-studio/
+
+DELEGATION PLAN:
+================
+
+1. @game-designer
+   - Create DESIGN.md: Game concept, 3 modes, progression system
+   - Define age-appropriate features for each mode
+   - Design reward/feedback systems
+
+2. @game-designer (continued) or parallel
+   - Create FEATURES.md: Detailed feature specifications
+   - Tool specifications (brush, eraser, fill, shapes)
+   - Template system design
+   - Save/load gallery system
+
+3. @game-mechanics-engineer
+   - Create TECHNICAL.md: Canvas architecture
+   - Event handling (mouse + touch)
+   - Data structures (artwork, layers, history)
+   - Performance considerations
+
+4. @project-chronicler
+   - Create ROADMAP.md: POC-first implementation plan
+   - Phase breakdown with clear deliverables
+   - Testing checkpoints
+   - Success metrics
+
+REQUIREMENTS:
+=============
+- POC-first approach (start simple, validate, expand)
+- Mobile-friendly (touch events)
+- Cartoon UI for kids
+- LocalStorage for persistence
+- Three distinct modes for different age groups
+- No game engines - pure Canvas 2D API
+
+OUTPUT:
+=======
+4 comprehensive design documents ready for implementation
