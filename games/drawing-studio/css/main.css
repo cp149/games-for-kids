@@ -37,33 +37,8 @@ body {
     padding: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     min-width: 200px;
-    max-height: 95vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS/iPad */
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: #667eea #f1f1f1; /* Firefox */
-    touch-action: pan-y; /* Only allow vertical scrolling on toolbar */
 }
 
-/* Custom scrollbar for toolbar */
-.toolbar::-webkit-scrollbar {
-    width: 8px;
-}
-
-.toolbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-.toolbar::-webkit-scrollbar-thumb {
-    background: #667eea;
-    border-radius: 10px;
-}
-
-.toolbar::-webkit-scrollbar-thumb:hover {
-    background: #764ba2;
-}
 
 .toolbar-section {
     margin-bottom: 25px;
@@ -339,7 +314,6 @@ canvas {
     .toolbar {
         width: 100%;
         max-width: 600px;
-        max-height: 40vh; /* Limit toolbar height on mobile/tablet */
     }
 
     .color-palette {
@@ -352,7 +326,6 @@ canvas {
 
     .action-buttons {
         flex-direction: row;
-        flex-wrap: wrap;
     }
 }
 
@@ -366,24 +339,16 @@ canvas {
     }
 
     body {
-        padding: 10px;
+        padding: 15px;
     }
 
     .toolbar {
         padding: 15px;
-        max-height: 35vh; /* Even smaller on phones */
-        margin-bottom: 10px;
-    }
-
-    .canvas-container {
-        flex: 1;
-        min-height: 50vh;
     }
 
     canvas {
         width: 100% !important;
         height: auto !important;
-        max-height: 55vh;
     }
 }
 
