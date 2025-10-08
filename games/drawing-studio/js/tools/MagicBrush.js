@@ -7,8 +7,33 @@ import { Tool } from '../core/ToolSystem.js';
 export class MagicBrush extends Tool {
     constructor() {
         super('Magic Brush', 12); // Default 12px for magic effects
-        this.currentEffect = 'rainbow'; // rainbow, star, firework, sparkle
+        this.currentEffect = 'rainbow'; // rainbow, star, firework
         this.hue = 0; // For rainbow effect
+    }
+
+    /**
+     * Generate a random vibrant color (including metallic colors)
+     */
+    getRandomStarColor() {
+        // 20% chance for metallic colors (gold, silver, etc)
+        if (Math.random() < 0.2) {
+            const metallics = [
+                '#C0C0C0', // Silver
+                '#E8E8E8', // Bright silver
+                '#FFD700', // Gold
+                '#FFA500', // Orange gold
+                '#FFDF00', // Golden yellow
+                '#E5E4E2', // Platinum
+                '#B87333'  // Copper
+            ];
+            return metallics[Math.floor(Math.random() * metallics.length)];
+        }
+
+        // 80% chance for regular vibrant colors
+        const hue = Math.floor(Math.random() * 360);
+        const saturation = 80 + Math.floor(Math.random() * 20); // 80-100%
+        const lightness = 50 + Math.floor(Math.random() * 20);  // 50-70%
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
     /**
@@ -25,7 +50,8 @@ export class MagicBrush extends Tool {
     getEffectName() {
         const names = {
             rainbow: '🌈 Rainbow',
-            firework: '🎆 Firework'
+            firework: '🎆 Firework',
+            star: '⭐ Star'
         };
         return names[this.currentEffect] || 'Rainbow';
     }
@@ -46,8 +72,11 @@ export class MagicBrush extends Tool {
         const dy = toY - fromY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
+        // Different interpolation for star effect (less dense)
+        let stepMultiplier = this.currentEffect === 'star' ? 2.0 : 0.3;
+
         // Interpolate points for smooth line (no gaps when drawing fast)
-        const steps = Math.max(1, Math.ceil(distance / (this.lineWidth * 0.3)));
+        const steps = Math.max(1, Math.ceil(distance / (this.lineWidth * stepMultiplier)));
 
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
@@ -67,6 +96,9 @@ export class MagicBrush extends Tool {
                 break;
             case 'firework':
                 this.drawFirework(ctx, x, y, size);
+                break;
+            case 'star':
+                this.drawStar(ctx, x, y, size);
                 break;
             default:
                 this.drawRainbow(ctx, x, y, size);
@@ -161,6 +193,49 @@ export class MagicBrush extends Tool {
         ctx.fillStyle = centerGradient;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
+     * Star brush - random colored stars (no connecting lines)
+     */
+    drawStar(ctx, x, y, size) {
+        ctx.save();
+
+        // Generate a completely random color for each star
+        const starColor = this.getRandomStarColor();
+
+        // Draw 5-pointed star
+        const spikes = 5;
+        const outerRadius = size * 1.5;
+        const innerRadius = size * 0.6;
+
+        ctx.beginPath();
+        for (let i = 0; i < spikes * 2; i++) {
+            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+            const angle = (i * Math.PI / spikes) - Math.PI / 2;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+
+            if (i === 0) {
+                ctx.moveTo(px, py);
+            } else {
+                ctx.lineTo(px, py);
+            }
+        }
+        ctx.closePath();
+
+        // Fill star with solid color
+        ctx.fillStyle = starColor;
+        ctx.fill();
+
+        // Add glow effect
+        ctx.shadowColor = starColor;
+        ctx.shadowBlur = size * 1.2;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
         ctx.fill();
 
         ctx.restore();

@@ -812,7 +812,7 @@ canvas {
 
 .magic-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
 
@@ -884,6 +884,30 @@ canvas {
 
     .magic-name {
         font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .magic-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .magic-card {
+        padding: 15px 10px;
+    }
+
+    .magic-icon {
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+    }
+
+    .magic-name {
+        font-size: 0.9rem;
+    }
+
+    .magic-desc {
+        font-size: 0.75rem;
     }
 }
 

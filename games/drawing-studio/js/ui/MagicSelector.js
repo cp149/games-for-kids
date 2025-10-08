@@ -38,6 +38,12 @@ export class MagicSelector {
                         <div class="magic-name">Firework</div>
                         <div class="magic-desc">Sparkling particles</div>
                     </div>
+
+                    <div class="magic-card" data-effect="star">
+                        <div class="magic-icon">⭐</div>
+                        <div class="magic-name">Star</div>
+                        <div class="magic-desc">Random colored stars</div>
+                    </div>
                 </div>
             </div>
         `;
