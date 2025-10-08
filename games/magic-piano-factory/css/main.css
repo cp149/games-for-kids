@@ -1,0 +1,695 @@
+/* Magic Piano Factory - Main Styles */
+
+/* CSS Custom Properties */
+:root {
+    /* Color Palette - Vibrant and child-friendly */
+    --primary-purple: #8B5CF6;
+    --primary-pink: #EC4899;
+    --primary-blue: #3B82F6;
+    --primary-green: #10B981;
+    --primary-yellow: #F59E0B;
+    --primary-orange: #F97316;
+    --primary-red: #EF4444;
+    
+    /* UI Colors */
+    --bg-primary: #1F1B2E;
+    --bg-secondary: #2D1B69;
+    --bg-card: #4C1D95;
+    --text-primary: #FFFFFF;
+    --text-secondary: #C4B5FD;
+    
+    /* Piano Colors */
+    --white-key: #FFFFFF;
+    --black-key: #1F2937;
+    --key-active: #FDE047;
+    --key-shadow: rgba(0, 0, 0, 0.3);
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Animation */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+    --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Game Container */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header Styles */
+.game-header {
+    background: rgba(75, 29, 149, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid var(--primary-purple);
+    padding: var(--spacing-md);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.game-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink), var(--primary-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% { filter: brightness(1); }
+    100% { filter: brightness(1.2); }
+}
+
+.header-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.control-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--primary-purple);
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 50px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-width: 48px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:hover {
+    background: var(--primary-purple);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Main Game Area */
+.game-main {
+    flex: 1;
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+/* Control Panel */
+.control-panel {
+    background: rgba(75, 29, 149, 0.6);
+    border-radius: 20px;
+    padding: var(--spacing-lg);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--primary-purple);
+}
+
+.mode-selector {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.mode-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--primary-purple);
+    color: var(--text-primary);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-height: 48px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.mode-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.mode-btn.active {
+    background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink));
+    box-shadow: var(--shadow-glow);
+}
+
+.playback-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.playback-btn {
+    background: var(--primary-green);
+    border: none;
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-height: 40px;
+    min-width: 80px;
+}
+
+.playback-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+}
+
+/* Song Selector */
+.song-selector {
+    background: rgba(75, 29, 149, 0.6);
+    border-radius: 20px;
+    padding: var(--spacing-lg);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--primary-purple);
+}
+
+.song-selector h3 {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    font-size: 1.5rem;
+    color: var(--primary-yellow);
+}
+
+.song-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.song-card {
+    background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+    border: none;
+    color: white;
+    padding: var(--spacing-lg);
+    border-radius: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-height: 60px;
+}
+
+.song-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Piano Container */
+.piano-container {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: var(--spacing-xl);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--primary-purple);
+    overflow-x: auto;
+    overflow-y: hidden;
+    cursor: grab;
+    user-select: none;
+    position: relative;
+    tabindex: 0;
+    outline: none;
+}
+
+.piano-container:focus {
+    border-color: var(--primary-yellow);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+}
+
+.piano-keyboard {
+    display: flex;
+    justify-content: flex-start;
+    align-items: end;
+    min-width: fit-content;
+    height: 200px;
+    position: relative;
+    margin: 0;
+    gap: 0;
+}
+
+/* Piano Keys */
+.piano-key {
+    border: 2px solid var(--key-shadow);
+    cursor: pointer;
+    user-select: none;
+    transition: all var(--transition-fast);
+    position: relative;
+    display: flex;
+    align-items: end;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    overflow: hidden;
+}
+
+.piano-key.white {
+    background: var(--white-key);
+    width: 45px;
+    height: 180px;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 8px var(--key-shadow);
+    color: #333;
+    z-index: 1;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+}
+
+.piano-key.black {
+    background: var(--black-key);
+    width: 28px;
+    height: 120px;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px var(--key-shadow);
+    color: white;
+    z-index: 2;
+    margin-left: -14px;
+    margin-right: -14px;
+    font-size: 0.6rem;
+    flex-shrink: 0;
+}
+
+.piano-key:active,
+.piano-key.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 2px 4px var(--key-shadow);
+}
+
+.piano-key.white:active,
+.piano-key.white.pressed {
+    background: var(--key-active);
+}
+
+.piano-key.black:active,
+.piano-key.black.pressed {
+    background: #4B5563;
+}
+
+/* Key Color Coding */
+.piano-key[data-note^="C"] { border-top: 4px solid var(--primary-red); }
+.piano-key[data-note^="D"] { border-top: 4px solid var(--primary-orange); }
+.piano-key[data-note^="E"] { border-top: 4px solid var(--primary-yellow); }
+.piano-key[data-note^="F"] { border-top: 4px solid var(--primary-green); }
+.piano-key[data-note^="G"] { border-top: 4px solid var(--primary-blue); }
+.piano-key[data-note^="A"] { border-top: 4px solid var(--primary-purple); }
+.piano-key[data-note^="B"] { border-top: 4px solid var(--primary-pink); }
+
+/* Highlighted key effect */
+.piano-key.highlighted {
+    animation: keyHighlight 1s ease-in-out;
+    transform: scale(1.05);
+}
+
+@keyframes keyHighlight {
+    0%, 100% { 
+        box-shadow: 0 4px 8px var(--key-shadow); 
+    }
+    50% { 
+        box-shadow: 0 8px 24px var(--primary-yellow), 0 0 20px var(--primary-yellow); 
+    }
+}
+
+/* Piano Navigation */
+.piano-navigation {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+}
+
+.octave-controls {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-sm);
+}
+
+.nav-btn {
+    background: var(--primary-blue);
+    border: none;
+    color: white;
+    padding: var(--spacing-sm);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn:hover {
+    background: var(--primary-purple);
+    transform: scale(1.1);
+}
+
+.octave-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--primary-purple);
+    color: var(--text-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-width: 40px;
+    min-height: 32px;
+}
+
+.octave-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.octave-btn.active {
+    background: linear-gradient(45deg, var(--primary-yellow), var(--primary-orange));
+    color: #333;
+    box-shadow: var(--shadow-glow);
+}
+
+.position-indicator {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.position-indicator span {
+    background: rgba(255, 255, 255, 0.1);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+}
+
+/* Custom Scrollbar */
+.piano-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.piano-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.piano-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, var(--primary-purple), var(--primary-pink));
+    border-radius: 4px;
+}
+
+.piano-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, var(--primary-pink), var(--primary-purple));
+}
+
+/* Effects Container */
+.effects-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    animation: particleFloat 2s ease-out forwards;
+}
+
+@keyframes particleFloat {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-200px) scale(0.5);
+    }
+}
+
+/* Footer */
+.game-footer {
+    background: rgba(75, 29, 149, 0.8);
+    border-top: 2px solid var(--primary-purple);
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.current-mode {
+    font-weight: 600;
+    color: var(--primary-yellow);
+}
+
+.instructions {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Loading Screen */
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity var(--transition-slow);
+}
+
+.loading-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-content {
+    text-align: center;
+    max-width: 400px;
+    padding: var(--spacing-xl);
+}
+
+.loading-content h2 {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-lg);
+    background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.loading-bar {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    height: 8px;
+    margin: var(--spacing-lg) 0;
+    overflow: hidden;
+}
+
+.loading-progress {
+    background: linear-gradient(90deg, var(--primary-purple), var(--primary-pink));
+    height: 100%;
+    width: 0;
+    transition: width var(--transition-normal);
+    border-radius: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 1.8rem;
+    }
+    
+    .header-controls {
+        gap: var(--spacing-xs);
+    }
+    
+    .control-btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 1rem;
+    }
+    
+    .game-main {
+        padding: var(--spacing-md);
+        gap: var(--spacing-md);
+    }
+    
+    .mode-selector {
+        gap: var(--spacing-sm);
+    }
+    
+    .mode-btn {
+        font-size: 1rem;
+        padding: var(--spacing-sm) var(--spacing-md);
+        min-width: 100px;
+    }
+    
+    .piano-container {
+        padding: var(--spacing-md);
+        overflow-x: scroll;
+    }
+    
+    .piano-keyboard {
+        min-width: 1600px;
+        height: 160px;
+    }
+    
+    .piano-key.white {
+        width: 40px;
+        height: 140px;
+        font-size: 0.7rem;
+    }
+    
+    .piano-key.black {
+        width: 28px;
+        height: 100px;
+        margin-left: -14px;
+        margin-right: -14px;
+        font-size: 0.6rem;
+    }
+    
+    .game-footer {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-xs);
+    }
+    
+    .song-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .game-title {
+        font-size: 1.5rem;
+    }
+    
+    .title-text {
+        display: block;
+        margin-top: var(--spacing-xs);
+    }
+    
+    .piano-keyboard {
+        min-width: 800px;
+        height: 140px;
+    }
+    
+    .piano-key.white {
+        width: 38px;
+        height: 120px;
+    }
+    
+    .piano-key.black {
+        width: 26px;
+        height: 85px;
+        margin-left: -13px;
+        margin-right: -13px;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    :root {
+        --bg-primary: #000000;
+        --bg-secondary: #1a1a1a;
+        --text-primary: #ffffff;
+        --primary-purple: #bb86fc;
+    }
+}
+
+/* Touch improvements */
+@media (pointer: coarse) {
+    .piano-key {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .control-btn,
+    .mode-btn,
+    .song-card {
+        min-height: 48px;
+    }
+}
