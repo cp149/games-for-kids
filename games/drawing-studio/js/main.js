@@ -7,10 +7,13 @@ import { DrawingEngine } from './core/DrawingEngine.js';
 import { StorageManager } from './core/StorageManager.js';
 import { Gallery } from './ui/Gallery.js';
 import { TemplateSelector } from './ui/TemplateSelector.js';
+import { TextureSelector } from './ui/TextureSelector.js';
+import { MagicSelector } from './ui/MagicSelector.js';
 import { ColorWheel } from './ui/ColorWheel.js';
 import { Artwork } from './models/Artwork.js';
 import { BucketFillTool } from './tools/BucketFillTool.js';
 import { MagicBrush } from './tools/MagicBrush.js';
+import { TextureBrush } from './tools/TextureBrush.js';
 import { addAnimatedClass } from './utils/helpers.js';
 import { MusicManager } from './core/MusicManager.js';
 
@@ -20,6 +23,8 @@ class DrawingStudioApp {
         this.storageManager = null;
         this.gallery = null;
         this.templateSelector = null;
+        this.textureSelector = null;
+        this.magicSelector = null;
         this.musicManager = null;
         this.currentTool = 'brush';
         this.currentArtworkId = null;
@@ -48,6 +53,8 @@ class DrawingStudioApp {
         this.engine.toolManager.registerTool('bucket', new BucketFillTool());
         this.magicBrush = new MagicBrush();
         this.engine.toolManager.registerTool('magic', this.magicBrush);
+        this.textureBrush = new TextureBrush();
+        this.engine.toolManager.registerTool('texture', this.textureBrush);
 
         // Initialize gallery
         this.gallery = new Gallery(this.storageManager);
@@ -67,6 +74,30 @@ class DrawingStudioApp {
         // Set up template callback
         this.templateSelector.onSelect(async (template) => await this.loadTemplate(template));
 
+        // Initialize texture selector
+        this.textureSelector = new TextureSelector();
+        const textureSelectorElement = this.textureSelector.create();
+        document.body.appendChild(textureSelectorElement);
+
+        // Set up texture callback
+        this.textureSelector.onSelect((texture) => {
+            if (this.textureBrush) {
+                this.textureBrush.setTexture(texture);
+            }
+        });
+
+        // Initialize magic selector
+        this.magicSelector = new MagicSelector();
+        const magicSelectorElement = this.magicSelector.create();
+        document.body.appendChild(magicSelectorElement);
+
+        // Set up magic callback
+        this.magicSelector.onSelect((effect) => {
+            if (this.magicBrush) {
+                this.magicBrush.setEffect(effect);
+            }
+        });
+
         // Initialize music
         this.musicManager = new MusicManager();
 
@@ -74,7 +105,6 @@ class DrawingStudioApp {
         this.setupToolButtons();
         this.setupSizeControl();
         this.setupColorPalette();
-        this.setupMagicEffects();
         this.setupSymmetry();
         this.setupActionButtons();
         this.setupMusicControl();
@@ -109,7 +139,8 @@ class DrawingStudioApp {
                 'brush': { emoji: '✏️', text: 'Brush' },
                 'eraser': { emoji: '❌', text: 'Eraser' },
                 'bucket': { emoji: '🪣', text: 'Fill' },
-                'magic': { emoji: '✨', text: 'Magic' }
+                'magic': { emoji: '✨', text: 'Magic' },
+                'texture': { emoji: '🖌️', text: 'Texture' }
             };
 
             const data = iconData[id] || { emoji: '', text: name };
@@ -222,31 +253,6 @@ class DrawingStudioApp {
         console.log('Color swatches randomized');
     }
 
-    /**
-     * Set up magic effects buttons
-     */
-    setupMagicEffects() {
-        const effectButtons = document.querySelectorAll('.effect-btn');
-
-        effectButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const effect = button.dataset.effect;
-
-                // Update active state
-                effectButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-
-                // Set magic brush effect
-                if (this.magicBrush) {
-                    this.magicBrush.setEffect(effect);
-                }
-
-                addAnimatedClass(button, 'pulse');
-            });
-        });
-
-        console.log('Magic effects set up');
-    }
 
     /**
      * Set up symmetry buttons
@@ -340,10 +346,14 @@ class DrawingStudioApp {
                 btn.classList.toggle('active', btn.dataset.tool === toolId);
             });
 
-            // Show/hide magic effects panel
-            const magicEffectsSection = document.getElementById('magic-effects-section');
-            if (magicEffectsSection) {
-                magicEffectsSection.style.display = toolId === 'magic' ? 'block' : 'none';
+            // Show magic selector modal when magic tool is selected
+            if (toolId === 'magic' && this.magicSelector) {
+                this.magicSelector.show();
+            }
+
+            // Show texture selector modal when texture tool is selected
+            if (toolId === 'texture' && this.textureSelector) {
+                this.textureSelector.show();
             }
 
             // Update size slider and value display to current tool's line width
