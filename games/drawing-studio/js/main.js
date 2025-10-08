@@ -7,6 +7,7 @@ import { DrawingEngine } from './core/DrawingEngine.js';
 import { StorageManager } from './core/StorageManager.js';
 import { Gallery } from './ui/Gallery.js';
 import { TemplateSelector } from './ui/TemplateSelector.js';
+import { ColorWheel } from './ui/ColorWheel.js';
 import { Artwork } from './models/Artwork.js';
 import { BucketFillTool } from './tools/BucketFillTool.js';
 import { MagicBrush } from './tools/MagicBrush.js';
@@ -149,26 +150,76 @@ class DrawingStudioApp {
      * Set up color palette
      */
     setupColorPalette() {
-        const colors = this.engine.getColorPalette();
         const container = document.getElementById('color-palette');
 
-        colors.forEach((color, index) => {
-            const button = document.createElement('button');
-            button.className = 'color-btn';
-            button.dataset.color = color;
-            button.style.backgroundColor = color;
-            button.title = color;
+        // Add color wheel first
+        this.colorWheel = new ColorWheel(120);
+        const wheelElement = this.colorWheel.create();
+        container.appendChild(wheelElement);
 
-            // Set active state for first color
-            if (index === 0) {
-                button.classList.add('active');
-            }
-
-            button.addEventListener('click', () => this.selectColor(color));
-            container.appendChild(button);
+        this.colorWheel.onChange((color) => {
+            this.selectColor(color);
         });
 
-        console.log(`${colors.length} color buttons created`);
+        // Add grayscale slider (separate row)
+        const grayscaleSlider = this.colorWheel.createGrayscaleSlider();
+        container.appendChild(grayscaleSlider);
+
+        // Add random color button
+        const randomBtn = document.createElement('button');
+        randomBtn.className = 'random-color-btn';
+        randomBtn.innerHTML = '🎲<br><span>Random</span>';
+        randomBtn.title = 'Randomize color swatches';
+        randomBtn.addEventListener('click', () => {
+            this.randomizeColorSwatches();
+            addAnimatedClass(randomBtn, 'pulse');
+        });
+        container.appendChild(randomBtn);
+
+        // Add preset color buttons (will be filled by randomizeColorSwatches)
+        this.colorButtons = [];
+        for (let i = 0; i < 12; i++) {
+            const button = document.createElement('button');
+            button.className = 'color-btn';
+            button.addEventListener('click', () => {
+                const color = button.dataset.color;
+                if (color) this.selectColor(color);
+            });
+            container.appendChild(button);
+            this.colorButtons.push(button);
+        }
+
+        // Initialize with default colors
+        this.randomizeColorSwatches();
+
+        console.log(`Color wheel + grayscale slider + random button + ${this.colorButtons.length} color swatches created`);
+    }
+
+    /**
+     * Randomize color swatches
+     */
+    randomizeColorSwatches() {
+        // Generate 12 random vibrant colors
+        const newColors = [];
+        for (let i = 0; i < 12; i++) {
+            newColors.push(this.colorWheel.getRandomColor());
+        }
+
+        // Update color buttons
+        this.colorButtons.forEach((button, index) => {
+            const color = newColors[index];
+            button.style.backgroundColor = color;
+            button.dataset.color = color;
+            button.title = color;
+
+            // Add animation
+            button.style.animation = 'none';
+            setTimeout(() => {
+                button.style.animation = 'pulse 0.3s ease';
+            }, index * 30); // Stagger animation
+        });
+
+        console.log('Color swatches randomized');
     }
 
     /**
