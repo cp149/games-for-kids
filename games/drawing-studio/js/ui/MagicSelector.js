@@ -33,16 +33,22 @@ export class MagicSelector {
                         <div class="magic-desc">Smooth color gradient</div>
                     </div>
 
+                    <div class="magic-card" data-effect="star">
+                        <div class="magic-icon">⭐</div>
+                        <div class="magic-name">Star</div>
+                        <div class="magic-desc">Random colored stars</div>
+                    </div>
+
                     <div class="magic-card" data-effect="firework">
                         <div class="magic-icon">🎆</div>
                         <div class="magic-name">Firework</div>
                         <div class="magic-desc">Sparkling particles</div>
                     </div>
 
-                    <div class="magic-card" data-effect="star">
-                        <div class="magic-icon">⭐</div>
-                        <div class="magic-name">Star</div>
-                        <div class="magic-desc">Random colored stars</div>
+                    <div class="magic-card" data-effect="coin">
+                        <div class="magic-icon">💎</div>
+                        <div class="magic-name">Gem</div>
+                        <div class="magic-desc">Glowing crystals & gems</div>
                     </div>
                 </div>
             </div>

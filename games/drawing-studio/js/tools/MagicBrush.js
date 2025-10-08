@@ -7,8 +7,9 @@ import { Tool } from '../core/ToolSystem.js';
 export class MagicBrush extends Tool {
     constructor() {
         super('Magic Brush', 12); // Default 12px for magic effects
-        this.currentEffect = 'rainbow'; // rainbow, star, firework
+        this.currentEffect = 'rainbow'; // rainbow, star, firework, coin
         this.hue = 0; // For rainbow effect
+        this.coinRotation = 0; // For coin animation
     }
 
     /**
@@ -51,7 +52,8 @@ export class MagicBrush extends Tool {
         const names = {
             rainbow: '🌈 Rainbow',
             firework: '🎆 Firework',
-            star: '⭐ Star'
+            star: '⭐ Star',
+            coin: '💎 Gem'
         };
         return names[this.currentEffect] || 'Rainbow';
     }
@@ -72,8 +74,8 @@ export class MagicBrush extends Tool {
         const dy = toY - fromY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Different interpolation for star effect (less dense)
-        let stepMultiplier = this.currentEffect === 'star' ? 2.0 : 0.3;
+        // Different interpolation for star and gem effects (less dense)
+        let stepMultiplier = (this.currentEffect === 'star' || this.currentEffect === 'coin') ? 2.0 : 0.3;
 
         // Interpolate points for smooth line (no gaps when drawing fast)
         const steps = Math.max(1, Math.ceil(distance / (this.lineWidth * stepMultiplier)));
@@ -99,6 +101,9 @@ export class MagicBrush extends Tool {
                 break;
             case 'star':
                 this.drawStar(ctx, x, y, size);
+                break;
+            case 'coin':
+                this.drawCoin(ctx, x, y, size);
                 break;
             default:
                 this.drawRainbow(ctx, x, y, size);
@@ -239,5 +244,140 @@ export class MagicBrush extends Tool {
         ctx.fill();
 
         ctx.restore();
+    }
+
+    /**
+     * Coin brush - beautiful glowing gems and crystals
+     */
+    drawCoin(ctx, x, y, size) {
+        ctx.save();
+
+        // Create beautiful gem/crystal shapes
+        const shapes = ['diamond', 'hexagon', 'star', 'flower'];
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        
+        // Random vibrant colors with sparkle
+        this.hue = (this.hue + Math.random() * 30 + 5) % 360;
+        const baseColor = `hsl(${this.hue}, 90%, 60%)`;
+        const lightColor = `hsl(${this.hue}, 100%, 80%)`;
+        const darkColor = `hsl(${this.hue}, 80%, 40%)`;
+
+        const radius = size * 1.5;
+
+        // Draw different gem shapes
+        ctx.beginPath();
+        if (shape === 'diamond') {
+            this.drawDiamond(ctx, x, y, radius);
+        } else if (shape === 'hexagon') {
+            this.drawHexagon(ctx, x, y, radius);
+        } else if (shape === 'star') {
+            this.drawGemStar(ctx, x, y, radius);
+        } else {
+            this.drawFlower(ctx, x, y, radius);
+        }
+
+        // Multi-layer gradient for depth
+        const gradient = ctx.createRadialGradient(
+            x - radius * 0.3, y - radius * 0.3, 0,
+            x, y, radius * 1.2
+        );
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(0.2, lightColor);
+        gradient.addColorStop(0.6, baseColor);
+        gradient.addColorStop(1, darkColor);
+
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Sparkling outline
+        ctx.strokeStyle = `hsl(${this.hue}, 100%, 90%)`;
+        ctx.lineWidth = size * 0.1;
+        ctx.shadowColor = baseColor;
+        ctx.shadowBlur = radius * 0.8;
+        ctx.stroke();
+
+        // Add inner sparkles
+        for (let i = 0; i < 3; i++) {
+            const sparkleX = x + (Math.random() - 0.5) * radius * 0.8;
+            const sparkleY = y + (Math.random() - 0.5) * radius * 0.8;
+            const sparkleSize = Math.random() * radius * 0.2 + radius * 0.1;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Outer glow
+        ctx.shadowColor = baseColor;
+        ctx.shadowBlur = radius * 1.5;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw diamond shape
+     */
+    drawDiamond(ctx, x, y, size) {
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x + size * 0.6, y);
+        ctx.lineTo(x, y + size);
+        ctx.lineTo(x - size * 0.6, y);
+        ctx.closePath();
+    }
+
+    /**
+     * Draw hexagon shape
+     */
+    drawHexagon(ctx, x, y, size) {
+        for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI / 3);
+            const px = x + Math.cos(angle) * size;
+            const py = y + Math.sin(angle) * size;
+            if (i === 0) {
+                ctx.moveTo(px, py);
+            } else {
+                ctx.lineTo(px, py);
+            }
+        }
+        ctx.closePath();
+    }
+
+    /**
+     * Draw 8-pointed star
+     */
+    drawGemStar(ctx, x, y, size) {
+        const spikes = 8;
+        for (let i = 0; i < spikes * 2; i++) {
+            const radius = i % 2 === 0 ? size : size * 0.5;
+            const angle = (i * Math.PI / spikes) - Math.PI / 2;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+            if (i === 0) {
+                ctx.moveTo(px, py);
+            } else {
+                ctx.lineTo(px, py);
+            }
+        }
+        ctx.closePath();
+    }
+
+    /**
+     * Draw flower shape
+     */
+    drawFlower(ctx, x, y, size) {
+        const petals = 6;
+        for (let i = 0; i < petals; i++) {
+            const angle = (i * Math.PI * 2 / petals);
+            const petalX = x + Math.cos(angle) * size * 0.7;
+            const petalY = y + Math.sin(angle) * size * 0.7;
+            
+            ctx.ellipse(petalX, petalY, size * 0.4, size * 0.2, angle, 0, Math.PI * 2);
+        }
+        // Center circle
+        ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
     }
 }
