@@ -44,6 +44,7 @@ export class Tool {
      * @param {CanvasRenderingContext2D} ctx
      */
     configureContext(ctx) {
+        ctx.globalCompositeOperation = 'source-over';
         ctx.lineWidth = this.getLineWidth();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';

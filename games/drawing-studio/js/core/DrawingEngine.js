@@ -6,6 +6,7 @@
 import { getCoords } from '../utils/helpers.js';
 import { ToolManager } from './ToolSystem.js';
 import { HistoryManager } from './HistoryManager.js';
+import { SymmetryManager } from './SymmetryManager.js';
 
 export class DrawingEngine {
     constructor(canvasId) {
@@ -22,6 +23,13 @@ export class DrawingEngine {
         // Initialize systems
         this.toolManager = new ToolManager();
         this.historyManager = new HistoryManager(10);
+        this.symmetryManager = new SymmetryManager(this.canvas);
+
+        // Create overlay canvas for symmetry guides
+        this.createOverlayCanvas();
+
+        // Initial overlay update
+        this.updateOverlay();
 
         // Color palette (12 kid-friendly colors)
         this.colorPalette = [
@@ -58,6 +66,37 @@ export class DrawingEngine {
     }
 
     /**
+     * Create overlay canvas for symmetry guides
+     */
+    createOverlayCanvas() {
+        this.overlayCanvas = document.createElement('canvas');
+        this.overlayCanvas.width = this.canvas.width;
+        this.overlayCanvas.height = this.canvas.height;
+        this.overlayCanvas.style.position = 'absolute';
+        this.overlayCanvas.style.top = '0';
+        this.overlayCanvas.style.left = '0';
+        this.overlayCanvas.style.pointerEvents = 'none';
+        this.overlayCanvas.style.zIndex = '100';
+        this.overlayCanvas.style.background = 'transparent';
+        this.overlayCanvas.id = 'symmetry-overlay';
+
+        this.overlayCtx = this.overlayCanvas.getContext('2d', { alpha: true });
+
+        // Insert overlay into canvas wrapper
+        const wrapper = this.canvas.parentNode;
+        wrapper.appendChild(this.overlayCanvas);
+    }
+
+    /**
+     * Update overlay (symmetry guides)
+     */
+    updateOverlay() {
+        this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+        this.symmetryManager.drawGuides(this.overlayCtx);
+        console.log('Overlay updated: enabled =', this.symmetryManager.enabled, ', mode =', this.symmetryManager.mode);
+    }
+
+    /**
      * Set up canvas event listeners
      */
     setupEventListeners() {
@@ -90,7 +129,16 @@ export class DrawingEngine {
         this.lastY = y;
 
         const tool = this.toolManager.getActiveTool();
-        tool.start(this.ctx, x, y);
+
+        // Apply symmetry (skip for bucket fill tool)
+        if (tool.name === 'Bucket Fill') {
+            tool.start(this.ctx, x, y);
+        } else {
+            const points = this.symmetryManager.getSymmetricalPoints(x, y);
+            for (const point of points) {
+                tool.start(this.ctx, point.x, point.y);
+            }
+        }
     }
 
     /**
@@ -103,7 +151,24 @@ export class DrawingEngine {
 
         const { x, y } = getCoords(e, this.canvas);
         const tool = this.toolManager.getActiveTool();
-        tool.draw(this.ctx, this.lastX, this.lastY, x, y);
+
+        // Apply symmetry (skip for bucket fill tool)
+        if (tool.name === 'Bucket Fill') {
+            tool.draw(this.ctx, this.lastX, this.lastY, x, y);
+        } else {
+            const currentPoints = this.symmetryManager.getSymmetricalPoints(x, y);
+            const lastPoints = this.symmetryManager.getSymmetricalPoints(this.lastX, this.lastY);
+
+            for (let i = 0; i < currentPoints.length; i++) {
+                tool.draw(
+                    this.ctx,
+                    lastPoints[i].x,
+                    lastPoints[i].y,
+                    currentPoints[i].x,
+                    currentPoints[i].y
+                );
+            }
+        }
 
         this.lastX = x;
         this.lastY = y;
@@ -353,5 +418,30 @@ export class DrawingEngine {
             }
         }
         return true;
+    }
+
+    /**
+     * Toggle symmetry mode
+     * @param {string} mode - 'mirror', 'quad', or 'kaleidoscope'
+     */
+    toggleSymmetry(mode) {
+        this.symmetryManager.toggle(mode);
+        this.updateOverlay();
+    }
+
+    /**
+     * Get current symmetry mode
+     * @returns {string}
+     */
+    getSymmetryMode() {
+        return this.symmetryManager.mode;
+    }
+
+    /**
+     * Check if symmetry is enabled
+     * @returns {boolean}
+     */
+    isSymmetryEnabled() {
+        return this.symmetryManager.enabled;
     }
 }

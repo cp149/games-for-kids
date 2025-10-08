@@ -9,6 +9,7 @@ import { Gallery } from './ui/Gallery.js';
 import { TemplateSelector } from './ui/TemplateSelector.js';
 import { Artwork } from './models/Artwork.js';
 import { BucketFillTool } from './tools/BucketFillTool.js';
+import { MagicBrush } from './tools/MagicBrush.js';
 import { addAnimatedClass } from './utils/helpers.js';
 import { MusicManager } from './core/MusicManager.js';
 
@@ -42,8 +43,10 @@ class DrawingStudioApp {
         // Initialize drawing engine
         this.engine = new DrawingEngine('canvas');
 
-        // Register bucket fill tool
+        // Register custom tools
         this.engine.toolManager.registerTool('bucket', new BucketFillTool());
+        this.magicBrush = new MagicBrush();
+        this.engine.toolManager.registerTool('magic', this.magicBrush);
 
         // Initialize gallery
         this.gallery = new Gallery(this.storageManager);
@@ -70,6 +73,8 @@ class DrawingStudioApp {
         this.setupToolButtons();
         this.setupSizeControl();
         this.setupColorPalette();
+        this.setupMagicEffects();
+        this.setupSymmetry();
         this.setupActionButtons();
         this.setupMusicControl();
 
@@ -102,7 +107,8 @@ class DrawingStudioApp {
             const iconData = {
                 'brush': { emoji: '✏️', text: 'Brush' },
                 'eraser': { emoji: '❌', text: 'Eraser' },
-                'bucket': { emoji: '🪣', text: 'Fill' }
+                'bucket': { emoji: '🪣', text: 'Fill' },
+                'magic': { emoji: '✨', text: 'Magic' }
             };
 
             const data = iconData[id] || { emoji: '', text: name };
@@ -166,6 +172,63 @@ class DrawingStudioApp {
     }
 
     /**
+     * Set up magic effects buttons
+     */
+    setupMagicEffects() {
+        const effectButtons = document.querySelectorAll('.effect-btn');
+
+        effectButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const effect = button.dataset.effect;
+
+                // Update active state
+                effectButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Set magic brush effect
+                if (this.magicBrush) {
+                    this.magicBrush.setEffect(effect);
+                }
+
+                addAnimatedClass(button, 'pulse');
+            });
+        });
+
+        console.log('Magic effects set up');
+    }
+
+    /**
+     * Set up symmetry buttons
+     */
+    setupSymmetry() {
+        const symmetryButtons = document.querySelectorAll('.symmetry-btn');
+
+        symmetryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.mode;
+
+                // Toggle symmetry mode
+                this.engine.toggleSymmetry(mode);
+
+                // Update active state
+                if (this.engine.isSymmetryEnabled() && this.engine.getSymmetryMode() === mode) {
+                    button.classList.add('active');
+                    // Remove active from other buttons
+                    symmetryButtons.forEach(btn => {
+                        if (btn !== button) btn.classList.remove('active');
+                    });
+                } else {
+                    button.classList.remove('active');
+                }
+
+                addAnimatedClass(button, 'pulse');
+            });
+        });
+
+        console.log('Symmetry controls set up');
+    }
+
+    /**
      * Set up action buttons
      */
     setupActionButtons() {
@@ -225,6 +288,12 @@ class DrawingStudioApp {
             document.querySelectorAll('.tool-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.tool === toolId);
             });
+
+            // Show/hide magic effects panel
+            const magicEffectsSection = document.getElementById('magic-effects-section');
+            if (magicEffectsSection) {
+                magicEffectsSection.style.display = toolId === 'magic' ? 'block' : 'none';
+            }
 
             // Update size slider and value display to current tool's line width
             const sizeSlider = document.getElementById('size-slider');
@@ -490,6 +559,19 @@ class DrawingStudioApp {
             await template.loadToCanvas(this.engine.canvas);
             this.engine.saveState();
             this.currentArtworkId = null;
+
+            // Always disable symmetry when loading template
+            console.log('Disabling symmetry (if enabled)...');
+
+            // Force disable symmetry
+            this.engine.symmetryManager.disable();
+            this.engine.updateOverlay();
+
+            // Remove active state from all symmetry buttons
+            const symmetryButtons = document.querySelectorAll('.symmetry-btn');
+            symmetryButtons.forEach(btn => btn.classList.remove('active'));
+
+            console.log('Symmetry force disabled, enabled:', this.engine.symmetryManager.enabled);
 
             // Auto-switch to fill tool
             this.selectTool('bucket');

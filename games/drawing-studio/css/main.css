@@ -280,6 +280,16 @@ canvas {
     touch-action: none;
     cursor: crosshair;
     background: white;
+    position: relative;
+    z-index: 1;
+}
+
+#symmetry-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 2;
 }
 
 .canvas-info {
@@ -725,4 +735,83 @@ canvas {
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
     }
+}
+
+/* Magic Effects Buttons */
+.magic-effects-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.effect-btn {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.effect-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    border-color: #667eea;
+}
+
+.effect-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    transform: scale(1.05);
+}
+
+/* Symmetry Buttons */
+.symmetry-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.symmetry-btn {
+    flex: 1;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 10px 8px;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.symmetry-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(102, 200, 255, 0.3);
+    border-color: #66c8ff;
+}
+
+.symmetry-btn.active {
+    background: linear-gradient(135deg, #66c8ff 0%, #667eea 100%);
+    color: white;
+    border-color: #66c8ff;
+    transform: scale(1.05);
+}
+
+/* Pulse animation for button feedback */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.pulse {
+    animation: pulse 0.3s ease;
 }
