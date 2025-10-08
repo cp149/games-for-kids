@@ -941,8 +941,10 @@ canvas {
     background: white;
     border-radius: 30px;
     padding: 40px;
-    max-width: 600px;
+    max-width: 700px;
     width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
     position: relative;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
@@ -1003,8 +1005,10 @@ canvas {
 
 .texture-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto auto;
     gap: 20px;
+    width: 100%;
 }
 
 .texture-card {
@@ -1015,6 +1019,11 @@ canvas {
     transition: all 0.3s ease;
     text-align: center;
     border: 3px solid transparent;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .texture-card:hover {
@@ -1062,6 +1071,7 @@ canvas {
     }
 
     .texture-grid {
+        grid-template-columns: repeat(2, 1fr);
         gap: 15px;
     }
 
@@ -1080,8 +1090,24 @@ canvas {
 
 @media (max-width: 480px) {
     .texture-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
+    }
+
+    .texture-card {
+        padding: 15px 10px;
+    }
+
+    .texture-icon {
+        font-size: 2.5rem;
+    }
+
+    .texture-name {
+        font-size: 0.95rem;
+    }
+
+    .texture-desc {
+        font-size: 0.8rem;
     }
 }
 

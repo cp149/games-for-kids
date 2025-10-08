@@ -33,6 +33,9 @@ export class HistoryManager {
             this.currentIndex--; // Adjust index after removing oldest state
         }
 
+        // Automatic memory cleanup check
+        this.forceCleanup();
+
         console.log(`State saved. Total states: ${this.states.length}, Current index: ${this.currentIndex}`);
     }
 
@@ -117,6 +120,44 @@ export class HistoryManager {
         this.states = [];
         this.currentIndex = -1;
         console.log('History cleared');
+    }
+
+    /**
+     * Get memory usage estimate in MB
+     * @returns {number}
+     */
+    getMemoryUsage() {
+        let totalSize = 0;
+        this.states.forEach(dataURL => {
+            // Rough estimate: data URL length * 0.75 (base64 overhead)
+            totalSize += dataURL.length * 0.75;
+        });
+        return totalSize / (1024 * 1024); // Convert to MB
+    }
+
+    /**
+     * Force cleanup if memory usage is high
+     * @param {number} maxMemoryMB - Maximum memory usage in MB
+     */
+    forceCleanup(maxMemoryMB = 50) {
+        const currentMemory = this.getMemoryUsage();
+        if (currentMemory > maxMemoryMB) {
+            // Remove oldest states until we're under the limit
+            const targetStates = Math.floor(this.maxStates / 2);
+            const statesToRemove = this.states.length - targetStates;
+            
+            if (statesToRemove > 0) {
+                this.states.splice(0, statesToRemove);
+                this.currentIndex = Math.max(0, this.currentIndex - statesToRemove);
+                
+                console.log(`Memory cleanup: Removed ${statesToRemove} states. Memory usage: ${currentMemory.toFixed(2)}MB -> ${this.getMemoryUsage().toFixed(2)}MB`);
+                
+                // Force garbage collection hint
+                if (window.gc) {
+                    window.gc();
+                }
+            }
+        }
     }
 
     /**

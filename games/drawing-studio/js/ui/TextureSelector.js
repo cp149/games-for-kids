@@ -50,6 +50,18 @@ export class TextureSelector {
                         <div class="texture-name">Ink Brush</div>
                         <div class="texture-desc">Smooth & flowing</div>
                     </div>
+
+                    <div class="texture-card" data-texture="brush">
+                        <div class="texture-icon">🖌️</div>
+                        <div class="texture-name">Chinese Brush</div>
+                        <div class="texture-desc">Elegant & expressive</div>
+                    </div>
+
+                    <div class="texture-card" data-texture="oil">
+                        <div class="texture-icon">🎨</div>
+                        <div class="texture-name">Oil Paint</div>
+                        <div class="texture-desc">Thick & textured</div>
+                    </div>
                 </div>
             </div>
         `;

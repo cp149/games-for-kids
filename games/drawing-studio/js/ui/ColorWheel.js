@@ -254,4 +254,27 @@ export class ColorWheel {
 
         return this.hslToHex(hue, saturation, lightness);
     }
+
+    /**
+     * Clean up resources and event listeners
+     */
+    destroy() {
+        if (this.canvas) {
+            // Remove event listeners
+            this.canvas.removeEventListener('mousedown', this.handleStart);
+            this.canvas.removeEventListener('mousemove', this.handleMove);
+            this.canvas.removeEventListener('mouseup', this.handleEnd);
+            this.canvas.removeEventListener('mouseleave', this.handleEnd);
+            this.canvas.removeEventListener('touchstart', this.handleStart);
+            this.canvas.removeEventListener('touchmove', this.handleMove);
+            this.canvas.removeEventListener('touchend', this.handleEnd);
+        }
+
+        // Clear references
+        this.canvas = null;
+        this.ctx = null;
+        this.onColorChange = null;
+        
+        console.log('ColorWheel destroyed and cleaned up');
+    }
 }

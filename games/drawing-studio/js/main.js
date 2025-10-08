@@ -118,6 +118,11 @@ class DrawingStudioApp {
         // Set up keyboard shortcuts
         this.setupKeyboardShortcuts();
 
+        // Set up page unload cleanup
+        window.addEventListener('beforeunload', () => {
+            this.destroy();
+        });
+
         console.log('Drawing Studio initialized successfully!');
         console.log('Debug info:', this.engine.getDebugInfo());
     }
@@ -571,6 +576,63 @@ class DrawingStudioApp {
         document.addEventListener('click', startMusic, { once: true });
         document.addEventListener('touchstart', startMusic, { once: true });
         document.addEventListener('keydown', startMusic, { once: true });
+    }
+
+    /**
+     * Clean up application resources
+     */
+    destroy() {
+        console.log('Cleaning up Drawing Studio...');
+
+        // Clean up UI components
+        if (this.colorWheel) {
+            this.colorWheel.destroy();
+            this.colorWheel = null;
+        }
+
+        if (this.gallery) {
+            this.gallery.destroy();
+            this.gallery = null;
+        }
+
+        if (this.templateSelector) {
+            this.templateSelector.destroy();
+            this.templateSelector = null;
+        }
+
+        if (this.textureSelector) {
+            this.textureSelector.destroy();
+            this.textureSelector = null;
+        }
+
+        if (this.magicSelector) {
+            this.magicSelector.destroy();
+            this.magicSelector = null;
+        }
+
+        // Clean up engine and managers
+        if (this.engine) {
+            this.engine.destroy();
+            this.engine = null;
+        }
+
+        if (this.musicManager) {
+            this.musicManager.destroy();
+            this.musicManager = null;
+        }
+
+        if (this.storageManager) {
+            this.storageManager.destroy();
+            this.storageManager = null;
+        }
+
+        // Clear references
+        this.colorButtons = [];
+        this.currentArtworkId = null;
+        this.magicBrush = null;
+        this.textureBrush = null;
+
+        console.log('Drawing Studio cleaned up');
     }
 
     /**
