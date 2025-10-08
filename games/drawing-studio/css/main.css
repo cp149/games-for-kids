@@ -43,6 +43,7 @@ body {
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS/iPad */
     scrollbar-width: thin; /* Firefox */
     scrollbar-color: #667eea #f1f1f1; /* Firefox */
+    touch-action: pan-y; /* Only allow vertical scrolling on toolbar */
 }
 
 /* Custom scrollbar for toolbar */
@@ -338,6 +339,7 @@ canvas {
     .toolbar {
         width: 100%;
         max-width: 600px;
+        max-height: 40vh; /* Limit toolbar height on mobile/tablet */
     }
 
     .color-palette {
@@ -350,6 +352,7 @@ canvas {
 
     .action-buttons {
         flex-direction: row;
+        flex-wrap: wrap;
     }
 }
 
@@ -363,16 +366,24 @@ canvas {
     }
 
     body {
-        padding: 15px;
+        padding: 10px;
     }
 
     .toolbar {
         padding: 15px;
+        max-height: 35vh; /* Even smaller on phones */
+        margin-bottom: 10px;
+    }
+
+    .canvas-container {
+        flex: 1;
+        min-height: 50vh;
     }
 
     canvas {
         width: 100% !important;
         height: auto !important;
+        max-height: 55vh;
     }
 }
 
