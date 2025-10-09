@@ -51,45 +51,70 @@
             <!-- Control Panel -->
             <div class="control-panel">
                 <div class="mode-selector">
-                    <button id="free-play-btn" class="mode-btn active" data-mode="free">
+                    <button id="free-play-btn" class="mode-btn" data-mode="free">
                         🎵 Free Play
                     </button>
-                    <button id="songs-btn" class="mode-btn" data-mode="songs">
+                    <button id="songs-btn" class="mode-btn active" data-mode="songs">
                         🎶 Songs
-                    </button>
-                    <button id="record-btn" class="mode-btn" data-mode="record">
-                        🎙️ Record
-                    </button>
-                </div>
-                
-                <div class="playback-controls" id="playback-controls" style="display: none;">
-                    <button id="play-btn" class="playback-btn">
-                        ▶️ Play
-                    </button>
-                    <button id="stop-btn" class="playback-btn">
-                        ⏹️ Stop
-                    </button>
-                    <button id="clear-btn" class="playback-btn">
-                        🗑️ Clear
                     </button>
                 </div>
             </div>
 
-            <!-- Song Selection (Hidden by default) -->
-            <div class="song-selector" id="song-selector" style="display: none;">
+            <!-- Song Selection (Visible by default since Songs mode is default) -->
+            <div class="song-selector" id="song-selector" style="display: block;">
                 <h3>🎵 Choose a Song to Learn</h3>
+                
+                <!-- Sheet Music Display -->
+                <div class="sheet-music" id="sheet-music" style="display: none;">
+                    <div class="sheet-header">
+                        <h4 id="song-title-display">Song Title</h4>
+                        <button id="close-sheet-btn" class="close-btn">✖️</button>
+                    </div>
+                    <div class="sheet-content">
+                        <div class="learning-controls">
+                            <div class="speed-control">
+                                <label>⏱️ Learning Speed:</label>
+                                <div class="speed-buttons">
+                                    <button class="speed-btn" data-speed="slow">🐌 Slow</button>
+                                    <button class="speed-btn active" data-speed="normal">🚶 Normal</button>
+                                    <button class="speed-btn" data-speed="fast">🏃 Fast</button>
+                                    <button class="speed-btn" data-speed="instant">⚡ Instant</button>
+                                </div>
+                            </div>
+                            <div class="learning-mode">
+                                <label>📚 Mode:</label>
+                                <div class="mode-buttons">
+                                    <button class="learning-mode-btn active" data-mode="guided">🎯 Guided</button>
+                                    <button class="learning-mode-btn" data-mode="free">🎹 Free Practice</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                            <span class="progress-text" id="progress-text">0%</span>
+                        </div>
+                        <div class="note-sequence" id="note-sequence">
+                            <!-- Notes will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="song-grid">
                     <button class="song-card" data-song="twinkle">
-                        ⭐ Twinkle Little Star
+                        <div class="song-title">⭐ Twinkle Little Star</div>
+                        <div class="song-info">Range: C4-G4 | Easy</div>
                     </button>
                     <button class="song-card" data-song="birthday">
-                        🎂 Happy Birthday
+                        <div class="song-title">🎂 Happy Birthday</div>
+                        <div class="song-info">Range: C4-C5 | Medium</div>
                     </button>
                     <button class="song-card" data-song="mary">
-                        🐑 Mary Had a Little Lamb
+                        <div class="song-title">🐑 Mary Had a Little Lamb</div>
+                        <div class="song-info">Range: C4-G4 | Easy</div>
                     </button>
                     <button class="song-card" data-song="row">
-                        🚣 Row Your Boat
+                        <div class="song-title">🚣 Row Your Boat</div>
+                        <div class="song-info">Range: C4-C5 | Easy</div>
                     </button>
                 </div>
             </div>
@@ -110,10 +135,10 @@
         <!-- Footer Info -->
         <footer class="game-footer">
             <div class="current-mode" id="current-mode">
-                Mode: Free Play
+                Mode: Songs
             </div>
             <div class="instructions" id="instructions">
-                🎹 Tap the colorful keys to create beautiful music!
+                🎵 Choose a song to learn and play along!
             </div>
         </footer>
     </div>

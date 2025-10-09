@@ -244,7 +244,250 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-normal);
-    min-height: 60px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.song-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.song-info {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+/* Sheet Music Display */
+.sheet-music {
+    background: linear-gradient(135deg, rgba(75, 29, 149, 0.9), rgba(139, 92, 246, 0.9));
+    border-radius: 20px;
+    margin-bottom: var(--spacing-lg);
+    border: 2px solid var(--primary-purple);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-lg);
+}
+
+.sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sheet-header h4 {
+    color: var(--primary-yellow);
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: var(--primary-red);
+    border: none;
+    color: white;
+    padding: var(--spacing-xs);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-normal);
+}
+
+.close-btn:hover {
+    transform: scale(1.1);
+    background: #dc2626;
+}
+
+.sheet-content {
+    padding: var(--spacing-lg);
+}
+
+/* Learning Controls */
+.learning-controls {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    flex-wrap: wrap;
+}
+
+.speed-control,
+.learning-mode {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    flex: 1;
+    min-width: 200px;
+}
+
+.learning-controls label {
+    color: var(--primary-yellow);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.speed-buttons,
+.mode-buttons {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+}
+
+.speed-btn,
+.learning-mode-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid transparent;
+    color: #333;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    flex: 1;
+    min-width: 70px;
+    text-align: center;
+}
+
+.speed-btn:hover,
+.learning-mode-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.speed-btn.active {
+    background: linear-gradient(45deg, var(--primary-orange), var(--primary-yellow));
+    color: white;
+    border-color: var(--primary-orange);
+    box-shadow: var(--shadow-md);
+}
+
+.learning-mode-btn.active {
+    background: linear-gradient(45deg, var(--primary-blue), var(--primary-purple));
+    color: white;
+    border-color: var(--primary-blue);
+    box-shadow: var(--shadow-md);
+}
+
+/* Progress Bar */
+.progress-bar {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    height: 24px;
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, var(--primary-green), var(--primary-blue));
+    height: 100%;
+    border-radius: 20px;
+    transition: width var(--transition-normal);
+    width: 0%;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* Note Sequence */
+.note-sequence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: var(--spacing-sm);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.note-item {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: var(--spacing-sm);
+    min-width: 50px;
+    text-align: center;
+    transition: all var(--transition-normal);
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.note-item.current {
+    background: linear-gradient(135deg, var(--primary-yellow), var(--primary-orange));
+    transform: scale(1.2);
+    border: 2px solid var(--primary-red);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);
+    animation: currentNotePulse 1.5s ease-in-out infinite;
+}
+
+.note-item.completed {
+    background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+    color: white;
+    transform: scale(0.9);
+    opacity: 0.8;
+}
+
+.note-item.completed::after {
+    content: '✓';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--primary-green);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.note-symbol {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: var(--spacing-xs);
+}
+
+.note-item.current .note-symbol,
+.note-item.completed .note-symbol {
+    color: white;
+}
+
+
+@keyframes currentNotePulse {
+    0%, 100% { 
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);
+    }
+    50% { 
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.9);
+    }
 }
 
 .song-card:hover {
@@ -365,6 +608,139 @@ body {
     }
 }
 
+/* Song range highlight effect */
+.piano-key.song-highlight {
+    animation: songHighlight 3s ease-in-out;
+    position: relative;
+}
+
+.piano-key.song-highlight::after {
+    content: '♪';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--primary-yellow);
+    font-size: 1.2rem;
+    animation: noteFloat 2s ease-in-out infinite;
+    z-index: 10;
+}
+
+@keyframes songHighlight {
+    0%, 100% { 
+        box-shadow: 0 4px 8px var(--key-shadow); 
+    }
+    25%, 75% { 
+        box-shadow: 0 6px 16px var(--primary-pink), 0 0 15px var(--primary-pink); 
+    }
+    50% { 
+        box-shadow: 0 8px 24px var(--primary-purple), 0 0 20px var(--primary-purple); 
+    }
+}
+
+@keyframes noteFloat {
+    0%, 100% { 
+        transform: translateX(-50%) translateY(0px); 
+        opacity: 1;
+    }
+    50% { 
+        transform: translateX(-50%) translateY(-8px); 
+        opacity: 0.7;
+    }
+}
+
+/* Learning Mode Highlights */
+.piano-key.next-note {
+    animation: nextNoteGlow 2s ease-in-out infinite;
+    border: 4px solid var(--primary-yellow);
+    transform: scale(1.1);
+    z-index: 5;
+}
+
+.piano-key.next-note::after {
+    content: '👆';
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    animation: pointingFinger 1s ease-in-out infinite;
+    z-index: 10;
+}
+
+.piano-key.correct-note {
+    animation: correctFlash 0.5s ease-out;
+    border: 3px solid var(--primary-green);
+}
+
+.piano-key.wrong-note {
+    animation: wrongShake 0.5s ease-out;
+    border: 3px solid var(--primary-red);
+}
+
+.piano-key.celebration {
+    animation: celebrationBounce 1s ease-out;
+}
+
+@keyframes nextNoteGlow {
+    0%, 100% { 
+        box-shadow: 0 0 20px var(--primary-yellow), 0 0 40px rgba(245, 158, 11, 0.5);
+    }
+    50% { 
+        box-shadow: 0 0 30px var(--primary-yellow), 0 0 60px rgba(245, 158, 11, 0.8);
+    }
+}
+
+@keyframes pointingFinger {
+    0%, 100% { 
+        transform: translateX(-50%) translateY(0px);
+    }
+    50% { 
+        transform: translateX(-50%) translateY(-5px);
+    }
+}
+
+@keyframes correctFlash {
+    0% { 
+        background: var(--primary-green);
+        transform: scale(1.2);
+    }
+    100% { 
+        background: inherit;
+        transform: scale(1);
+    }
+}
+
+@keyframes wrongShake {
+    0%, 20%, 40%, 60%, 80% { 
+        transform: translateX(-3px);
+        background: var(--primary-red);
+    }
+    10%, 30%, 50%, 70%, 90% { 
+        transform: translateX(3px);
+        background: var(--primary-red);
+    }
+    100% { 
+        transform: translateX(0);
+        background: inherit;
+    }
+}
+
+@keyframes celebrationBounce {
+    0%, 20%, 40%, 60%, 80% { 
+        transform: translateY(0) scale(1);
+        box-shadow: 0 0 20px var(--primary-purple);
+    }
+    10%, 30%, 50%, 70% { 
+        transform: translateY(-10px) scale(1.1);
+        box-shadow: 0 10px 30px var(--primary-purple);
+    }
+    100% { 
+        transform: translateY(0) scale(1);
+        box-shadow: inherit;
+    }
+}
+
 /* Piano Navigation */
 .piano-navigation {
     margin-top: var(--spacing-md);
@@ -436,11 +812,64 @@ body {
     font-style: italic;
 }
 
+.position-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
 .position-indicator span {
     background: rgba(255, 255, 255, 0.1);
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: 15px;
     backdrop-filter: blur(5px);
+}
+
+/* Mode Switch */
+.mode-switch {
+    display: flex;
+    gap: var(--spacing-xs);
+    justify-content: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.mode-switch-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--primary-purple);
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-height: 40px;
+    min-width: 120px;
+}
+
+.mode-switch-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.mode-switch-btn.active {
+    background: linear-gradient(45deg, var(--primary-green), var(--primary-blue));
+    color: white;
+    box-shadow: var(--shadow-glow);
+}
+
+/* Piano container states */
+.piano-container.scroll-mode {
+    cursor: grab !important;
+}
+
+.piano-container.scroll-mode .piano-key {
+    pointer-events: none;
+}
+
+.piano-container:not(.scroll-mode) .piano-key {
+    pointer-events: auto;
 }
 
 /* Custom Scrollbar */

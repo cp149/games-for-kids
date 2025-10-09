@@ -7,7 +7,6 @@ import { PianoEngine } from './core/PianoEngine.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { VisualEffects } from './ui/VisualEffects.js';
 import { SongLibrary } from './core/SongLibrary.js';
-import { RecordingManager } from './core/RecordingManager.js';
 
 class MagicPianoFactory {
     constructor() {
@@ -15,9 +14,14 @@ class MagicPianoFactory {
         this.audioManager = null;
         this.visualEffects = null;
         this.songLibrary = null;
-        this.recordingManager = null;
-        this.currentMode = 'free';
+        this.currentMode = 'songs';
         this.isLoaded = false;
+        this.interactionMode = 'play'; // 'play' or 'scroll'
+        this.currentSong = null;
+        this.currentNoteIndex = 0;
+        this.isLearningMode = false;
+        this.learningSpeed = 'normal';
+        this.learningModeType = 'guided';
     }
 
     /**
@@ -37,7 +41,6 @@ class MagicPianoFactory {
             this.pianoEngine = new PianoEngine();
             this.visualEffects = new VisualEffects();
             this.songLibrary = new SongLibrary();
-            this.recordingManager = new RecordingManager();
 
             this.showLoadingProgress('Setting up magical effects...', 60);
 
@@ -45,7 +48,6 @@ class MagicPianoFactory {
             await this.pianoEngine.init();
             this.visualEffects.init();
             this.songLibrary.init();
-            this.recordingManager.init();
 
             this.showLoadingProgress('Connecting components...', 80);
 
@@ -53,6 +55,9 @@ class MagicPianoFactory {
             this.setupEventListeners();
             this.setupKeyboard();
             this.setupModeHandlers();
+            
+            // Setup song card listeners after everything is initialized
+            this.setupSongCardListeners();
 
             this.showLoadingProgress('Ready to play!', 100);
 
@@ -95,26 +100,7 @@ class MagicPianoFactory {
             });
         });
 
-        // Playback controls
-        document.getElementById('play-btn').addEventListener('click', () => {
-            this.recordingManager.play();
-        });
 
-        document.getElementById('stop-btn').addEventListener('click', () => {
-            this.recordingManager.stop();
-        });
-
-        document.getElementById('clear-btn').addEventListener('click', () => {
-            this.recordingManager.clear();
-        });
-
-        // Song selection
-        document.querySelectorAll('.song-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                const songId = e.target.dataset.song;
-                this.playSong(songId);
-            });
-        });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -130,6 +116,27 @@ class MagicPianoFactory {
                 e.preventDefault();
             }
         });
+    }
+
+    /**
+     * Set up song card event listeners
+     */
+    setupSongCardListeners() {
+        // Wait a bit to ensure DOM is ready
+        setTimeout(() => {
+            document.querySelectorAll('.song-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // Get songId from the card itself, not the clicked element
+                    const songId = card.dataset.song;
+                    console.log('Song card clicked, ID:', songId);
+                    if (songId) {
+                        this.playSong(songId);
+                    } else {
+                        console.error('No song ID found on card:', card);
+                    }
+                });
+            });
+        }, 100);
     }
 
     /**
@@ -183,10 +190,10 @@ class MagicPianoFactory {
             key.dataset.note = noteData.note;
             key.dataset.key = noteData.key;
             
-            // Add visual note label
+            // Add visual note label with octave number
             const label = document.createElement('span');
             label.className = 'key-label';
-            label.textContent = noteData.note.replace(/[0-9]/g, '');
+            label.textContent = noteData.note; // Keep full note name including octave number
             key.appendChild(label);
 
             // Touch and mouse events
@@ -233,6 +240,14 @@ class MagicPianoFactory {
         const navControls = document.createElement('div');
         navControls.className = 'piano-navigation';
         navControls.innerHTML = `
+            <div class="mode-switch">
+                <button id="play-mode-btn" class="mode-switch-btn active">
+                    🎹 Play Mode
+                </button>
+                <button id="scroll-mode-btn" class="mode-switch-btn">
+                    🖱️ Scroll Mode
+                </button>
+            </div>
             <div class="octave-controls">
                 <button id="scroll-left-btn" class="nav-btn">⬅️</button>
                 <button id="scroll-to-c1" class="octave-btn">C1</button>
@@ -246,12 +261,16 @@ class MagicPianoFactory {
             </div>
             <div class="position-indicator">
                 <span id="current-position">Middle C (C4)</span>
+                <span id="interaction-hint">🎹 Click keys to play</span>
             </div>
         `;
         
         controlPanel.appendChild(navControls);
         
         // Add event listeners
+        document.getElementById('play-mode-btn').addEventListener('click', () => this.switchInteractionMode('play'));
+        document.getElementById('scroll-mode-btn').addEventListener('click', () => this.switchInteractionMode('scroll'));
+        
         document.getElementById('scroll-left-btn').addEventListener('click', () => this.scrollPiano(-200));
         document.getElementById('scroll-right-btn').addEventListener('click', () => this.scrollPiano(200));
         
@@ -262,6 +281,35 @@ class MagicPianoFactory {
                 btn.addEventListener('click', () => this.scrollToNote(`C${i}`));
             }
         }
+    }
+
+    /**
+     * Switch between play and scroll interaction modes
+     */
+    switchInteractionMode(mode) {
+        this.interactionMode = mode;
+        
+        // Update UI
+        document.querySelectorAll('.mode-switch-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        if (mode === 'play') {
+            document.getElementById('play-mode-btn').classList.add('active');
+            document.getElementById('interaction-hint').textContent = '🎹 Click keys to play';
+        } else {
+            document.getElementById('scroll-mode-btn').classList.add('active');
+            document.getElementById('interaction-hint').textContent = '🖱️ Drag to scroll piano';
+        }
+        
+        // Update piano container state
+        const container = document.getElementById('piano-container');
+        if (container) {
+            container.classList.toggle('scroll-mode', mode === 'scroll');
+            container.style.cursor = mode === 'scroll' ? 'grab' : 'default';
+        }
+        
+        console.log(`Switched to ${mode} mode`);
     }
 
     /**
@@ -277,18 +325,25 @@ class MagicPianoFactory {
         let startX = 0;
         let scrollLeft = 0;
 
-        // Mouse wheel support for easy scrolling
+        // Mouse wheel support for easy scrolling (only in scroll mode)
         container.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const scrollAmount = e.deltaY > 0 ? 100 : -100;
-            container.scrollBy({
-                left: scrollAmount,
-                behavior: 'smooth'
-            });
+            if (this.interactionMode === 'scroll') {
+                e.preventDefault();
+                const scrollAmount = e.deltaY > 0 ? 100 : -100;
+                container.scrollBy({
+                    left: scrollAmount,
+                    behavior: 'smooth'
+                });
+            }
         }, { passive: false });
 
-        // Mouse drag support (only when not clicking on piano keys)
+        // Mouse drag support (only in scroll mode)
         container.addEventListener('mousedown', (e) => {
+            // Only allow dragging in scroll mode
+            if (this.interactionMode !== 'scroll') {
+                return;
+            }
+            
             // Don't drag if clicking on a piano key
             if (e.target.classList.contains('piano-key') || e.target.classList.contains('key-label')) {
                 return;
@@ -304,7 +359,7 @@ class MagicPianoFactory {
         document.addEventListener('mouseup', () => {
             if (isScrolling) {
                 isScrolling = false;
-                container.style.cursor = 'grab';
+                container.style.cursor = this.interactionMode === 'scroll' ? 'grab' : 'default';
             }
         });
 
@@ -478,7 +533,7 @@ class MagicPianoFactory {
      * Set up mode handlers
      */
     setupModeHandlers() {
-        this.switchMode('free'); // Start in free play mode
+        this.switchMode('songs'); // Start in songs mode
     }
 
     /**
@@ -501,13 +556,19 @@ class MagicPianoFactory {
             // Play audio
             await this.audioManager.playNote(note);
 
-            // Record if in recording mode
-            if (this.currentMode === 'record') {
-                this.recordingManager.recordNote(note, Date.now());
-            }
 
-            // Update UI
-            this.updateInstructions(`Played: ${note}`);
+            // Check if this note is part of learning mode
+            this.onNotePlayed(note);
+            
+            // Update UI only if not in learning mode (learning mode has its own updates)
+            if (!this.isLearningMode) {
+                this.updateInstructions(`Played: ${note}`);
+                
+                // Auto-scroll to follow played notes in play mode
+                if (this.interactionMode === 'play') {
+                    this.autoFollowNote(note);
+                }
+            }
 
         } catch (error) {
             console.error('Error playing note:', error);
@@ -551,10 +612,8 @@ class MagicPianoFactory {
 
         // Show/hide mode-specific UI
         const songSelector = document.getElementById('song-selector');
-        const playbackControls = document.getElementById('playback-controls');
 
         songSelector.style.display = mode === 'songs' ? 'block' : 'none';
-        playbackControls.style.display = mode === 'record' ? 'flex' : 'none';
 
         // Update mode
         this.currentMode = mode;
@@ -563,34 +622,444 @@ class MagicPianoFactory {
         // Update instructions
         const instructions = {
             'free': '🎹 Tap the colorful keys to create beautiful music!',
-            'songs': '🎵 Choose a song to learn and play along!',
-            'record': '🎙️ Record your musical creation and play it back!'
+            'songs': '🎵 Choose a song to learn and play along!'
         };
         
         this.updateInstructions(instructions[mode]);
+        
+        // Auto-scroll to middle C when entering songs mode
+        if (mode === 'songs') {
+            setTimeout(() => {
+                this.scrollToNote('C4');
+            }, 300);
+        }
 
         console.log(`Switched to ${mode} mode`);
     }
 
     /**
-     * Play a preset song
+     * Start learning a song with step-by-step guidance
      */
     async playSong(songId) {
         try {
-            const song = this.songLibrary.getSong(songId);
-            if (!song) {
-                console.error(`Song not found: ${songId}`);
+            console.log('Attempting to play song with ID:', songId);
+            
+            if (!songId) {
+                console.error('No song ID provided');
+                this.updateInstructions('❌ Please select a valid song');
                 return;
             }
 
-            this.updateInstructions(`🎵 Playing: ${song.title}`);
+            const song = this.songLibrary.getSong(songId);
+            if (!song) {
+                console.error(`Song not found: ${songId}`);
+                console.log('Available songs:', this.songLibrary.getAllSongs().map(s => s.id));
+                this.updateInstructions(`❌ Song "${songId}" not found`);
+                return;
+            }
+
+            // Initialize learning mode
+            this.currentSong = song;
+            this.currentNoteIndex = 0;
+            this.isLearningMode = true;
+
+            // Auto-scroll to the first note of the song
+            if (song.notes && song.notes.length > 0) {
+                const firstNote = song.notes[0].note;
+                this.scrollToNote(firstNote);
+                
+                // Show initial range highlight
+                this.highlightSongRange(songId);
+                
+                // Start the learning process
+                const timings = this.getSpeedTimings();
+                setTimeout(() => {
+                    this.startSongLearning();
+                }, timings.initialDelay); // After range highlight disappears
+            }
+
+            // Show sheet music
+            this.displaySheetMusic(song);
             
-            // TODO: Implement song playback with visual guidance
-            console.log(`Playing song: ${song.title}`);
+            this.updateInstructions(`🎵 Learning: ${song.title} | Watch for the highlighted notes!`);
             
         } catch (error) {
-            console.error('Error playing song:', error);
+            console.error('Error loading song:', error);
         }
+    }
+
+    /**
+     * Start the step-by-step song learning process
+     */
+    startSongLearning() {
+        if (!this.currentSong || !this.isLearningMode) return;
+        
+        this.currentNoteIndex = 0;
+        this.highlightNextNote();
+        this.updateInstructions(`🎯 Play the highlighted note: ${this.getCurrentNote()?.note || 'None'}`);
+    }
+
+    /**
+     * Highlight the next note to play
+     */
+    highlightNextNote() {
+        // Clear previous next-note highlights
+        document.querySelectorAll('.piano-key.next-note').forEach(key => {
+            key.classList.remove('next-note');
+        });
+
+        const currentNote = this.getCurrentNote();
+        if (!currentNote) {
+            this.completeSong();
+            return;
+        }
+
+        // Highlight the next note to play
+        const noteElement = document.querySelector(`[data-note="${currentNote.note}"]`);
+        if (noteElement) {
+            noteElement.classList.add('next-note');
+            
+            // Auto-scroll to note if it's not visible
+            this.autoFollowNote(currentNote.note);
+        }
+    }
+
+    /**
+     * Get the current note to play
+     */
+    getCurrentNote() {
+        if (!this.currentSong || this.currentNoteIndex >= this.currentSong.notes.length) {
+            return null;
+        }
+        return this.currentSong.notes[this.currentNoteIndex];
+    }
+
+    /**
+     * Handle note played during learning mode
+     */
+    onNotePlayed(playedNote) {
+        if (!this.isLearningMode || !this.currentSong) return;
+
+        if (this.learningModeType === 'free') {
+            // Free practice mode - any note from the song is accepted
+            const songNotes = this.songLibrary.getSongNotes(this.currentSong.id);
+            if (songNotes.includes(playedNote)) {
+                this.updateInstructions(`🎹 Great! You played ${playedNote} from the song!`);
+            }
+            return;
+        }
+
+        // Guided mode - must play the correct note
+        const expectedNote = this.getCurrentNote();
+        if (!expectedNote) return;
+
+        if (playedNote === expectedNote.note) {
+            // Correct note played!
+            this.onCorrectNote();
+        } else {
+            // Wrong note played
+            this.onWrongNote(playedNote, expectedNote.note);
+        }
+    }
+
+    /**
+     * Handle correct note played
+     */
+    onCorrectNote() {
+        const timings = this.getSpeedTimings();
+        
+        // Visual feedback for correct note
+        const noteElement = document.querySelector(`[data-note="${this.getCurrentNote().note}"]`);
+        if (noteElement) {
+            noteElement.classList.add('correct-note');
+            setTimeout(() => noteElement.classList.remove('correct-note'), timings.feedbackDuration);
+        }
+
+        // Move to next note
+        this.currentNoteIndex++;
+        
+        // Update progress
+        const progress = Math.round((this.currentNoteIndex / this.currentSong.notes.length) * 100);
+        this.updateInstructions(`✅ Correct! Progress: ${progress}% (${this.currentNoteIndex}/${this.currentSong.notes.length})`);
+
+        // Update sheet music progress
+        this.updateSheetMusicProgress();
+
+        // Highlight next note after a delay based on speed
+        setTimeout(() => {
+            this.highlightNextNote();
+        }, timings.nextNoteDelay);
+    }
+
+    /**
+     * Handle wrong note played
+     */
+    onWrongNote(playedNote, expectedNote) {
+        const timings = this.getSpeedTimings();
+        
+        // Visual feedback for wrong note
+        const playedElement = document.querySelector(`[data-note="${playedNote}"]`);
+        if (playedElement) {
+            playedElement.classList.add('wrong-note');
+            setTimeout(() => playedElement.classList.remove('wrong-note'), timings.feedbackDuration);
+        }
+
+        this.updateInstructions(`❌ Try again! Expected: ${expectedNote}, you played: ${playedNote}`);
+        
+        // Keep the current note highlighted - return to instruction faster for instant mode
+        const returnDelay = this.learningSpeed === 'instant' ? 800 : 1500;
+        setTimeout(() => {
+            this.updateInstructions(`🎯 Play the highlighted note: ${expectedNote}`);
+        }, returnDelay);
+    }
+
+    /**
+     * Complete the song learning
+     */
+    completeSong() {
+        this.isLearningMode = false;
+        
+        // Clear all highlights
+        document.querySelectorAll('.piano-key.next-note').forEach(key => {
+            key.classList.remove('next-note');
+        });
+
+        // Celebration effect
+        this.showCompletionCelebration();
+        
+        this.updateInstructions(`🎉 Congratulations! You completed "${this.currentSong.title}"! 🎉`);
+        
+        // Reset for next song
+        this.currentSong = null;
+        this.currentNoteIndex = 0;
+    }
+
+    /**
+     * Show completion celebration
+     */
+    showCompletionCelebration() {
+        // Add celebration animation to all keys used in the song
+        const songNotes = this.songLibrary.getSongNotes(this.currentSong.id);
+        songNotes.forEach((noteName, index) => {
+            setTimeout(() => {
+                const noteElement = document.querySelector(`[data-note="${noteName}"]`);
+                if (noteElement) {
+                    noteElement.classList.add('celebration');
+                    setTimeout(() => noteElement.classList.remove('celebration'), 1000);
+                }
+            }, index * 100);
+        });
+    }
+
+    /**
+     * Display sheet music for the selected song
+     */
+    displaySheetMusic(song) {
+        const sheetMusic = document.getElementById('sheet-music');
+        const songTitleDisplay = document.getElementById('song-title-display');
+        const noteSequence = document.getElementById('note-sequence');
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        if (!sheetMusic || !songTitleDisplay || !noteSequence) return;
+
+        // Show sheet music
+        sheetMusic.style.display = 'block';
+        songTitleDisplay.textContent = song.title;
+
+        // Reset progress
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
+
+        // Generate note sequence display
+        noteSequence.innerHTML = '';
+        song.notes.forEach((noteData, index) => {
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note-item';
+            noteElement.dataset.index = index;
+            
+            // Simplify note display (remove octave number for readability)
+            const displayNote = noteData.note.replace(/[0-9]/g, '');
+            noteElement.innerHTML = `
+                <div class="note-symbol">${displayNote}</div>
+            `;
+            
+            noteSequence.appendChild(noteElement);
+        });
+
+        // Add control handlers
+        this.setupLearningControls();
+
+        // Add close button handler
+        const closeBtn = document.getElementById('close-sheet-btn');
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                sheetMusic.style.display = 'none';
+                this.isLearningMode = false;
+                this.clearAllHighlights();
+            };
+        }
+    }
+
+    /**
+     * Setup learning control handlers
+     */
+    setupLearningControls() {
+        // Speed control buttons
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Remove active from all speed buttons
+                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                
+                // Add active to clicked button
+                e.target.classList.add('active');
+                
+                // Update speed
+                this.learningSpeed = e.target.dataset.speed;
+                console.log(`Learning speed set to: ${this.learningSpeed}`);
+            });
+        });
+
+        // Learning mode buttons
+        document.querySelectorAll('.learning-mode-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Remove active from all mode buttons
+                document.querySelectorAll('.learning-mode-btn').forEach(b => b.classList.remove('active'));
+                
+                // Add active to clicked button
+                e.target.classList.add('active');
+                
+                // Update mode
+                this.learningModeType = e.target.dataset.mode;
+                console.log(`Learning mode set to: ${this.learningModeType}`);
+                
+                // Apply mode changes
+                this.applyLearningMode();
+            });
+        });
+    }
+
+    /**
+     * Apply learning mode changes
+     */
+    applyLearningMode() {
+        if (this.learningModeType === 'free') {
+            // Free practice mode - clear guidance highlights
+            this.clearAllHighlights();
+            this.updateInstructions('🎹 Free Practice: Play any notes from the song!');
+        } else {
+            // Guided mode - restore current note highlight
+            if (this.isLearningMode && this.currentSong) {
+                this.highlightNextNote();
+                const currentNote = this.getCurrentNote();
+                this.updateInstructions(`🎯 Play the highlighted note: ${currentNote?.note || 'None'}`);
+            }
+        }
+    }
+
+    /**
+     * Get timing delays based on learning speed
+     */
+    getSpeedTimings() {
+        const timings = {
+            slow: {
+                initialDelay: 5000,     // 5 seconds to study range
+                nextNoteDelay: 1200,    // 1.2 seconds between notes
+                feedbackDuration: 800   // 0.8 seconds for feedback
+            },
+            normal: {
+                initialDelay: 3500,     // 3.5 seconds to study range
+                nextNoteDelay: 600,     // 0.6 seconds between notes
+                feedbackDuration: 500   // 0.5 seconds for feedback
+            },
+            fast: {
+                initialDelay: 2000,     // 2 seconds to study range
+                nextNoteDelay: 300,     // 0.3 seconds between notes
+                feedbackDuration: 300   // 0.3 seconds for feedback
+            },
+            instant: {
+                initialDelay: 1000,     // 1 second to study range
+                nextNoteDelay: 100,     // 0.1 seconds between notes
+                feedbackDuration: 200   // 0.2 seconds for feedback
+            }
+        };
+        
+        return timings[this.learningSpeed] || timings.normal;
+    }
+
+    /**
+     * Update sheet music progress
+     */
+    updateSheetMusicProgress() {
+        if (!this.currentSong || !this.isLearningMode) return;
+
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const noteItems = document.querySelectorAll('.note-item');
+
+        const progress = Math.round((this.currentNoteIndex / this.currentSong.notes.length) * 100);
+        
+        if (progressFill) progressFill.style.width = `${progress}%`;
+        if (progressText) progressText.textContent = `${progress}%`;
+
+        // Highlight current note in sheet music
+        noteItems.forEach((item, index) => {
+            item.classList.remove('current', 'completed');
+            if (index < this.currentNoteIndex) {
+                item.classList.add('completed');
+            } else if (index === this.currentNoteIndex) {
+                item.classList.add('current');
+            }
+        });
+    }
+
+    /**
+     * Clear all learning highlights
+     */
+    clearAllHighlights() {
+        document.querySelectorAll('.piano-key.next-note, .piano-key.correct-note, .piano-key.wrong-note').forEach(key => {
+            key.classList.remove('next-note', 'correct-note', 'wrong-note');
+        });
+    }
+
+    /**
+     * Get the note range used in a song (lowest to highest)
+     */
+    getSongNoteRange(song) {
+        if (!song.notes || song.notes.length === 0) return 'No notes';
+        
+        const notes = song.notes.map(n => n.note);
+        const uniqueNotes = [...new Set(notes)].sort();
+        
+        return `${uniqueNotes[0]} - ${uniqueNotes[uniqueNotes.length - 1]}`;
+    }
+
+    /**
+     * Highlight the range of keys used in a song
+     */
+    highlightSongRange(songId) {
+        // Clear previous highlights
+        document.querySelectorAll('.piano-key.song-highlight').forEach(key => {
+            key.classList.remove('song-highlight');
+        });
+
+        const songNotes = this.songLibrary.getSongNotes(songId);
+        if (!songNotes || songNotes.length === 0) return;
+
+        // Highlight keys used in this song
+        songNotes.forEach(noteName => {
+            const noteElement = document.querySelector(`[data-note="${noteName}"]`);
+            if (noteElement) {
+                noteElement.classList.add('song-highlight');
+            }
+        });
+
+        // Remove highlights after 3 seconds
+        setTimeout(() => {
+            document.querySelectorAll('.piano-key.song-highlight').forEach(key => {
+                key.classList.remove('song-highlight');
+            });
+        }, 3000);
     }
 
     /**
@@ -700,13 +1169,43 @@ class MagicPianoFactory {
     }
 
     /**
+     * Auto-scroll to follow played notes (gentler than manual scrollToNote)
+     */
+    autoFollowNote(noteName) {
+        const noteElement = document.querySelector(`[data-note="${noteName}"]`);
+        const container = document.getElementById('piano-container');
+        
+        if (!noteElement || !container) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        const noteRect = noteElement.getBoundingClientRect();
+        
+        // Check if note is outside visible area
+        const isOutsideLeft = noteRect.left < containerRect.left + 50;
+        const isOutsideRight = noteRect.right > containerRect.right - 50;
+        
+        if (isOutsideLeft || isOutsideRight) {
+            const notePosition = noteElement.offsetLeft;
+            const containerWidth = container.clientWidth;
+            const noteWidth = noteElement.offsetWidth;
+            
+            // Center the note in view
+            const scrollPosition = notePosition - (containerWidth / 2) + (noteWidth / 2);
+            
+            container.scrollTo({
+                left: Math.max(0, scrollPosition),
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    /**
      * Get display name for mode
      */
     getModeDisplayName(mode) {
         const names = {
             'free': 'Free Play',
-            'songs': 'Songs',
-            'record': 'Recording'
+            'songs': 'Songs'
         };
         return names[mode] || mode;
     }
@@ -726,24 +1225,29 @@ class MagicPianoFactory {
         // TODO: Implement help modal
         alert(`🎹 Magic Piano Help:
 
+🎮 DUAL MODE SYSTEM:
+• 🎹 Play Mode: Click keys to play (auto-follows)
+• 🖱️ Scroll Mode: Drag & scroll freely
+
 🖱️ Mouse Users:
-• Mouse wheel: Scroll piano left/right
-• Click & drag: Drag piano (outside keys)
-• Click keys: Play notes
+• Play Mode: Click keys, piano follows you
+• Scroll Mode: Mouse wheel + drag to navigate
+• Switch modes with the toggle buttons
 
 ⌨️ Keyboard:
 • Q-P keys: Play notes
-• Arrow keys: Scroll piano
+• Arrow keys: Scroll piano (any mode)
 • Ctrl+1-7: Jump to octaves
 
 📱 Touch Users:
-• Swipe: Scroll piano
-• Tap keys: Play notes
-• Use navigation buttons
+• Play Mode: Tap keys, auto-scroll follows
+• Scroll Mode: Swipe to navigate
+• Use C1-C7 buttons for quick jumps
 
-🎵 Navigation:
-• C1-C7 buttons: Jump to octaves
-• ⬅️➡️ buttons: Scroll slowly`);
+💡 Tips:
+• Play Mode: Perfect for performance
+• Scroll Mode: Great for exploring range
+• Piano auto-centers on played notes`);
     }
 
     /**
@@ -760,7 +1264,6 @@ class MagicPianoFactory {
     destroy() {
         if (this.audioManager) this.audioManager.destroy();
         if (this.visualEffects) this.visualEffects.destroy();
-        if (this.recordingManager) this.recordingManager.destroy();
         
         console.log('Magic Piano Factory destroyed');
     }
