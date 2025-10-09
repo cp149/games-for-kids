@@ -50,6 +50,18 @@ export class MagicSelector {
                         <div class="magic-name">Gem</div>
                         <div class="magic-desc">Glowing crystals & gems</div>
                     </div>
+
+                    <div class="magic-card" data-effect="sand">
+                        <div class="magic-icon">🏖️</div>
+                        <div class="magic-name">Sand</div>
+                        <div class="magic-desc">Falling sand particles</div>
+                    </div>
+
+                    <div class="magic-card" data-effect="rainbowSand">
+                        <div class="magic-icon">🌈✨</div>
+                        <div class="magic-name">Rainbow Sand</div>
+                        <div class="magic-desc">Colorful magic sand</div>
+                    </div>
                 </div>
             </div>
         `;

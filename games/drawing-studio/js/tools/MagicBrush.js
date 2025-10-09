@@ -7,7 +7,7 @@ import { Tool } from '../core/ToolSystem.js';
 export class MagicBrush extends Tool {
     constructor() {
         super('Magic Brush', 12); // Default 12px for magic effects
-        this.currentEffect = 'rainbow'; // rainbow, star, firework, coin
+        this.currentEffect = 'rainbow'; // rainbow, star, firework, coin, sand, rainbowSand
         this.hue = 0; // For rainbow effect
         this.coinRotation = 0; // For coin animation
     }
@@ -53,7 +53,9 @@ export class MagicBrush extends Tool {
             rainbow: '🌈 Rainbow',
             firework: '🎆 Firework',
             star: '⭐ Star',
-            coin: '💎 Gem'
+            coin: '💎 Gem',
+            sand: '🏖️ Sand',
+            rainbowSand: '🌈🏖️ Rainbow Sand'
         };
         return names[this.currentEffect] || 'Rainbow';
     }
@@ -74,8 +76,8 @@ export class MagicBrush extends Tool {
         const dy = toY - fromY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Different interpolation for star and gem effects (less dense)
-        let stepMultiplier = (this.currentEffect === 'star' || this.currentEffect === 'coin') ? 2.0 : 0.3;
+        // Different interpolation for star, gem, and sand effects (less dense)
+        let stepMultiplier = (this.currentEffect === 'star' || this.currentEffect === 'coin' || this.currentEffect === 'sand' || this.currentEffect === 'rainbowSand') ? 2.0 : 0.3;
 
         // Interpolate points for smooth line (no gaps when drawing fast)
         const steps = Math.max(1, Math.ceil(distance / (this.lineWidth * stepMultiplier)));
@@ -104,6 +106,12 @@ export class MagicBrush extends Tool {
                 break;
             case 'coin':
                 this.drawCoin(ctx, x, y, size);
+                break;
+            case 'sand':
+                this.drawSand(ctx, x, y, size);
+                break;
+            case 'rainbowSand':
+                this.drawRainbowSand(ctx, x, y, size);
                 break;
             default:
                 this.drawRainbow(ctx, x, y, size);
@@ -379,5 +387,243 @@ export class MagicBrush extends Tool {
         }
         // Center circle
         ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+    }
+
+    /**
+     * Sand brush - fine sand particles with customizable color
+     */
+    drawSand(ctx, x, y, size) {
+        ctx.save();
+
+        // Get current color from tool system
+        const currentColor = this.color || '#F4E4BC';
+        
+        // Convert hex to RGB for color variations
+        const hexToRgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        };
+        
+        const baseRgb = hexToRgb(currentColor);
+        if (!baseRgb) return;
+
+        // Number of sand particles scales with brush size
+        const particleCount = Math.floor(size * 5 + Math.random() * size * 3);
+        
+        for (let i = 0; i < particleCount; i++) {
+            // Random position within brush area
+            const scatterRadius = size * 1.5;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * scatterRadius;
+            
+            const particleX = x + Math.cos(angle) * distance;
+            const particleY = y + Math.sin(angle) * distance;
+
+            // Fine sand particle size - much smaller, scales with brush size
+            const minSize = Math.max(0.5, size * 0.05);
+            const maxSize = Math.max(1.5, size * 0.15);
+            const particleSize = Math.random() * (maxSize - minSize) + minSize;
+            
+            // Create color variations based on selected color
+            const colorVariation = 0.15; // 15% variation
+            const r = Math.max(0, Math.min(255, baseRgb.r + (Math.random() - 0.5) * 255 * colorVariation));
+            const g = Math.max(0, Math.min(255, baseRgb.g + (Math.random() - 0.5) * 255 * colorVariation));
+            const b = Math.max(0, Math.min(255, baseRgb.b + (Math.random() - 0.5) * 255 * colorVariation));
+            
+            // Create sand grain with slight transparency
+            const alpha = 0.3 + Math.random() * 0.5; // 0.3 to 0.8
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            
+            // Draw circular sand grain
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Add some concentrated sand in the center
+        const centerCount = Math.floor(size * 2 + Math.random() * size);
+        for (let i = 0; i < centerCount; i++) {
+            const centerRadius = size * 0.5;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * centerRadius;
+            
+            const particleX = x + Math.cos(angle) * distance;
+            const particleY = y + Math.sin(angle) * distance;
+            
+            // Very fine particles in center
+            const particleSize = Math.random() * 1 + 0.3;
+            
+            // Higher opacity in center
+            const alpha = 0.5 + Math.random() * 0.4;
+            ctx.fillStyle = `rgba(${baseRgb.r}, ${baseRgb.g}, ${baseRgb.b}, ${alpha})`;
+            
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Add falling sand effect with finer particles
+        const fallingCount = Math.floor(size * 1.5 + Math.random() * size);
+        for (let i = 0; i < fallingCount; i++) {
+            // Particles fall in a downward direction
+            const fallX = x + (Math.random() - 0.5) * size;
+            const fallY = y + Math.random() * size * 2 + size * 0.5;
+            const fallSize = Math.random() * 1 + 0.2;
+            
+            // Create slight color variation for falling particles
+            const r = Math.max(0, Math.min(255, baseRgb.r + (Math.random() - 0.5) * 30));
+            const g = Math.max(0, Math.min(255, baseRgb.g + (Math.random() - 0.5) * 30));
+            const b = Math.max(0, Math.min(255, baseRgb.b + (Math.random() - 0.5) * 30));
+            
+            const fallAlpha = 0.15 + Math.random() * 0.25; // More transparent
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fallAlpha})`;
+            
+            ctx.beginPath();
+            ctx.arc(fallX, fallY, fallSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Rainbow sand brush - colorful sand particles
+     */
+    drawRainbowSand(ctx, x, y, size) {
+        ctx.save();
+
+        // Rainbow colors for sand
+        const rainbowColors = [
+            '#FF0000', // Red
+            '#FF7F00', // Orange
+            '#FFFF00', // Yellow
+            '#00FF00', // Green
+            '#0000FF', // Blue
+            '#4B0082', // Indigo
+            '#9400D3', // Violet
+            '#FF69B4', // Hot Pink
+            '#00CED1', // Dark Turquoise
+            '#FFD700', // Gold
+            '#FF1493', // Deep Pink
+            '#32CD32', // Lime Green
+            '#FF4500', // Orange Red
+            '#1E90FF', // Dodger Blue
+            '#FF00FF', // Magenta
+            '#00FFFF', // Cyan
+            '#FFA500', // Orange
+            '#ADFF2F', // Green Yellow
+            '#FF6347', // Tomato
+            '#7FFF00'  // Chartreuse
+        ];
+
+        // Number of sand particles scales with brush size
+        const particleCount = Math.floor(size * 6 + Math.random() * size * 4);
+        
+        for (let i = 0; i < particleCount; i++) {
+            // Random position within brush area
+            const scatterRadius = size * 1.5;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * scatterRadius;
+            
+            const particleX = x + Math.cos(angle) * distance;
+            const particleY = y + Math.sin(angle) * distance;
+
+            // Fine sand particle size - scales with brush size
+            const minSize = Math.max(0.5, size * 0.05);
+            const maxSize = Math.max(1.8, size * 0.18);
+            const particleSize = Math.random() * (maxSize - minSize) + minSize;
+            
+            // Pick random rainbow color for each particle
+            const particleColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
+            
+            // Convert to RGB for slight variations
+            const hexToRgb = (hex) => {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : null;
+            };
+            
+            const rgb = hexToRgb(particleColor);
+            if (!rgb) continue;
+            
+            // Add slight variation to make it more natural
+            const variation = 0.1;
+            const r = Math.max(0, Math.min(255, rgb.r + (Math.random() - 0.5) * 255 * variation));
+            const g = Math.max(0, Math.min(255, rgb.g + (Math.random() - 0.5) * 255 * variation));
+            const b = Math.max(0, Math.min(255, rgb.b + (Math.random() - 0.5) * 255 * variation));
+            
+            // Create sand grain with transparency
+            const alpha = 0.4 + Math.random() * 0.5; // 0.4 to 0.9
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            
+            // Draw circular sand grain
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Add concentrated colorful sand in center
+        const centerCount = Math.floor(size * 3 + Math.random() * size * 2);
+        for (let i = 0; i < centerCount; i++) {
+            const centerRadius = size * 0.6;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * centerRadius;
+            
+            const particleX = x + Math.cos(angle) * distance;
+            const particleY = y + Math.sin(angle) * distance;
+            
+            // Slightly larger particles in center
+            const particleSize = Math.random() * 1.2 + 0.4;
+            
+            // Pick vibrant color
+            const particleColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
+            
+            // Higher opacity in center
+            const alpha = 0.6 + Math.random() * 0.4;
+            ctx.fillStyle = particleColor + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+            
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Add falling rainbow sand effect
+        const fallingCount = Math.floor(size * 2 + Math.random() * size * 1.5);
+        for (let i = 0; i < fallingCount; i++) {
+            // Particles fall in a downward direction
+            const fallX = x + (Math.random() - 0.5) * size;
+            const fallY = y + Math.random() * size * 2.5 + size * 0.5;
+            const fallSize = Math.random() * 1.2 + 0.3;
+            
+            // Random rainbow color for falling particles
+            const fallColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
+            const fallAlpha = 0.2 + Math.random() * 0.3;
+            
+            ctx.fillStyle = fallColor + Math.floor(fallAlpha * 255).toString(16).padStart(2, '0');
+            ctx.beginPath();
+            ctx.arc(fallX, fallY, fallSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Add some sparkles for magical effect
+        const sparkleCount = Math.floor(size * 0.5 + Math.random() * 3);
+        for (let i = 0; i < sparkleCount; i++) {
+            const sparkleX = x + (Math.random() - 0.5) * size * 2;
+            const sparkleY = y + (Math.random() - 0.5) * size * 2;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(sparkleX, sparkleY, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
     }
 }
