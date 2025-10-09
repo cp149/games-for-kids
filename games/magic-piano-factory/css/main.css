@@ -81,7 +81,7 @@ body {
     background: rgba(75, 29, 149, 0.8);
     backdrop-filter: blur(10px);
     border-bottom: 2px solid var(--primary-purple);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -96,7 +96,7 @@ body {
 }
 
 .game-title {
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
     background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink), var(--primary-blue));
     -webkit-background-clip: text;
@@ -141,17 +141,17 @@ body {
 /* Main Game Area */
 .game-main {
     flex: 1;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-sm);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-sm);
 }
 
 /* Control Panel */
 .control-panel {
     background: rgba(75, 29, 149, 0.6);
-    border-radius: 20px;
-    padding: var(--spacing-lg);
+    border-radius: 15px;
+    padding: var(--spacing-md);
     backdrop-filter: blur(10px);
     border: 2px solid var(--primary-purple);
 }
@@ -188,6 +188,245 @@ body {
     box-shadow: var(--shadow-glow);
 }
 
+/* Mode Dropdown */
+.mode-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.mode-dropdown-btn {
+    background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink));
+    border: 2px solid var(--primary-purple);
+    color: var(--text-primary);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-height: 48px;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-glow);
+}
+
+.mode-dropdown-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.mode-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 2px solid var(--primary-purple);
+    border-radius: 15px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    margin-top: var(--spacing-xs);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all var(--transition-normal);
+}
+
+.mode-dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.mode-option {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: var(--spacing-md);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border-radius: 13px;
+    margin: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mode-option:hover {
+    background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink));
+    transform: scale(1.02);
+}
+
+.mode-option:first-child {
+    margin-top: var(--spacing-xs);
+}
+
+.mode-option:last-child {
+    margin-bottom: var(--spacing-xs);
+}
+
+/* Piano Mode Dropdown */
+.piano-mode-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.piano-mode-menu {
+    position: fixed !important;
+    background: linear-gradient(135deg, var(--bg-card), rgba(75, 29, 149, 0.95));
+    border: 2px solid var(--primary-purple);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    z-index: 999999 !important;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transition: all var(--transition-normal);
+    min-width: 260px;
+    max-width: 300px;
+    padding: var(--spacing-md);
+    pointer-events: none;
+}
+
+.piano-mode-menu.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+}
+
+.mode-options {
+    margin-bottom: var(--spacing-md);
+}
+
+.piano-mode-option {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--primary-purple);
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border-radius: 8px;
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.piano-mode-option:hover,
+.piano-mode-option.active {
+    background: linear-gradient(45deg, var(--primary-green), var(--primary-blue));
+    border-color: var(--primary-green);
+    transform: scale(1.02);
+}
+
+.octave-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--primary-purple), transparent);
+    margin: var(--spacing-md) 0;
+}
+
+.octave-options {
+    text-align: center;
+}
+
+.octave-label {
+    color: var(--primary-yellow);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.octave-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xs);
+}
+
+.octave-jump-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--primary-purple);
+    color: var(--text-primary);
+    padding: var(--spacing-xs);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    min-height: 32px;
+}
+
+.octave-jump-btn:hover {
+    background: linear-gradient(45deg, var(--primary-yellow), var(--primary-orange));
+    color: #333;
+    transform: scale(1.1);
+    border-color: var(--primary-yellow);
+}
+
+/* Navigation Section */
+.navigation-section {
+    text-align: center;
+    margin: var(--spacing-sm) 0;
+}
+
+.section-label {
+    color: var(--primary-yellow);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.scroll-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+}
+
+.scroll-btn {
+    background: linear-gradient(45deg, var(--primary-blue), var(--primary-purple));
+    border: 1px solid var(--primary-blue);
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    flex: 1;
+}
+
+.scroll-btn:hover {
+    background: linear-gradient(45deg, var(--primary-purple), var(--primary-pink));
+    transform: scale(1.05);
+    border-color: var(--primary-purple);
+}
+
+/* Current Position Display */
+.current-position {
+    text-align: center;
+    padding: var(--spacing-sm);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-top: var(--spacing-sm);
+}
+
+.current-position #popup-current-position {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 .playback-controls {
     display: flex;
     gap: var(--spacing-sm);
@@ -215,33 +454,34 @@ body {
 /* Song Selector */
 .song-selector {
     background: rgba(75, 29, 149, 0.6);
-    border-radius: 20px;
-    padding: var(--spacing-lg);
+    border-radius: 15px;
+    padding: var(--spacing-md);
     backdrop-filter: blur(10px);
     border: 2px solid var(--primary-purple);
 }
 
 .song-selector h3 {
     text-align: center;
-    margin-bottom: var(--spacing-lg);
-    font-size: 1.5rem;
+    margin-bottom: var(--spacing-md);
+    font-size: 1.2rem;
     color: var(--primary-yellow);
 }
 
-.song-grid {
+/* Level Selector Layout */
+.level-selector {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--spacing-md);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
 }
 
-.song-card {
-    background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+.level-btn {
     border: none;
     color: white;
-    padding: var(--spacing-lg);
-    border-radius: 15px;
-    font-size: 1.1rem;
-    font-weight: 600;
+    padding: var(--spacing-md);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all var(--transition-normal);
     min-height: 80px;
@@ -250,6 +490,147 @@ body {
     justify-content: center;
     align-items: center;
     text-align: center;
+    position: relative;
+}
+
+.level-count {
+    font-size: 0.8rem;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-top: var(--spacing-xs);
+}
+
+/* Level-based colors */
+.level-btn.beginner {
+    background: linear-gradient(135deg, #059669, #10B981);
+}
+
+.level-btn.easy {
+    background: linear-gradient(135deg, #F59E0B, #FBBF24);
+}
+
+.level-btn.medium {
+    background: linear-gradient(135deg, #F97316, #FB923C);
+}
+
+.level-btn.hard {
+    background: linear-gradient(135deg, #DC2626, #EF4444);
+}
+
+.level-btn:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Song Popup */
+.song-popup {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999999 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.song-popup.show {
+    opacity: 1;
+}
+
+.song-popup-content {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+    border-radius: 20px;
+    padding: var(--spacing-lg);
+    max-width: 600px;
+    max-height: 80vh;
+    width: 100%;
+    overflow-y: auto;
+    border: 2px solid var(--primary-purple);
+    box-shadow: var(--shadow-lg);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.song-popup.show .song-popup-content {
+    transform: scale(1);
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: var(--spacing-md);
+}
+
+.popup-header h3 {
+    color: var(--primary-yellow);
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.popup-close {
+    background: var(--primary-red);
+    border: none;
+    color: white;
+    padding: var(--spacing-xs);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-normal);
+}
+
+.popup-close:hover {
+    transform: scale(1.1);
+    background: #dc2626;
+}
+
+.popup-songs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.popup-song-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: var(--spacing-md);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    text-align: left;
+}
+
+.popup-song-card:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    border-color: var(--primary-purple);
+}
+
+.popup-song-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+    color: var(--primary-yellow);
+}
+
+.popup-song-info {
+    font-size: 0.9rem;
+    opacity: 0.8;
 }
 
 .song-title {
@@ -264,54 +645,80 @@ body {
     font-weight: 400;
 }
 
-/* Sheet Music Display */
+/* Sheet Music Display (Compact) */
 .sheet-music {
     background: linear-gradient(135deg, rgba(75, 29, 149, 0.9), rgba(139, 92, 246, 0.9));
-    border-radius: 20px;
-    margin-bottom: var(--spacing-lg);
+    border-radius: 15px;
+    margin-bottom: var(--spacing-md);
     border: 2px solid var(--primary-purple);
     backdrop-filter: blur(10px);
     box-shadow: var(--shadow-lg);
 }
 
-.sheet-header {
+/* Compact Sheet Layout */
+.sheet-compact {
+    padding: var(--spacing-sm);
+}
+
+.sheet-top-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: var(--spacing-sm);
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
 }
 
-.sheet-header h4 {
+.compact-title {
     color: var(--primary-yellow);
-    margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 700;
+    flex: 1;
+    min-width: 120px;
 }
 
-.close-btn {
+.compact-controls {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
+}
+
+.compact-select {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--primary-purple);
+    border-radius: 6px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    min-width: 80px;
+}
+
+.compact-select:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.02);
+}
+
+.compact-close {
     background: var(--primary-red);
     border: none;
     color: white;
     padding: var(--spacing-xs);
-    border-radius: 50%;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
-    width: 32px;
-    height: 32px;
+    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all var(--transition-normal);
 }
 
-.close-btn:hover {
+.compact-close:hover {
     transform: scale(1.1);
     background: #dc2626;
-}
-
-.sheet-content {
-    padding: var(--spacing-lg);
 }
 
 /* Learning Controls */
@@ -383,12 +790,12 @@ body {
     box-shadow: var(--shadow-md);
 }
 
-/* Progress Bar */
-.progress-bar {
+/* Compact Progress Bar */
+.compact-progress {
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    height: 24px;
-    margin-bottom: var(--spacing-lg);
+    border-radius: 10px;
+    height: 16px;
+    margin-bottom: var(--spacing-sm);
     position: relative;
     overflow: hidden;
 }
@@ -408,39 +815,41 @@ body {
     transform: translate(-50%, -50%);
     color: white;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
-/* Note Sequence */
-.note-sequence {
+/* Compact Note Sequence */
+.note-sequence-compact {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     justify-content: center;
-    max-height: 200px;
+    max-height: 100px;
     overflow-y: auto;
-    padding: var(--spacing-sm);
-    border-radius: 15px;
+    padding: var(--spacing-xs);
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.1);
 }
 
 .note-item {
     background: rgba(255, 255, 255, 0.9);
-    border-radius: 12px;
-    padding: var(--spacing-sm);
-    min-width: 50px;
+    border-radius: 8px;
+    padding: var(--spacing-xs);
+    min-width: 36px;
+    max-width: 40px;
     text-align: center;
     transition: all var(--transition-normal);
-    border: 2px solid transparent;
+    border: 1px solid transparent;
     position: relative;
+    font-size: 0.8rem;
 }
 
 .note-item.current {
     background: linear-gradient(135deg, var(--primary-yellow), var(--primary-orange));
-    transform: scale(1.2);
-    border: 2px solid var(--primary-red);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);
+    transform: scale(1.1);
+    border: 1px solid var(--primary-red);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.6);
     animation: currentNotePulse 1.5s ease-in-out infinite;
 }
 
@@ -490,16 +899,11 @@ body {
     }
 }
 
-.song-card:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: var(--shadow-lg);
-}
-
 /* Piano Container */
 .piano-container {
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 20px;
-    padding: var(--spacing-xl);
+    border-radius: 15px;
+    padding: var(--spacing-md);
     backdrop-filter: blur(10px);
     border: 2px solid var(--primary-purple);
     overflow-x: auto;
@@ -521,7 +925,7 @@ body {
     justify-content: flex-start;
     align-items: end;
     min-width: fit-content;
-    height: 200px;
+    height: 180px;
     position: relative;
     margin: 0;
     gap: 0;
@@ -544,10 +948,10 @@ body {
 
 .piano-key.white {
     background: var(--white-key);
-    width: 45px;
-    height: 180px;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 4px 8px var(--key-shadow);
+    width: 50px;
+    height: 160px;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 3px 6px var(--key-shadow);
     color: #333;
     z-index: 1;
     font-size: 0.7rem;
@@ -556,14 +960,14 @@ body {
 
 .piano-key.black {
     background: var(--black-key);
-    width: 28px;
-    height: 120px;
-    border-radius: 0 0 6px 6px;
-    box-shadow: 0 4px 12px var(--key-shadow);
+    width: 30px;
+    height: 110px;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 3px 8px var(--key-shadow);
     color: white;
     z-index: 2;
-    margin-left: -14px;
-    margin-right: -14px;
+    margin-left: -15px;
+    margin-right: -15px;
     font-size: 0.6rem;
     flex-shrink: 0;
 }
@@ -741,23 +1145,7 @@ body {
     }
 }
 
-/* Piano Navigation */
-.piano-navigation {
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-md);
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    backdrop-filter: blur(5px);
-}
-
-.octave-controls {
-    display: flex;
-    gap: var(--spacing-xs);
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: var(--spacing-sm);
-}
+/* Piano Navigation (removed - now handled by popup) */
 
 .nav-btn {
     background: var(--primary-blue);
@@ -817,6 +1205,8 @@ body {
     flex-direction: column;
     align-items: center;
     gap: var(--spacing-xs);
+    flex: 1;
+    text-align: center;
 }
 
 .position-indicator span {
@@ -826,18 +1216,17 @@ body {
     backdrop-filter: blur(5px);
 }
 
-/* Mode Switch */
-.mode-switch {
-    display: flex;
-    gap: var(--spacing-xs);
-    justify-content: center;
+/* Interaction Mode Dropdown */
+.interaction-mode-dropdown {
+    position: relative;
+    display: inline-block;
     margin-bottom: var(--spacing-md);
 }
 
-.mode-switch-btn {
-    background: var(--bg-card);
-    border: 2px solid var(--primary-purple);
-    color: var(--text-primary);
+.interaction-mode-btn {
+    background: linear-gradient(45deg, var(--primary-green), var(--primary-blue));
+    border: 2px solid var(--primary-green);
+    color: white;
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: 25px;
     font-size: 1rem;
@@ -845,18 +1234,69 @@ body {
     cursor: pointer;
     transition: all var(--transition-normal);
     min-height: 40px;
-    min-width: 120px;
-}
-
-.mode-switch-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.mode-switch-btn.active {
-    background: linear-gradient(45deg, var(--primary-green), var(--primary-blue));
-    color: white;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     box-shadow: var(--shadow-glow);
+}
+
+.interaction-mode-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.interaction-mode-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 2px solid var(--primary-green);
+    border-radius: 15px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    margin-top: var(--spacing-xs);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all var(--transition-normal);
+}
+
+.interaction-mode-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.interaction-mode-option {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border-radius: 13px;
+    margin: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.interaction-mode-option:hover {
+    background: linear-gradient(45deg, var(--primary-green), var(--primary-blue));
+    transform: scale(1.02);
+}
+
+.interaction-mode-option:first-child {
+    margin-top: var(--spacing-xs);
+}
+
+.interaction-mode-option:last-child {
+    margin-bottom: var(--spacing-xs);
 }
 
 /* Piano container states */
@@ -925,12 +1365,12 @@ body {
 .game-footer {
     background: rgba(75, 29, 149, 0.8);
     border-top: 2px solid var(--primary-purple);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
 }
 
 .current-mode {

@@ -177,6 +177,386 @@ export class SongLibrary {
                 { note: 'C4', duration: 1500 }
             ]
         });
+
+        // ========== BEGINNER LEVEL ==========
+        
+        // Baa, Baa, Black Sheep
+        this.addSong('baa-baa', {
+            title: 'Baa, Baa, Black Sheep',
+            tempo: 100,
+            timeSignature: '4/4',
+            difficulty: 'beginner',
+            notes: [
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'A4', duration: 500 },
+                { note: 'A4', duration: 500 },
+                { note: 'G4', duration: 1000 },
+                
+                { note: 'F4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C4', duration: 1000 }
+            ]
+        });
+
+        // Three Blind Mice
+        this.addSong('three-mice', {
+            title: 'Three Blind Mice',
+            tempo: 120,
+            timeSignature: '4/4',
+            difficulty: 'beginner',
+            notes: [
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C4', duration: 1000 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C4', duration: 1000 },
+                
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 1000 },
+                
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 1000 }
+            ]
+        });
+
+        // Old MacDonald Had a Farm
+        this.addSong('old-macdonald', {
+            title: 'Old MacDonald Had a Farm',
+            tempo: 120,
+            timeSignature: '4/4',
+            difficulty: 'beginner',
+            notes: [
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'G3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'G3', duration: 1000 },
+                
+                { note: 'B3', duration: 500 },
+                { note: 'B3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'G3', duration: 1000 }
+            ]
+        });
+
+        // ========== EASY LEVEL ==========
+
+        // London Bridge Is Falling Down
+        this.addSong('london-bridge', {
+            title: 'London Bridge Is Falling Down',
+            tempo: 110,
+            timeSignature: '4/4',
+            difficulty: 'easy',
+            notes: [
+                { note: 'G4', duration: 500 },
+                { note: 'A4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'G4', duration: 1000 },
+                
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 1000 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'G4', duration: 1000 }
+            ]
+        });
+
+        // Hickory Dickory Dock
+        this.addSong('hickory-dock', {
+            title: 'Hickory Dickory Dock',
+            tempo: 100,
+            timeSignature: '4/4',
+            difficulty: 'easy',
+            notes: [
+                { note: 'C4', duration: 250 },
+                { note: 'D4', duration: 250 },
+                { note: 'E4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                
+                { note: 'G4', duration: 1000 },
+                { note: 'G4', duration: 500 },
+                { note: 'E4', duration: 250 },
+                { note: 'F4', duration: 250 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C4', duration: 1000 }
+            ]
+        });
+
+        // The Wheels on the Bus
+        this.addSong('wheels-bus', {
+            title: 'The Wheels on the Bus',
+            tempo: 130,
+            timeSignature: '4/4',
+            difficulty: 'easy',
+            notes: [
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C4', duration: 1000 }
+            ]
+        });
+
+        // Are You Sleeping (Frère Jacques)
+        this.addSong('are-you-sleeping', {
+            title: 'Are You Sleeping (Frère Jacques)',
+            tempo: 120,
+            timeSignature: '4/4',
+            difficulty: 'easy',
+            notes: [
+                { note: 'C4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'G4', duration: 1000 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'G4', duration: 1000 }
+            ]
+        });
+
+        // ========== MEDIUM LEVEL ==========
+
+        // Jingle Bells
+        this.addSong('jingle-bells', {
+            title: 'Jingle Bells',
+            tempo: 140,
+            timeSignature: '4/4',
+            difficulty: 'medium',
+            notes: [
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 1000 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 1000 },
+                
+                { note: 'E4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'C4', duration: 750 },
+                { note: 'D4', duration: 250 },
+                { note: 'E4', duration: 2000 },
+                
+                { note: 'F4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'F4', duration: 750 },
+                { note: 'F4', duration: 250 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 250 },
+                { note: 'E4', duration: 250 }
+            ]
+        });
+
+        // Silent Night
+        this.addSong('silent-night', {
+            title: 'Silent Night',
+            tempo: 90,
+            timeSignature: '3/4',
+            difficulty: 'medium',
+            notes: [
+                { note: 'G4', duration: 1000 },
+                { note: 'A4', duration: 500 },
+                { note: 'G4', duration: 750 },
+                { note: 'E4', duration: 1500 },
+                
+                { note: 'G4', duration: 1000 },
+                { note: 'A4', duration: 500 },
+                { note: 'G4', duration: 750 },
+                { note: 'E4', duration: 1500 },
+                
+                { note: 'D5', duration: 1000 },
+                { note: 'D5', duration: 750 },
+                { note: 'B4', duration: 1500 },
+                
+                { note: 'C5', duration: 1000 },
+                { note: 'C5', duration: 750 },
+                { note: 'G4', duration: 1500 }
+            ]
+        });
+
+        // We Wish You a Merry Christmas
+        this.addSong('merry-christmas', {
+            title: 'We Wish You a Merry Christmas',
+            tempo: 140,
+            timeSignature: '3/4',
+            difficulty: 'medium',
+            notes: [
+                { note: 'D4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 250 },
+                { note: 'A4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'F#4', duration: 250 },
+                { note: 'E4', duration: 500 },
+                
+                { note: 'E4', duration: 500 },
+                { note: 'A4', duration: 500 },
+                { note: 'A4', duration: 250 },
+                { note: 'B4', duration: 250 },
+                { note: 'A4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'F#4', duration: 500 }
+            ]
+        });
+
+        // ========== HARD LEVEL ==========
+
+        // Ode to Joy (simplified)
+        this.addSong('ode-to-joy', {
+            title: 'Ode to Joy (Beethoven)',
+            tempo: 120,
+            timeSignature: '4/4',
+            difficulty: 'hard',
+            notes: [
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 750 },
+                { note: 'D4', duration: 250 },
+                { note: 'D4', duration: 1000 },
+                
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 }
+            ]
+        });
+
+        // Für Elise (opening)
+        this.addSong('fur-elise', {
+            title: 'Für Elise (Beethoven)',
+            tempo: 100,
+            timeSignature: '3/8',
+            difficulty: 'hard',
+            notes: [
+                { note: 'E5', duration: 250 },
+                { note: 'D#5', duration: 250 },
+                { note: 'E5', duration: 250 },
+                { note: 'D#5', duration: 250 },
+                { note: 'E5', duration: 250 },
+                { note: 'B4', duration: 250 },
+                { note: 'D5', duration: 250 },
+                { note: 'C5', duration: 250 },
+                { note: 'A4', duration: 750 },
+                
+                { note: 'C4', duration: 250 },
+                { note: 'E4', duration: 250 },
+                { note: 'A4', duration: 250 },
+                { note: 'B4', duration: 750 },
+                
+                { note: 'E4', duration: 250 },
+                { note: 'G#4', duration: 250 },
+                { note: 'B4', duration: 250 },
+                { note: 'C5', duration: 750 }
+            ]
+        });
+
+        // Canon in D (main theme)
+        this.addSong('canon-d', {
+            title: 'Canon in D (Pachelbel)',
+            tempo: 90,
+            timeSignature: '4/4',
+            difficulty: 'hard',
+            notes: [
+                { note: 'F#4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C#4', duration: 500 },
+                { note: 'B3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'B3', duration: 500 },
+                { note: 'C#4', duration: 500 },
+                
+                { note: 'D4', duration: 500 },
+                { note: 'C#4', duration: 500 },
+                { note: 'B3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'G3', duration: 500 },
+                { note: 'F#3', duration: 500 },
+                { note: 'G3', duration: 500 },
+                { note: 'A3', duration: 500 }
+            ]
+        });
+
+        // Ave Maria (opening)
+        this.addSong('ave-maria', {
+            title: 'Ave Maria (Schubert)',
+            tempo: 80,
+            timeSignature: '4/4',
+            difficulty: 'hard',
+            notes: [
+                { note: 'C4', duration: 1000 },
+                { note: 'F4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'A4', duration: 500 },
+                
+                { note: 'G4', duration: 1000 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'D4', duration: 1000 }
+            ]
+        });
     }
 
     /**

@@ -26,26 +26,6 @@
 </head>
 <body>
     <div class="game-container">
-        <!-- Header -->
-        <header class="game-header">
-            <div class="header-content">
-                <h1 class="game-title">
-                    🎹 <span class="title-text">Magic Piano Factory</span> ✨
-                </h1>
-                <div class="header-controls">
-                    <button id="settings-btn" class="control-btn" title="Settings">
-                        ⚙️
-                    </button>
-                    <button id="volume-btn" class="control-btn" title="Volume">
-                        🔊
-                    </button>
-                    <button id="help-btn" class="control-btn" title="Help">
-                        ❓
-                    </button>
-                </div>
-            </div>
-        </header>
-
         <!-- Main Game Area -->
         <main class="game-main">
             <!-- Control Panel -->
@@ -57,6 +37,53 @@
                     <button id="songs-btn" class="mode-btn active" data-mode="songs">
                         🎶 Songs
                     </button>
+                    <div class="piano-mode-dropdown">
+                        <button id="piano-mode-btn" class="mode-btn">
+                            🎹 Play Mode ⯆
+                        </button>
+                        <div id="piano-mode-menu" class="piano-mode-menu">
+                            <div class="mode-options">
+                                <button class="piano-mode-option" data-mode="play">
+                                    🎹 Play Mode
+                                </button>
+                                <button class="piano-mode-option" data-mode="scroll">
+                                    🖱️ Scroll Mode
+                                </button>
+                            </div>
+                            
+                            <div class="octave-divider"></div>
+                            
+                            <div class="navigation-section">
+                                <span class="section-label">Navigate:</span>
+                                <div class="scroll-controls">
+                                    <button id="scroll-left-btn" class="scroll-btn">⬅️ Left</button>
+                                    <button id="scroll-right-btn" class="scroll-btn">Right ➡️</button>
+                                </div>
+                            </div>
+                            
+                            <div class="octave-divider"></div>
+                            
+                            <div class="octave-options">
+                                <span class="octave-label">Quick Jump:</span>
+                                <div class="octave-grid">
+                                    <button class="octave-jump-btn" data-note="C1">C1</button>
+                                    <button class="octave-jump-btn" data-note="C2">C2</button>
+                                    <button class="octave-jump-btn" data-note="C3">C3</button>
+                                    <button class="octave-jump-btn" data-note="C4">C4</button>
+                                    <button class="octave-jump-btn" data-note="C5">C5</button>
+                                    <button class="octave-jump-btn" data-note="C6">C6</button>
+                                    <button class="octave-jump-btn" data-note="C7">C7</button>
+                                </div>
+                            </div>
+                            
+                            <div class="octave-divider"></div>
+                            
+                            <div class="current-position">
+                                <span class="section-label">Current:</span>
+                                <span id="popup-current-position">Middle C (C4)</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -64,58 +91,65 @@
             <div class="song-selector" id="song-selector" style="display: block;">
                 <h3>🎵 Choose a Song to Learn</h3>
                 
-                <!-- Sheet Music Display -->
+                <!-- Sheet Music Display (Compact) -->
                 <div class="sheet-music" id="sheet-music" style="display: none;">
-                    <div class="sheet-header">
-                        <h4 id="song-title-display">Song Title</h4>
-                        <button id="close-sheet-btn" class="close-btn">✖️</button>
-                    </div>
-                    <div class="sheet-content">
-                        <div class="learning-controls">
-                            <div class="speed-control">
-                                <label>⏱️ Learning Speed:</label>
-                                <div class="speed-buttons">
-                                    <button class="speed-btn" data-speed="slow">🐌 Slow</button>
-                                    <button class="speed-btn active" data-speed="normal">🚶 Normal</button>
-                                    <button class="speed-btn" data-speed="fast">🏃 Fast</button>
-                                    <button class="speed-btn" data-speed="instant">⚡ Instant</button>
-                                </div>
-                            </div>
-                            <div class="learning-mode">
-                                <label>📚 Mode:</label>
-                                <div class="mode-buttons">
-                                    <button class="learning-mode-btn active" data-mode="guided">🎯 Guided</button>
-                                    <button class="learning-mode-btn" data-mode="free">🎹 Free Practice</button>
-                                </div>
+                    <div class="sheet-compact">
+                        <div class="sheet-top-row">
+                            <span id="song-title-display" class="compact-title">Song Title</span>
+                            <div class="compact-controls">
+                                <select class="compact-select" id="speed-select">
+                                    <option value="slow">🐌 Slow</option>
+                                    <option value="normal" selected>🚶 Normal</option>
+                                    <option value="fast">🏃 Fast</option>
+                                    <option value="instant">⚡ Instant</option>
+                                </select>
+                                <select class="compact-select" id="mode-select">
+                                    <option value="guided" selected>🎯 Guided</option>
+                                    <option value="free">🎹 Free Practice</option>
+                                </select>
+                                <button id="close-sheet-btn" class="compact-close">✖️</button>
                             </div>
                         </div>
-                        <div class="progress-bar">
+                        <div class="compact-progress">
                             <div class="progress-fill" id="progress-fill"></div>
                             <span class="progress-text" id="progress-text">0%</span>
                         </div>
-                        <div class="note-sequence" id="note-sequence">
+                        <div class="note-sequence-compact" id="note-sequence">
                             <!-- Notes will be populated here -->
                         </div>
                     </div>
                 </div>
                 
-                <div class="song-grid">
-                    <button class="song-card" data-song="twinkle">
-                        <div class="song-title">⭐ Twinkle Little Star</div>
-                        <div class="song-info">Range: C4-G4 | Easy</div>
+                <div class="level-selector">
+                    <button class="level-btn beginner" data-level="beginner">
+                        🟢 Beginner
+                        <span class="level-count">3 songs</span>
                     </button>
-                    <button class="song-card" data-song="birthday">
-                        <div class="song-title">🎂 Happy Birthday</div>
-                        <div class="song-info">Range: C4-C5 | Medium</div>
+                    <button class="level-btn easy" data-level="easy">
+                        🟡 Easy
+                        <span class="level-count">7 songs</span>
                     </button>
-                    <button class="song-card" data-song="mary">
-                        <div class="song-title">🐑 Mary Had a Little Lamb</div>
-                        <div class="song-info">Range: C4-G4 | Easy</div>
+                    <button class="level-btn medium" data-level="medium">
+                        🟠 Medium
+                        <span class="level-count">4 songs</span>
                     </button>
-                    <button class="song-card" data-song="row">
-                        <div class="song-title">🚣 Row Your Boat</div>
-                        <div class="song-info">Range: C4-C5 | Easy</div>
+                    <button class="level-btn hard" data-level="hard">
+                        🔴 Hard
+                        <span class="level-count">4 songs</span>
                     </button>
+                </div>
+
+                <!-- Song Selection Popup -->
+                <div id="song-popup" class="song-popup" style="display: none;">
+                    <div class="song-popup-content">
+                        <div class="popup-header">
+                            <h3 id="popup-level-title">Select a Song</h3>
+                            <button id="close-song-popup" class="popup-close">✖️</button>
+                        </div>
+                        <div class="popup-songs" id="popup-songs">
+                            <!-- Songs will be populated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 

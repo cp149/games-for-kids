@@ -78,25 +78,16 @@ class MagicPianoFactory {
      * Set up event listeners
      */
     setupEventListeners() {
-        // Header controls
-        document.getElementById('volume-btn').addEventListener('click', () => {
-            this.audioManager.toggleMute();
-            this.updateVolumeButton();
-        });
-
-        document.getElementById('settings-btn').addEventListener('click', () => {
-            this.showSettings();
-        });
-
-        document.getElementById('help-btn').addEventListener('click', () => {
-            this.showHelp();
-        });
-
+        // Piano mode dropdown
+        this.setupPianoModeDropdown();
+        
         // Mode selector
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const mode = e.target.dataset.mode;
-                this.switchMode(mode);
+                if (mode) { // Only switch mode if button has a mode data attribute
+                    this.switchMode(mode);
+                }
             });
         });
 
@@ -119,24 +110,306 @@ class MagicPianoFactory {
     }
 
     /**
+     * Set up mode dropdown functionality
+     */
+    setupModeDropdown() {
+        const dropdownBtn = document.getElementById('mode-dropdown-btn');
+        const dropdownMenu = document.getElementById('mode-dropdown-menu');
+        const modeOptions = document.querySelectorAll('.mode-option');
+
+        // Toggle dropdown on button click
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+        });
+
+        // Handle mode selection
+        modeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                const mode = e.target.dataset.mode;
+                const modeText = e.target.textContent.trim();
+                
+                // Update button text
+                dropdownBtn.textContent = modeText + ' ⯆';
+                
+                // Hide dropdown
+                dropdownMenu.classList.remove('show');
+                
+                // Switch mode
+                this.switchMode(mode);
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            dropdownMenu.classList.remove('show');
+        });
+
+        // Prevent dropdown from closing when clicking inside menu
+        dropdownMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
+
+    /**
+     * Set up piano mode dropdown functionality
+     */
+    setupPianoModeDropdown() {
+        const dropdownBtn = document.getElementById('piano-mode-btn');
+        const dropdownMenu = document.getElementById('piano-mode-menu');
+        
+        // Move menu to body to avoid z-index stacking issues
+        if (dropdownMenu && dropdownMenu.parentNode !== document.body) {
+            document.body.appendChild(dropdownMenu);
+        }
+        const modeOptions = document.querySelectorAll('.piano-mode-option');
+        const octaveButtons = document.querySelectorAll('.octave-jump-btn');
+
+        // Toggle dropdown on button click
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            if (dropdownMenu.classList.contains('show')) {
+                dropdownMenu.classList.remove('show');
+            } else {
+                // Calculate position relative to button
+                const btnRect = dropdownBtn.getBoundingClientRect();
+                const menuWidth = 280;
+                const menuHeight = 400; // Approximate menu height
+                
+                // Calculate viewport dimensions
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                // Position menu - prefer right side of button, but ensure it fits in viewport
+                let left = btnRect.right - menuWidth + 20; // Slight overlap with button
+                let top = btnRect.bottom + 8;
+                
+                // Adjust if menu would go off right edge
+                if (left + menuWidth > viewportWidth - 20) {
+                    left = btnRect.left - menuWidth - 8; // Show on left side instead
+                }
+                
+                // Adjust if menu would go off bottom edge
+                if (top + menuHeight > viewportHeight - 20) {
+                    top = btnRect.top - menuHeight - 8; // Show above button instead
+                }
+                
+                // Ensure minimum margins
+                left = Math.max(10, Math.min(left, viewportWidth - menuWidth - 10));
+                top = Math.max(10, Math.min(top, viewportHeight - menuHeight - 10));
+                
+                console.log('Menu positioning:', { left, top, btnRect, viewportWidth, viewportHeight });
+                
+                // Apply position
+                dropdownMenu.style.left = left + 'px';
+                dropdownMenu.style.top = top + 'px';
+                
+                // Force high z-index and show menu
+                dropdownMenu.style.zIndex = '999999';
+                dropdownMenu.classList.add('show');
+                
+                console.log('Menu should be visible now', dropdownMenu.style.cssText);
+            }
+        });
+
+        // Handle interaction mode selection
+        modeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                const mode = e.target.dataset.mode;
+                const modeText = e.target.textContent.trim();
+                
+                // Update button text
+                dropdownBtn.textContent = modeText + ' ⯆';
+                
+                // Update active state
+                modeOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                
+                // Hide dropdown
+                dropdownMenu.classList.remove('show');
+                
+                // Switch interaction mode
+                this.switchInteractionMode(mode);
+            });
+        });
+
+        // Handle octave jump buttons
+        octaveButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const note = e.target.dataset.note;
+                
+                // Hide dropdown
+                dropdownMenu.classList.remove('show');
+                
+                // Jump to the specified note
+                this.scrollToNote(note);
+                
+                // Optional: Play the note as feedback
+                this.audioManager.playNote(note, 0.5);
+            });
+        });
+
+        // Handle scroll navigation buttons
+        const scrollLeftBtn = document.getElementById('scroll-left-btn');
+        const scrollRightBtn = document.getElementById('scroll-right-btn');
+        
+        if (scrollLeftBtn) {
+            scrollLeftBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.scrollPiano(-200);
+                // Keep menu open for continuous scrolling
+            });
+        }
+        
+        if (scrollRightBtn) {
+            scrollRightBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.scrollPiano(200);
+                // Keep menu open for continuous scrolling
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            dropdownMenu.classList.remove('show');
+        });
+
+        // Prevent dropdown from closing when clicking inside menu
+        dropdownMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // Set initial active state
+        const playModeOption = document.querySelector('.piano-mode-option[data-mode="play"]');
+        if (playModeOption) {
+            playModeOption.classList.add('active');
+        }
+    }
+
+    /**
      * Set up song card event listeners
      */
     setupSongCardListeners() {
-        // Wait a bit to ensure DOM is ready
-        setTimeout(() => {
-            document.querySelectorAll('.song-card').forEach(card => {
-                card.addEventListener('click', (e) => {
-                    // Get songId from the card itself, not the clicked element
-                    const songId = card.dataset.song;
-                    console.log('Song card clicked, ID:', songId);
-                    if (songId) {
-                        this.playSong(songId);
-                    } else {
-                        console.error('No song ID found on card:', card);
-                    }
-                });
+        // Level button listeners
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const level = btn.dataset.level;
+                this.showSongPopup(level);
             });
-        }, 100);
+        });
+
+        // Song popup close button
+        const closePopupBtn = document.getElementById('close-song-popup');
+        if (closePopupBtn) {
+            closePopupBtn.addEventListener('click', () => {
+                this.hideSongPopup();
+            });
+        }
+
+        // Close popup when clicking outside
+        const songPopup = document.getElementById('song-popup');
+        if (songPopup) {
+            songPopup.addEventListener('click', (e) => {
+                if (e.target === songPopup) {
+                    this.hideSongPopup();
+                }
+            });
+        }
+    }
+
+    /**
+     * Show song selection popup for a specific level
+     */
+    showSongPopup(level) {
+        const popup = document.getElementById('song-popup');
+        const popupTitle = document.getElementById('popup-level-title');
+        const popupSongs = document.getElementById('popup-songs');
+
+        if (!popup || !popupTitle || !popupSongs) return;
+
+        // Get songs for this level
+        const songs = this.songLibrary.getSongsByDifficulty(level);
+        
+        // Update popup title
+        const levelTitles = {
+            'beginner': '🟢 Beginner Songs',
+            'easy': '🟡 Easy Songs',
+            'medium': '🟠 Medium Songs',
+            'hard': '🔴 Hard Songs'
+        };
+        popupTitle.textContent = levelTitles[level] || 'Select a Song';
+
+        // Clear existing songs
+        popupSongs.innerHTML = '';
+
+        // Add song cards
+        songs.forEach(song => {
+            const songCard = document.createElement('div');
+            songCard.className = 'popup-song-card';
+            songCard.dataset.song = song.id;
+            
+            // Map song IDs to emojis
+            const songEmojis = {
+                'baa-baa': '🐑',
+                'three-mice': '🐭',
+                'old-macdonald': '🚜',
+                'twinkle': '⭐',
+                'mary': '🐑',
+                'row': '🚣',
+                'london-bridge': '🌉',
+                'hickory-dock': '🕐',
+                'wheels-bus': '🚌',
+                'are-you-sleeping': '😴',
+                'birthday': '🎂',
+                'jingle-bells': '🔔',
+                'silent-night': '🌙',
+                'merry-christmas': '🎄',
+                'ode-to-joy': '🎼',
+                'fur-elise': '🎹',
+                'canon-d': '🎵',
+                'ave-maria': '⛪'
+            };
+
+            songCard.innerHTML = `
+                <div class="popup-song-title">${songEmojis[song.id] || '🎵'} ${song.title}</div>
+                <div class="popup-song-info">${song.tempo} BPM | ${song.timeSignature}</div>
+            `;
+
+            songCard.addEventListener('click', () => {
+                this.playSong(song.id);
+                this.hideSongPopup();
+            });
+
+            popupSongs.appendChild(songCard);
+        });
+
+        // Move popup to body if not already there
+        if (popup.parentNode !== document.body) {
+            document.body.appendChild(popup);
+        }
+
+        // Show popup
+        popup.style.display = 'flex';
+        popup.style.position = 'fixed';
+        popup.style.zIndex = '9999999';
+        
+        // Force reflow and add animation
+        popup.offsetHeight;
+        popup.classList.add('show');
+    }
+
+    /**
+     * Hide song popup
+     */
+    hideSongPopup() {
+        const popup = document.getElementById('song-popup');
+        if (popup) {
+            popup.classList.remove('show');
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 300);
+        }
     }
 
     /**
@@ -232,55 +505,53 @@ class MagicPianoFactory {
     }
 
     /**
-     * Add navigation controls UI
+     * Add navigation controls UI (now removed - handled by popup)
      */
     addNavigationControls() {
-        const controlPanel = document.querySelector('.control-panel');
-        
-        const navControls = document.createElement('div');
-        navControls.className = 'piano-navigation';
-        navControls.innerHTML = `
-            <div class="mode-switch">
-                <button id="play-mode-btn" class="mode-switch-btn active">
-                    🎹 Play Mode
-                </button>
-                <button id="scroll-mode-btn" class="mode-switch-btn">
-                    🖱️ Scroll Mode
-                </button>
-            </div>
-            <div class="octave-controls">
-                <button id="scroll-left-btn" class="nav-btn">⬅️</button>
-                <button id="scroll-to-c1" class="octave-btn">C1</button>
-                <button id="scroll-to-c2" class="octave-btn">C2</button>
-                <button id="scroll-to-c3" class="octave-btn">C3</button>
-                <button id="scroll-to-c4" class="octave-btn active">C4</button>
-                <button id="scroll-to-c5" class="octave-btn">C5</button>
-                <button id="scroll-to-c6" class="octave-btn">C6</button>
-                <button id="scroll-to-c7" class="octave-btn">C7</button>
-                <button id="scroll-right-btn" class="nav-btn">➡️</button>
-            </div>
-            <div class="position-indicator">
-                <span id="current-position">Middle C (C4)</span>
-                <span id="interaction-hint">🎹 Click keys to play</span>
-            </div>
-        `;
-        
-        controlPanel.appendChild(navControls);
-        
-        // Add event listeners
-        document.getElementById('play-mode-btn').addEventListener('click', () => this.switchInteractionMode('play'));
-        document.getElementById('scroll-mode-btn').addEventListener('click', () => this.switchInteractionMode('scroll'));
-        
-        document.getElementById('scroll-left-btn').addEventListener('click', () => this.scrollPiano(-200));
-        document.getElementById('scroll-right-btn').addEventListener('click', () => this.scrollPiano(200));
-        
-        // Octave navigation
-        for (let i = 1; i <= 7; i++) {
-            const btn = document.getElementById(`scroll-to-c${i}`);
-            if (btn) {
-                btn.addEventListener('click', () => this.scrollToNote(`C${i}`));
-            }
-        }
+        // Navigation is now handled by the popup modal
+        // No permanent navigation bar needed
+    }
+
+    /**
+     * Set up interaction mode dropdown functionality
+     */
+    setupInteractionModeDropdown() {
+        const dropdownBtn = document.getElementById('interaction-mode-btn');
+        const dropdownMenu = document.getElementById('interaction-mode-menu');
+        const modeOptions = document.querySelectorAll('.interaction-mode-option');
+
+        // Toggle dropdown on button click
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+        });
+
+        // Handle mode selection
+        modeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                const mode = e.target.dataset.mode;
+                const modeText = e.target.textContent.trim();
+                
+                // Update button text
+                dropdownBtn.textContent = modeText + ' ⯆';
+                
+                // Hide dropdown
+                dropdownMenu.classList.remove('show');
+                
+                // Switch interaction mode
+                this.switchInteractionMode(mode);
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            dropdownMenu.classList.remove('show');
+        });
+
+        // Prevent dropdown from closing when clicking inside menu
+        dropdownMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
 
     /**
@@ -289,17 +560,14 @@ class MagicPianoFactory {
     switchInteractionMode(mode) {
         this.interactionMode = mode;
         
-        // Update UI
-        document.querySelectorAll('.mode-switch-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        if (mode === 'play') {
-            document.getElementById('play-mode-btn').classList.add('active');
-            document.getElementById('interaction-hint').textContent = '🎹 Click keys to play';
-        } else {
-            document.getElementById('scroll-mode-btn').classList.add('active');
-            document.getElementById('interaction-hint').textContent = '🖱️ Drag to scroll piano';
+        // Update interaction hint
+        const hintElement = document.getElementById('interaction-hint');
+        if (hintElement) {
+            if (mode === 'play') {
+                hintElement.textContent = '🎹 Click keys to play';
+            } else {
+                hintElement.textContent = '🖱️ Drag to scroll piano';
+            }
         }
         
         // Update piano container state
@@ -505,9 +773,16 @@ class MagicPianoFactory {
         });
         
         if (closestNote) {
+            // Update main position indicator (if it exists)
             const indicator = document.getElementById('current-position');
             if (indicator) {
                 indicator.textContent = `Current: ${closestNote}`;
+            }
+            
+            // Update popup position indicator
+            const popupIndicator = document.getElementById('popup-current-position');
+            if (popupIndicator) {
+                popupIndicator.textContent = closestNote;
             }
         }
     }
@@ -905,38 +1180,26 @@ class MagicPianoFactory {
      * Setup learning control handlers
      */
     setupLearningControls() {
-        // Speed control buttons
-        document.querySelectorAll('.speed-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // Remove active from all speed buttons
-                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
-                
-                // Add active to clicked button
-                e.target.classList.add('active');
-                
-                // Update speed
-                this.learningSpeed = e.target.dataset.speed;
+        // Speed control select (compact version)
+        const speedSelect = document.getElementById('speed-select');
+        if (speedSelect) {
+            speedSelect.addEventListener('change', (e) => {
+                this.learningSpeed = e.target.value;
                 console.log(`Learning speed set to: ${this.learningSpeed}`);
             });
-        });
+        }
 
-        // Learning mode buttons
-        document.querySelectorAll('.learning-mode-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // Remove active from all mode buttons
-                document.querySelectorAll('.learning-mode-btn').forEach(b => b.classList.remove('active'));
-                
-                // Add active to clicked button
-                e.target.classList.add('active');
-                
-                // Update mode
-                this.learningModeType = e.target.dataset.mode;
+        // Learning mode select (compact version)
+        const modeSelect = document.getElementById('mode-select');
+        if (modeSelect) {
+            modeSelect.addEventListener('change', (e) => {
+                this.learningModeType = e.target.value;
                 console.log(`Learning mode set to: ${this.learningModeType}`);
                 
                 // Apply mode changes
                 this.applyLearningMode();
             });
-        });
+        }
     }
 
     /**
