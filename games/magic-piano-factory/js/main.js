@@ -5,6 +5,7 @@
 
 import { PianoEngine } from './core/PianoEngine.js';
 import { AudioManager } from './audio/AudioManager.js';
+import { AudioAnalyzer } from './audio/AudioAnalyzer.js';
 import { VisualEffects } from './ui/VisualEffects.js';
 import { SongLibrary } from './core/SongLibrary.js';
 
@@ -12,6 +13,7 @@ class MagicPianoFactory {
     constructor() {
         this.pianoEngine = null;
         this.audioManager = null;
+        this.audioAnalyzer = null;
         this.visualEffects = null;
         this.songLibrary = null;
         this.currentMode = 'songs';
@@ -22,6 +24,9 @@ class MagicPianoFactory {
         this.isLearningMode = false;
         this.learningSpeed = 'normal';
         this.learningModeType = 'guided';
+        this.audioPlaybackSource = null;
+        this.lastDetectedNote = null;
+        this.lastNoteTime = 0;
     }
 
     /**
@@ -41,6 +46,7 @@ class MagicPianoFactory {
             this.pianoEngine = new PianoEngine();
             this.visualEffects = new VisualEffects();
             this.songLibrary = new SongLibrary();
+            this.audioAnalyzer = new AudioAnalyzer(this.audioManager);
 
             this.showLoadingProgress('Setting up magical effects...', 60);
 
@@ -48,6 +54,7 @@ class MagicPianoFactory {
             await this.pianoEngine.init();
             this.visualEffects.init();
             this.songLibrary.init();
+            await this.audioAnalyzer.init();
 
             this.showLoadingProgress('Connecting components...', 80);
 
@@ -368,12 +375,14 @@ class MagicPianoFactory {
                 'ode-to-joy': '🎼',
                 'fur-elise': '🎹',
                 'canon-d': '🎵',
-                'ave-maria': '⛪'
+                'ave-maria': '⛪',
+                'audio-back3': '🎧'
             };
 
+            const isAudioFile = !!song.audioFile;
             songCard.innerHTML = `
-                <div class="popup-song-title">${songEmojis[song.id] || '🎵'} ${song.title}</div>
-                <div class="popup-song-info">${song.tempo} BPM | ${song.timeSignature}</div>
+                <div class="popup-song-title">${songEmojis[song.id] || '🎵'} ${song.title} ${isAudioFile ? '(Audio)' : ''}</div>
+                <div class="popup-song-info">${song.tempo} BPM | ${song.timeSignature} ${isAudioFile ? '| Real-time guidance' : ''}</div>
             `;
 
             songCard.addEventListener('click', () => {
@@ -938,25 +947,64 @@ class MagicPianoFactory {
             this.currentNoteIndex = 0;
             this.isLearningMode = true;
 
-            // Auto-scroll to the first note of the song
-            if (song.notes && song.notes.length > 0) {
-                const firstNote = song.notes[0].note;
-                this.scrollToNote(firstNote);
-                
-                // Show initial range highlight
-                this.highlightSongRange(songId);
-                
-                // Start the learning process
-                const timings = this.getSpeedTimings();
-                setTimeout(() => {
-                    this.startSongLearning();
-                }, timings.initialDelay); // After range highlight disappears
-            }
+            // Check if this is an audio file song
+            if (song.audioFile) {
+                // Stop any previous audio playback
+                if (this.audioPlaybackSource) {
+                    this.audioPlaybackSource.stop();
+                }
 
-            // Show sheet music
-            this.displaySheetMusic(song);
-            
-            this.updateInstructions(`🎵 Learning: ${song.title} | Watch for the highlighted notes!`);
+                // Set up audio callbacks
+                console.log('Setting up audio callbacks...');
+                this.audioAnalyzer.onNoteDetected = (detectedNote) => {
+                    console.log('Audio analyzer callback triggered:', detectedNote);
+                    this.onAudioNoteDetected(detectedNote);
+                };
+                
+                // Set up playback completion callback
+                this.audioAnalyzer.onPlaybackComplete = (extractedNotes) => {
+                    console.log('Audio playback completed, starting guide mode...');
+                    this.startGuideMode(extractedNotes);
+                };
+
+                // Load and play the audio file
+                this.updateInstructions(`🎵 Loading audio: ${song.title}...`);
+                
+                try {
+                    this.audioPlaybackSource = await this.audioAnalyzer.loadAndAnalyze(song.audioFile);
+                    
+                    // Show sheet music (empty for now, will be populated in real-time)
+                    this.displaySheetMusic(song);
+                    
+                    this.updateInstructions(`🎵 Playing: ${song.title} | Follow the highlighted notes!`);
+                } catch (error) {
+                    console.error('Failed to load audio:', error);
+                    this.updateInstructions(`❌ Failed to load audio file`);
+                    return;
+                }
+                
+            } else {
+                // Normal song with predefined notes
+                // Auto-scroll to the first note of the song
+                if (song.notes && song.notes.length > 0) {
+                    const firstNote = song.notes[0].note;
+                    this.scrollToNote(firstNote);
+                    
+                    // Show initial range highlight
+                    this.highlightSongRange(songId);
+                    
+                    // Start the learning process
+                    const timings = this.getSpeedTimings();
+                    setTimeout(() => {
+                        this.startSongLearning();
+                    }, timings.initialDelay); // After range highlight disappears
+                }
+
+                // Show sheet music
+                this.displaySheetMusic(song);
+                
+                this.updateInstructions(`🎵 Learning: ${song.title} | Watch for the highlighted notes!`);
+            }
             
         } catch (error) {
             console.error('Error loading song:', error);
@@ -1060,10 +1108,13 @@ class MagicPianoFactory {
         // Update sheet music progress
         this.updateSheetMusicProgress();
 
-        // Highlight next note after a delay based on speed
+        // Highlight next note after a delay based on the actual note duration and tempo
+        const currentNote = this.currentSong.notes[this.currentNoteIndex - 1]; // Previous note we just played
+        const nextNoteDelay = this.calculateRhythmDelay(currentNote);
+        
         setTimeout(() => {
             this.highlightNextNote();
-        }, timings.nextNoteDelay);
+        }, nextNoteDelay);
     }
 
     /**
@@ -1148,19 +1199,26 @@ class MagicPianoFactory {
 
         // Generate note sequence display
         noteSequence.innerHTML = '';
-        song.notes.forEach((noteData, index) => {
-            const noteElement = document.createElement('div');
-            noteElement.className = 'note-item';
-            noteElement.dataset.index = index;
-            
-            // Simplify note display (remove octave number for readability)
-            const displayNote = noteData.note.replace(/[0-9]/g, '');
-            noteElement.innerHTML = `
-                <div class="note-symbol">${displayNote}</div>
-            `;
-            
-            noteSequence.appendChild(noteElement);
-        });
+        
+        // Check if this is an audio file song with no predefined notes
+        if (song.audioFile && (!song.notes || song.notes.length === 0)) {
+            // Clear any placeholder when notes start coming in
+            // Notes will be added in real-time by addNoteToRealTimeSheet
+            console.log('Audio file song - notes will be added in real-time');
+        } else {
+            // Normal song with predefined notes
+            song.notes.forEach((noteData, index) => {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note-item';
+                noteElement.dataset.index = index;
+                
+                // Create child-friendly note display
+                const childDisplay = this.createChildFriendlyNote(noteData.note);
+                noteElement.appendChild(childDisplay);
+                
+                noteSequence.appendChild(noteElement);
+            });
+        }
 
         // Add control handlers
         this.setupLearningControls();
@@ -1203,6 +1261,182 @@ class MagicPianoFactory {
     }
 
     /**
+     * Handle note detected from audio analysis
+     */
+    onAudioNoteDetected(detectedNote) {
+        console.log('onAudioNoteDetected:', this.isLearningMode, detectedNote?.note, detectedNote?.confidence);
+        
+        if (!this.isLearningMode || !detectedNote || detectedNote.confidence < 0.1) { // Lowered threshold
+            console.log('Skipping note - conditions:', {
+                notLearningMode: !this.isLearningMode,
+                noDetectedNote: !detectedNote, 
+                lowConfidence: detectedNote?.confidence < 0.1,
+                actualConfidence: detectedNote?.confidence
+            });
+            return;
+        }
+        
+        const noteName = detectedNote.note;
+        const currentTime = Date.now();
+        
+        // Debounce - avoid adding the same note too frequently
+        if (this.lastDetectedNote === noteName && currentTime - this.lastNoteTime < 300) {
+            return; // Skip if same note within 300ms
+        }
+        
+        // Only add notes with decent confidence
+        if (detectedNote.confidence < 0.2) {
+            return; // Skip low confidence notes
+        }
+        
+        console.log('Adding note to sheet music:', noteName);
+        this.lastDetectedNote = noteName;
+        this.lastNoteTime = currentTime;
+        
+        // Clear previous highlights
+        document.querySelectorAll('.piano-key.audio-active').forEach(key => {
+            key.classList.remove('audio-active');
+        });
+        
+        // Highlight the detected note
+        const keyElement = document.querySelector(`[data-note="${noteName}"]`);
+        if (keyElement) {
+            keyElement.classList.add('audio-active', 'next-note');
+            
+            // Auto-follow the detected note
+            this.autoFollowNote(noteName);
+            
+            // Update instructions
+            this.updateInstructions(`🎵 Playing: ${noteName} (${Math.round(detectedNote.confidence * 100)}% confidence)`);
+            
+            // Add visual effect (commented out - method doesn't exist)
+            // this.visualEffects.createNoteEffect(keyElement, noteName);
+        }
+        
+        // Always add note to sheet music, even if key element not found
+        this.addNoteToRealTimeSheet(noteName);
+    }
+    
+    /**
+     * Add note to real-time sheet music display
+     */
+    addNoteToRealTimeSheet(noteName) {
+        const noteSequence = document.getElementById('note-sequence');
+        if (!noteSequence) {
+            console.error('Note sequence element not found');
+            return;
+        }
+        
+        // Create note item
+        const noteItem = document.createElement('div');
+        noteItem.className = 'note-item';
+        
+        // Show child-friendly note for audio analysis
+        const childDisplay = this.createChildFriendlyNote(noteName);
+        noteItem.appendChild(childDisplay);
+        
+        // Add to sequence
+        noteSequence.appendChild(noteItem);
+        
+        // Scroll to the end
+        noteSequence.scrollLeft = noteSequence.scrollWidth;
+        
+        // Limit the number of displayed notes
+        const maxNotes = 30; // Increased to show more notes
+        while (noteSequence.children.length > maxNotes) {
+            noteSequence.removeChild(noteSequence.firstChild);
+        }
+        
+        // Update progress based on time elapsed
+        this.updateAudioProgress();
+    }
+    
+    /**
+     * Update progress bar for audio playback
+     */
+    updateAudioProgress() {
+        if (!this.audioPlaybackSource || !this.audioPlaybackSource.buffer) return;
+        
+        const currentTime = this.audioManager.audioContext.currentTime;
+        const duration = this.audioPlaybackSource.buffer.duration;
+        
+        // This is approximate - would need better time tracking for accuracy
+        const progress = Math.min(100, (currentTime / duration) * 100);
+        
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+        
+        if (progressFill) progressFill.style.width = `${progress}%`;
+        if (progressText) progressText.textContent = `${Math.round(progress)}%`;
+    }
+
+    /**
+     * Start guide mode after audio playback
+     */
+    startGuideMode(extractedNotes) {
+        console.log('Starting guide mode with', extractedNotes.length, 'notes');
+        
+        // Update the current song with extracted notes
+        if (this.currentSong) {
+            // Convert extracted notes to the format expected by the learning system
+            this.currentSong.notes = extractedNotes.map(noteData => ({
+                note: noteData.note,
+                duration: (noteData.endTime - noteData.startTime) * 1000 // Convert to milliseconds
+            }));
+            
+            // Reset learning state
+            this.currentNoteIndex = 0;
+            
+            // Update sheet music to show the extracted notes
+            this.displayExtractedNotesInSheet(extractedNotes);
+            
+            // Start guided learning
+            this.startSongLearning();
+            
+            // Update instructions
+            this.updateInstructions(`🎯 Practice time! Play the highlighted notes in sequence`);
+            
+            // Auto-scroll to the first note
+            if (extractedNotes.length > 0) {
+                const firstNote = extractedNotes[0].note;
+                this.scrollToNote(firstNote);
+            }
+        }
+    }
+    
+    /**
+     * Display extracted notes in sheet music
+     */
+    displayExtractedNotesInSheet(extractedNotes) {
+        const noteSequence = document.getElementById('note-sequence');
+        if (!noteSequence) return;
+        
+        // Clear existing notes
+        noteSequence.innerHTML = '';
+        
+        // Add extracted notes
+        extractedNotes.forEach((noteData, index) => {
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note-item';
+            noteElement.dataset.index = index;
+            
+            // Create child-friendly note display
+            const childDisplay = this.createChildFriendlyNote(noteData.note);
+            noteElement.appendChild(childDisplay);
+            
+            noteSequence.appendChild(noteElement);
+        });
+        
+        // Update progress
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+        if (progressFill) progressFill.style.width = '0%';
+        if (progressText) progressText.textContent = '0%';
+        
+        console.log('Updated sheet music with', extractedNotes.length, 'extracted notes');
+    }
+
+    /**
      * Apply learning mode changes
      */
     applyLearningMode() {
@@ -1218,6 +1452,207 @@ class MagicPianoFactory {
                 this.updateInstructions(`🎯 Play the highlighted note: ${currentNote?.note || 'None'}`);
             }
         }
+    }
+
+    /**
+     * Calculate staff position for a note (for five-line staff display)
+     */
+    getStaffPosition(note) {
+        // Extract note name and octave
+        const noteName = note.replace(/[0-9]/g, '');
+        const octave = parseInt(note.match(/[0-9]/)?.[0] || '4');
+        
+        // Base positions for treble clef (C4 = Middle C is below staff)
+        const notePositions = {
+            'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6
+        };
+        
+        const baseNote = noteName.replace('#', '');
+        const isSharp = noteName.includes('#');
+        
+        // Calculate position relative to C4 (Middle C)
+        const basePosition = notePositions[baseNote];
+        const octaveOffset = (octave - 4) * 7; // 7 semitones per octave in staff positions
+        
+        return {
+            staffLine: basePosition + octaveOffset,
+            isSharp: isSharp,
+            noteName: baseNote
+        };
+    }
+
+    /**
+     * Create child-friendly visual note display
+     */
+    createChildFriendlyNote(note) {
+        const container = document.createElement('div');
+        container.className = 'child-note-display';
+        
+        // Get note color and info
+        const noteInfo = this.getChildNoteInfo(note);
+        
+        // Create large colored circle for the note
+        const noteCircle = document.createElement('div');
+        noteCircle.className = 'note-circle';
+        noteCircle.style.backgroundColor = noteInfo.color;
+        noteCircle.textContent = noteInfo.letter;
+        
+        // Create simple piano key visual
+        const keyVisual = document.createElement('div');
+        keyVisual.className = 'key-visual';
+        
+        if (noteInfo.isBlackKey) {
+            keyVisual.classList.add('black-key');
+            keyVisual.style.backgroundColor = '#333';
+        } else {
+            keyVisual.classList.add('white-key');
+            keyVisual.style.backgroundColor = 'white';
+            keyVisual.style.border = '2px solid #333';
+        }
+        
+        // Add position indicator
+        const positionDot = document.createElement('div');
+        positionDot.className = 'position-dot';
+        positionDot.style.backgroundColor = noteInfo.color;
+        positionDot.style.left = noteInfo.position + '%';
+        
+        keyVisual.appendChild(positionDot);
+        
+        container.appendChild(noteCircle);
+        container.appendChild(keyVisual);
+        
+        return container;
+    }
+
+    /**
+     * Get child-friendly note information
+     */
+    getChildNoteInfo(note) {
+        const noteName = note.replace(/[0-9]/g, '');
+        const octave = parseInt(note.match(/[0-9]/)?.[0] || '4');
+        
+        // Color coding for notes (rainbow style)
+        const noteColors = {
+            'C': '#FF6B6B',   // Red
+            'C#': '#FF8E53',  // Orange-red  
+            'D': '#FFB84D',   // Orange
+            'D#': '#FFD93D',  // Yellow-orange
+            'E': '#6BCF7F',   // Green
+            'F': '#4ECDC4',   // Teal
+            'F#': '#45B7D1',  // Blue
+            'G': '#6C5CE7',   // Purple
+            'G#': '#A29BFE',  // Light purple
+            'A': '#FD79A8',   // Pink
+            'A#': '#E17055',  // Brown
+            'B': '#74B9FF'    // Light blue
+        };
+        
+        // Position on simplified keyboard (0-100%)
+        const keyPositions = {
+            'C': 8, 'C#': 12, 'D': 20, 'D#': 24, 'E': 32,
+            'F': 44, 'F#': 48, 'G': 56, 'G#': 60, 'A': 68, 'A#': 72, 'B': 80
+        };
+        
+        // Adjust position based on octave
+        let basePosition = keyPositions[noteName] || 50;
+        if (octave === 3) basePosition -= 30;
+        else if (octave === 5) basePosition += 20;
+        
+        return {
+            letter: noteName,
+            color: noteColors[noteName] || '#999',
+            isBlackKey: noteName.includes('#'),
+            position: Math.max(10, Math.min(90, basePosition)),
+            octave: octave
+        };
+    }
+
+    /**
+     * Get display information for a piano key
+     */
+    getKeyDisplayInfo(note) {
+        // Extract note name and octave
+        const noteName = note.replace(/[0-9]/g, '');
+        const octave = parseInt(note.match(/[0-9]/)?.[0] || '4');
+        
+        // Position descriptions for different octaves
+        const positionMap = {
+            'C3': 'Far Left',
+            'D3': 'Left Side',
+            'E3': 'Left Side',
+            'F3': 'Left Side',
+            'G3': 'Left Side',
+            'A3': 'Left Side',
+            'B3': 'Left Side',
+            'C4': 'Middle C',
+            'D4': 'Center Right',
+            'E4': 'Center Right',
+            'F4': 'Center Right',
+            'G4': 'Center Right',
+            'A4': 'Center Right',
+            'B4': 'Center Right',
+            'C5': 'Right Side',
+            'D5': 'Right Side',
+            'E5': 'Right Side',
+            'F5': 'Right Side',
+            'G5': 'Right Side',
+            'A5': 'Right Side',
+            'B5': 'Right Side',
+            'C#3': 'Left Black',
+            'D#3': 'Left Black',
+            'F#3': 'Left Black',
+            'G#3': 'Left Black',
+            'A#3': 'Left Black',
+            'C#4': 'Center Black',
+            'D#4': 'Center Black',
+            'F#4': 'Center Black',
+            'G#4': 'Center Black',
+            'A#4': 'Center Black',
+            'C#5': 'Right Black',
+            'D#5': 'Right Black',
+            'F#5': 'Right Black',
+            'G#5': 'Right Black',
+            'A#5': 'Right Black',
+        };
+        
+        // Get position description
+        const position = positionMap[note] || `Octave ${octave}`;
+        
+        // Simple display name
+        const displayName = noteName;
+        
+        return {
+            displayName,
+            position
+        };
+    }
+
+    /**
+     * Calculate rhythm-based delay for next note
+     */
+    calculateRhythmDelay(note) {
+        if (!note || !note.duration) {
+            // Fallback to speed-based timing
+            const timings = this.getSpeedTimings();
+            return timings.nextNoteDelay;
+        }
+        
+        // Base the delay on the note's actual duration
+        let baseDelay = note.duration;
+        
+        // Apply speed modifications
+        const speedMultipliers = {
+            slow: 1.5,     // 50% slower
+            normal: 1.0,   // Normal speed
+            fast: 0.7,     // 30% faster
+            instant: 0.3   // Very fast
+        };
+        
+        const multiplier = speedMultipliers[this.learningSpeed] || 1.0;
+        const rhythmDelay = Math.max(200, baseDelay * multiplier); // Minimum 200ms
+        
+        console.log(`Note delay: ${rhythmDelay}ms (duration: ${note.duration}ms, speed: ${this.learningSpeed})`);
+        return rhythmDelay;
     }
 
     /**

@@ -67,32 +67,32 @@ export class SongLibrary {
             title: 'Happy Birthday to You',
             tempo: 120,
             timeSignature: '3/4',
-            difficulty: 'medium',
+            difficulty: 'easy',
             notes: [
-                { note: 'C4', duration: 250 },
-                { note: 'C4', duration: 250 },
+                { note: 'C4', duration: 375 },
+                { note: 'C4', duration: 125 },
                 { note: 'D4', duration: 500 },
                 { note: 'C4', duration: 500 },
                 { note: 'F4', duration: 500 },
                 { note: 'E4', duration: 1000 },
                 
-                { note: 'C4', duration: 250 },
-                { note: 'C4', duration: 250 },
+                { note: 'C4', duration: 375 },
+                { note: 'C4', duration: 125 },
                 { note: 'D4', duration: 500 },
                 { note: 'C4', duration: 500 },
                 { note: 'G4', duration: 500 },
                 { note: 'F4', duration: 1000 },
                 
-                { note: 'C4', duration: 250 },
-                { note: 'C4', duration: 250 },
+                { note: 'C4', duration: 375 },
+                { note: 'C4', duration: 125 },
                 { note: 'C5', duration: 500 },
                 { note: 'A4', duration: 500 },
                 { note: 'F4', duration: 500 },
                 { note: 'E4', duration: 500 },
                 { note: 'D4', duration: 1000 },
                 
-                { note: 'A#4', duration: 250 },
-                { note: 'A#4', duration: 250 },
+                { note: 'B4', duration: 375 },
+                { note: 'B4', duration: 125 },
                 { note: 'A4', duration: 500 },
                 { note: 'F4', duration: 500 },
                 { note: 'G4', duration: 500 },
@@ -187,21 +187,21 @@ export class SongLibrary {
             timeSignature: '4/4',
             difficulty: 'beginner',
             notes: [
-                { note: 'C4', duration: 500 },
-                { note: 'C4', duration: 500 },
                 { note: 'G4', duration: 500 },
                 { note: 'G4', duration: 500 },
-                { note: 'A4', duration: 500 },
-                { note: 'A4', duration: 500 },
-                { note: 'G4', duration: 1000 },
+                { note: 'D4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 1000 },
                 
-                { note: 'F4', duration: 500 },
-                { note: 'F4', duration: 500 },
-                { note: 'E4', duration: 500 },
-                { note: 'E4', duration: 500 },
-                { note: 'D4', duration: 500 },
-                { note: 'D4', duration: 500 },
-                { note: 'C4', duration: 1000 }
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'B3', duration: 500 },
+                { note: 'B3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'A3', duration: 500 },
+                { note: 'G3', duration: 1000 }
             ]
         });
 
@@ -219,16 +219,16 @@ export class SongLibrary {
                 { note: 'D4', duration: 500 },
                 { note: 'C4', duration: 1000 },
                 
-                { note: 'G4', duration: 250 },
-                { note: 'G4', duration: 250 },
-                { note: 'G4', duration: 250 },
-                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
                 { note: 'G4', duration: 1000 },
                 
-                { note: 'G4', duration: 250 },
-                { note: 'G4', duration: 250 },
-                { note: 'G4', duration: 250 },
-                { note: 'G4', duration: 250 },
+                { note: 'G4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
                 { note: 'G4', duration: 1000 }
             ]
         });
@@ -240,19 +240,26 @@ export class SongLibrary {
             timeSignature: '4/4',
             difficulty: 'beginner',
             notes: [
-                { note: 'C4', duration: 500 },
-                { note: 'C4', duration: 500 },
-                { note: 'C4', duration: 500 },
-                { note: 'G3', duration: 500 },
-                { note: 'A3', duration: 500 },
-                { note: 'A3', duration: 500 },
-                { note: 'G3', duration: 1000 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 1000 },
                 
                 { note: 'B3', duration: 500 },
                 { note: 'B3', duration: 500 },
                 { note: 'A3', duration: 500 },
                 { note: 'A3', duration: 500 },
-                { note: 'G3', duration: 1000 }
+                { note: 'G3', duration: 1000 },
+                
+                // E-I-E-I-O part
+                { note: 'D4', duration: 500 },
+                { note: 'G3', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'G3', duration: 500 },
+                { note: 'D4', duration: 1000 }
             ]
         });
 
@@ -273,9 +280,17 @@ export class SongLibrary {
                 { note: 'F4', duration: 500 },
                 { note: 'G4', duration: 1000 },
                 
-                { note: 'D4', duration: 500 },
+                { note: 'F4', duration: 500 },
                 { note: 'E4', duration: 500 },
-                { note: 'F4', duration: 1000 },
+                { note: 'D4', duration: 1000 },
+                { note: 'E4', duration: 500 },
+                { note: 'F4', duration: 500 },
+                { note: 'G4', duration: 1000 },
+                
+                { note: 'G4', duration: 500 },
+                { note: 'A4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'F4', duration: 500 },
                 { note: 'E4', duration: 500 },
                 { note: 'F4', duration: 500 },
                 { note: 'G4', duration: 1000 }
@@ -313,20 +328,31 @@ export class SongLibrary {
             timeSignature: '4/4',
             difficulty: 'easy',
             notes: [
-                { note: 'C4', duration: 500 },
-                { note: 'C4', duration: 500 },
-                { note: 'C4', duration: 500 },
-                { note: 'C4', duration: 500 },
+                // "The wheels on the bus go round and round"
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
                 { note: 'D4', duration: 500 },
                 { note: 'E4', duration: 500 },
-                { note: 'D4', duration: 500 },
-                { note: 'C4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 1000 },
                 
+                // "Round and round, round and round"
                 { note: 'E4', duration: 500 },
                 { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 1000 },
+                { note: 'E4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 1000 },
+                
+                // "The wheels on the bus go round and round, all through the town"
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'G4', duration: 500 },
                 { note: 'D4', duration: 500 },
-                { note: 'D4', duration: 500 },
-                { note: 'C4', duration: 1000 }
+                { note: 'C4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'G3', duration: 1000 }
             ]
         });
 
@@ -351,7 +377,21 @@ export class SongLibrary {
                 { note: 'G4', duration: 1000 },
                 { note: 'E4', duration: 500 },
                 { note: 'F4', duration: 500 },
-                { note: 'G4', duration: 1000 }
+                { note: 'G4', duration: 1000 },
+                
+                // "Morning bells are ringing"
+                { note: 'G4', duration: 250 },
+                { note: 'A4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'F4', duration: 250 },
+                { note: 'E4', duration: 500 },
+                { note: 'C4', duration: 500 },
+                { note: 'G4', duration: 250 },
+                { note: 'A4', duration: 250 },
+                { note: 'G4', duration: 250 },
+                { note: 'F4', duration: 250 },
+                { note: 'E4', duration: 500 },
+                { note: 'C4', duration: 500 }
             ]
         });
 
@@ -385,7 +425,11 @@ export class SongLibrary {
                 { note: 'E4', duration: 500 },
                 { note: 'E4', duration: 500 },
                 { note: 'E4', duration: 250 },
-                { note: 'E4', duration: 250 }
+                { note: 'D4', duration: 250 },
+                { note: 'D4', duration: 500 },
+                { note: 'E4', duration: 500 },
+                { note: 'D4', duration: 1000 },
+                { note: 'G4', duration: 1000 }
             ]
         });
 
@@ -437,7 +481,21 @@ export class SongLibrary {
                 { note: 'B4', duration: 250 },
                 { note: 'A4', duration: 250 },
                 { note: 'G4', duration: 250 },
-                { note: 'F#4', duration: 500 }
+                { note: 'F#4', duration: 500 },
+                
+                { note: 'F#4', duration: 500 },
+                { note: 'B4', duration: 500 },
+                { note: 'B4', duration: 250 },
+                { note: 'C5', duration: 250 },
+                { note: 'B4', duration: 250 },
+                { note: 'A4', duration: 250 },
+                { note: 'G4', duration: 500 },
+                
+                { note: 'D4', duration: 500 },
+                { note: 'D4', duration: 500 },
+                { note: 'G4', duration: 500 },
+                { note: 'A4', duration: 500 },
+                { note: 'G4', duration: 1000 }
             ]
         });
 
@@ -556,6 +614,16 @@ export class SongLibrary {
                 { note: 'C4', duration: 500 },
                 { note: 'D4', duration: 1000 }
             ]
+        });
+
+        // Audio file songs
+        this.addSong('audio-back3', {
+            title: 'Background Music 3',
+            tempo: 120,
+            timeSignature: '4/4',
+            difficulty: 'medium',
+            audioFile: 'assets/sounds/back3.mp3',
+            notes: [] // Will be populated by audio analysis
         });
     }
 

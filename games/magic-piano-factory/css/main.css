@@ -836,13 +836,21 @@ body {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 8px;
     padding: var(--spacing-xs);
-    min-width: 36px;
-    max-width: 40px;
+    min-width: 70px;
+    max-width: 75px;
+    min-height: 110px;
     text-align: center;
     transition: all var(--transition-normal);
     border: 1px solid transparent;
     position: relative;
     font-size: 0.8rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 2px;
+    color: #333;
+    font-weight: 600;
 }
 
 .note-item.current {
@@ -878,15 +886,119 @@ body {
 }
 
 .note-symbol {
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     font-weight: bold;
     color: #333;
-    margin-bottom: var(--spacing-xs);
+    display: block;
+}
+
+.key-position {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 2px;
+    text-align: center;
+    line-height: 1.1;
 }
 
 .note-item.current .note-symbol,
 .note-item.completed .note-symbol {
     color: white;
+}
+
+.note-item.current .key-position,
+.note-item.completed .key-position {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.note-name-label {
+    font-size: 0.7rem;
+    color: #666;
+    text-align: center;
+    margin-top: 4px;
+    font-weight: bold;
+}
+
+.note-item.current .note-name-label,
+.note-item.completed .note-name-label {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Child-friendly note display */
+.child-note-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.note-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    border: 3px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.key-visual {
+    width: 50px;
+    height: 25px;
+    border-radius: 4px;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.key-visual.black-key {
+    height: 20px;
+    border-radius: 2px;
+}
+
+.position-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    top: -4px;
+    transform: translateX(-50%);
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-3px); }
+}
+
+/* Current and completed state styling */
+.note-item.current .note-circle {
+    animation: pulse 1.5s infinite;
+    transform: scale(1.1);
+}
+
+.note-item.completed .note-circle {
+    opacity: 0.8;
+    transform: scale(0.9);
+}
+
+.note-item.completed .position-dot {
+    animation: none;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    50% { 
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        transform: scale(1.05);
+    }
 }
 
 
@@ -1001,6 +1113,14 @@ body {
 .piano-key.highlighted {
     animation: keyHighlight 1s ease-in-out;
     transform: scale(1.05);
+}
+
+/* Audio-detected note highlight */
+.piano-key.audio-active {
+    background: linear-gradient(135deg, var(--primary-purple), var(--primary-pink)) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.8);
+    transition: all 0.1s ease;
 }
 
 @keyframes keyHighlight {
