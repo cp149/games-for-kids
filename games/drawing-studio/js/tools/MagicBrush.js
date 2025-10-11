@@ -7,7 +7,7 @@ import { Tool } from '../core/ToolSystem.js';
 export class MagicBrush extends Tool {
     constructor() {
         super('Magic Brush', 12); // Default 12px for magic effects
-        this.currentEffect = 'rainbow'; // rainbow, star, firework, coin, sand, rainbowSand
+        this.currentEffect = 'rainbow'; // rainbow, star, firework, coin, sand, rainbowSand, butterfly, flower, catFace, dogFace
         this.hue = 0; // For rainbow effect
         this.coinRotation = 0; // For coin animation
     }
@@ -55,7 +55,11 @@ export class MagicBrush extends Tool {
             star: '⭐ Star',
             coin: '💎 Gem',
             sand: '🏖️ Sand',
-            rainbowSand: '🌈🏖️ Rainbow Sand'
+            rainbowSand: '🌈🏖️ Rainbow Sand',
+            butterfly: '🦋 Butterfly',
+            flower: '🌸 Flower',
+            catFace: '🐱 Cat Face',
+            dogFace: '🐶 Dog Face'
         };
         return names[this.currentEffect] || 'Rainbow';
     }
@@ -76,8 +80,11 @@ export class MagicBrush extends Tool {
         const dy = toY - fromY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Different interpolation for star, gem, and sand effects (less dense)
-        let stepMultiplier = (this.currentEffect === 'star' || this.currentEffect === 'coin' || this.currentEffect === 'sand' || this.currentEffect === 'rainbowSand') ? 2.0 : 0.3;
+        // Stamps should be more sparse - bigger multiplier = more spacing
+        const isStamp = ['star', 'coin', 'sand', 'rainbowSand', 'butterfly', 'flower', 'catFace', 'dogFace'].includes(this.currentEffect);
+        // Butterfly needs even more spacing due to its wing span
+        const isBigStamp = ['butterfly', 'catFace', 'dogFace'].includes(this.currentEffect);
+        let stepMultiplier = isBigStamp ? 5.0 : (isStamp ? 3.5 : 0.3);
 
         // Interpolate points for smooth line (no gaps when drawing fast)
         const steps = Math.max(1, Math.ceil(distance / (this.lineWidth * stepMultiplier)));
@@ -112,6 +119,18 @@ export class MagicBrush extends Tool {
                 break;
             case 'rainbowSand':
                 this.drawRainbowSand(ctx, x, y, size);
+                break;
+            case 'butterfly':
+                this.drawButterfly(ctx, x, y, size);
+                break;
+            case 'flower':
+                this.drawFlowerStamp(ctx, x, y, size);
+                break;
+            case 'catFace':
+                this.drawCatFace(ctx, x, y, size);
+                break;
+            case 'dogFace':
+                this.drawDogFace(ctx, x, y, size);
                 break;
             default:
                 this.drawRainbow(ctx, x, y, size);
@@ -621,6 +640,298 @@ export class MagicBrush extends Tool {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.beginPath();
             ctx.arc(sparkleX, sparkleY, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Butterfly stamp - colorful butterfly
+     */
+    drawButterfly(ctx, x, y, size) {
+        ctx.save();
+
+        const scale = size * 2;
+
+        // Random vibrant colors for wings
+        const hue = Math.random() * 360;
+        const wingColor1 = `hsl(${hue}, 85%, 60%)`;
+        const wingColor2 = `hsl(${(hue + 30) % 360}, 85%, 65%)`;
+        const bodyColor = '#2C1810';
+
+        // Body
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath();
+        ctx.ellipse(x, y, scale * 0.15, scale * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Left upper wing
+        ctx.fillStyle = wingColor1;
+        ctx.beginPath();
+        ctx.ellipse(x - scale * 0.4, y - scale * 0.2, scale * 0.35, scale * 0.5, -Math.PI / 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Right upper wing
+        ctx.beginPath();
+        ctx.ellipse(x + scale * 0.4, y - scale * 0.2, scale * 0.35, scale * 0.5, Math.PI / 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Left lower wing
+        ctx.fillStyle = wingColor2;
+        ctx.beginPath();
+        ctx.ellipse(x - scale * 0.35, y + scale * 0.3, scale * 0.25, scale * 0.35, Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Right lower wing
+        ctx.beginPath();
+        ctx.ellipse(x + scale * 0.35, y + scale * 0.3, scale * 0.25, scale * 0.35, -Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Wing patterns
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.4, y - scale * 0.2, scale * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.4, y - scale * 0.2, scale * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Antennae
+        ctx.strokeStyle = bodyColor;
+        ctx.lineWidth = scale * 0.05;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(x, y - scale * 0.35);
+        ctx.lineTo(x - scale * 0.15, y - scale * 0.55);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x, y - scale * 0.35);
+        ctx.lineTo(x + scale * 0.15, y - scale * 0.55);
+        ctx.stroke();
+
+        // Antenna tips
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.15, y - scale * 0.55, scale * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.15, y - scale * 0.55, scale * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
+     * Flower stamp - cute flower
+     */
+    drawFlowerStamp(ctx, x, y, size) {
+        ctx.save();
+
+        const scale = size * 2;
+
+        // Random petal color
+        const hue = Math.random() * 360;
+        const petalColor = `hsl(${hue}, 80%, 65%)`;
+        const centerColor = '#FFD700';
+
+        // Draw petals
+        const petalCount = 5;
+        const petalRadius = scale * 0.3;
+
+        for (let i = 0; i < petalCount; i++) {
+            const angle = (i * Math.PI * 2 / petalCount) - Math.PI / 2;
+            const petalX = x + Math.cos(angle) * scale * 0.35;
+            const petalY = y + Math.sin(angle) * scale * 0.35;
+
+            ctx.fillStyle = petalColor;
+            ctx.beginPath();
+            ctx.ellipse(petalX, petalY, petalRadius, petalRadius * 0.6, angle, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Petal highlights
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(petalX, petalY, petalRadius * 0.4, petalRadius * 0.3, angle, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Center
+        ctx.fillStyle = centerColor;
+        ctx.beginPath();
+        ctx.arc(x, y, scale * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Center details
+        ctx.fillStyle = '#FFA500';
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * scale * 0.15;
+            const dotX = x + Math.cos(angle) * dist;
+            const dotY = y + Math.sin(angle) * dist;
+
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, scale * 0.05, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Cat face stamp - super cute round style
+     */
+    drawCatFace(ctx, x, y, size) {
+        ctx.save();
+
+        const scale = size * 2;
+
+        // Random pastel colors
+        const catColors = ['#FFB6C1', '#FFD700', '#FFA07A', '#98D8C8', '#DDA0DD'];
+        const faceColor = catColors[Math.floor(Math.random() * catColors.length)];
+
+        // Main face circle
+        ctx.fillStyle = faceColor;
+        ctx.beginPath();
+        ctx.arc(x, y, scale * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Round ears (half circles on top)
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.28, y - scale * 0.32, scale * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.28, y - scale * 0.32, scale * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner ear pink
+        ctx.fillStyle = '#FFB6C1';
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.28, y - scale * 0.32, scale * 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.28, y - scale * 0.32, scale * 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple dot eyes
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.15, y - scale * 0.05, scale * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.15, y - scale * 0.05, scale * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple round nose
+        ctx.fillStyle = '#FF69B4';
+        ctx.beginPath();
+        ctx.arc(x, y + scale * 0.08, scale * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple smile - just curves
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = scale * 0.04;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.08, y + scale * 0.16, scale * 0.08, 0.3, Math.PI - 0.3);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.08, y + scale * 0.16, scale * 0.08, 0.3, Math.PI - 0.3);
+        ctx.stroke();
+
+        // Simple rosy cheeks
+        ctx.fillStyle = 'rgba(255, 105, 180, 0.3)';
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.28, y + scale * 0.08, scale * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.28, y + scale * 0.08, scale * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
+     * Dog face stamp - super simple and cute
+     */
+    drawDogFace(ctx, x, y, size) {
+        ctx.save();
+
+        const scale = size * 2;
+
+        // Random pastel dog colors
+        const dogColors = ['#F4A460', '#DEB887', '#D2B48C', '#FFE4B5', '#FFDAB9'];
+        const faceColor = dogColors[Math.floor(Math.random() * dogColors.length)];
+
+        // Main face circle
+        ctx.fillStyle = faceColor;
+        ctx.beginPath();
+        ctx.arc(x, y, scale * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple round floppy ears
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.42, y - scale * 0.1, scale * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.42, y - scale * 0.1, scale * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple dot eyes
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.15, y - scale * 0.08, scale * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.15, y - scale * 0.08, scale * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple round nose
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(x, y + scale * 0.1, scale * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple smile - just a curve
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = scale * 0.04;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.arc(x, y + scale * 0.18, scale * 0.12, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+
+        // Pink tongue
+        ctx.fillStyle = '#FF69B4';
+        ctx.beginPath();
+        ctx.arc(x, y + scale * 0.28, scale * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Simple rosy cheeks
+        ctx.fillStyle = 'rgba(255, 105, 180, 0.3)';
+        ctx.beginPath();
+        ctx.arc(x - scale * 0.28, y + scale * 0.1, scale * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x + scale * 0.28, y + scale * 0.1, scale * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Optional spot on head
+        if (Math.random() > 0.6) {
+            ctx.fillStyle = 'rgba(139, 69, 19, 0.3)';
+            ctx.beginPath();
+            ctx.arc(x + scale * 0.15, y - scale * 0.3, scale * 0.12, 0, Math.PI * 2);
             ctx.fill();
         }
 

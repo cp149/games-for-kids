@@ -58,9 +58,33 @@ export class MagicSelector {
                     </div>
 
                     <div class="magic-card" data-effect="rainbowSand">
-                        <div class="magic-icon">🌈✨</div>
+                        <div class="magic-icon">🌈</div>
                         <div class="magic-name">Rainbow Sand</div>
-                        <div class="magic-desc">Colorful magic sand</div>
+                        <div class="magic-desc">Colorful sand</div>
+                    </div>
+
+                    <div class="magic-card" data-effect="butterfly">
+                        <div class="magic-icon">🦋</div>
+                        <div class="magic-name">Butterfly</div>
+                        <div class="magic-desc">Colorful butterflies</div>
+                    </div>
+
+                    <div class="magic-card" data-effect="flower">
+                        <div class="magic-icon">🌸</div>
+                        <div class="magic-name">Flower</div>
+                        <div class="magic-desc">Pretty flowers</div>
+                    </div>
+
+                    <div class="magic-card" data-effect="catFace">
+                        <div class="magic-icon">🐱</div>
+                        <div class="magic-name">Cat Face</div>
+                        <div class="magic-desc">Cute cat faces</div>
+                    </div>
+
+                    <div class="magic-card" data-effect="dogFace">
+                        <div class="magic-icon">🐶</div>
+                        <div class="magic-name">Dog Face</div>
+                        <div class="magic-desc">Happy dog faces</div>
                     </div>
                 </div>
             </div>

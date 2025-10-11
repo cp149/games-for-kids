@@ -761,8 +761,10 @@ canvas {
     background: white;
     border-radius: 30px;
     padding: 40px;
-    max-width: 600px;
+    max-width: 700px;
     width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
     position: relative;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
@@ -812,14 +814,17 @@ canvas {
 
 .magic-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
 .magic-card {
     background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
-    border-radius: 20px;
-    padding: 30px 20px;
+    border-radius: 15px;
+    padding: 20px 10px;
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
@@ -843,20 +848,20 @@ canvas {
 }
 
 .magic-icon {
-    font-size: 4rem;
-    margin-bottom: 15px;
+    font-size: 3rem;
+    margin-bottom: 10px;
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
 }
 
 .magic-name {
-    font-size: 1.3rem;
+    font-size: 1rem;
     font-weight: bold;
     color: #333;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
 }
 
 .magic-desc {
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     color: #666;
     font-style: italic;
 }
