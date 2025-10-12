@@ -5,7 +5,7 @@ import { MagicEffect } from '../MagicEffect.js';
  */
 export class RainbowSandEffect extends MagicEffect {
     constructor() {
-        super('rainbowSand', 'Rainbow Sand', '🌈🏖️', 'Colorful sand particles');
+        super('rainbowSand', 'Rainbow Sand', '🌈', 'Colorful sand particles');
     }
 
     draw(ctx, x, y, size) {

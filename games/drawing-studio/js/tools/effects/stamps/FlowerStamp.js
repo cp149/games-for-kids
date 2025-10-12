@@ -16,7 +16,10 @@ export class FlowerStamp extends StampEffect {
         // Random petal color
         const hue = Math.random() * 360;
         const petalColor = `hsl(${hue}, 80%, 65%)`;
-        const centerColor = '#FFD700';
+
+        // Random center color (different from petals)
+        const centerHue = (hue + 120 + Math.random() * 120) % 360;
+        const centerColor = `hsl(${centerHue}, 85%, 60%)`;
 
         // Draw petals
         const petalCount = 5;
@@ -45,8 +48,8 @@ export class FlowerStamp extends StampEffect {
         ctx.arc(x, y, scale * 0.25, 0, Math.PI * 2);
         ctx.fill();
 
-        // Center details
-        ctx.fillStyle = '#FFA500';
+        // Center details (darker shade of center color)
+        ctx.fillStyle = `hsl(${centerHue}, 80%, 45%)`;
         for (let i = 0; i < 8; i++) {
             const angle = Math.random() * Math.PI * 2;
             const dist = Math.random() * scale * 0.15;

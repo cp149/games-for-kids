@@ -5,14 +5,28 @@ import { StampEffect } from '../StampEffect.js';
  */
 export class FrogStamp extends StampEffect {
     constructor() {
-        super('frog', 'Frog', '🐸', 'Green frog', false);
+        super('frog', 'Frog', '🐸', 'Colorful frogs', false);
     }
 
     draw(ctx, x, y, size) {
         ctx.save();
 
         const scale = size * 2;
-        const frogColor = '#90EE90';
+
+        // Random vibrant frog colors - frogs can be many colors!
+        const frogColors = [
+            '#90EE90', // Light green (classic)
+            '#3CB371', // Medium sea green
+            '#32CD32', // Lime green
+            '#00CED1', // Dark turquoise (blue frog)
+            '#FFD700', // Gold (golden frog)
+            '#FF6347', // Tomato (red frog)
+            '#FF69B4', // Hot pink (pink frog)
+            '#9370DB', // Medium purple (purple frog)
+            '#FFA500', // Orange (orange frog)
+            '#87CEEB'  // Sky blue (blue frog)
+        ];
+        const frogColor = frogColors[Math.floor(Math.random() * frogColors.length)];
 
         // Body
         ctx.fillStyle = frogColor;

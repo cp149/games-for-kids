@@ -24,6 +24,10 @@ import { StarfishStamp } from './stamps/StarfishStamp.js';
 import { ParrotStamp } from './stamps/ParrotStamp.js';
 import { MushroomStamp } from './stamps/MushroomStamp.js';
 import { IcecreamStamp } from './stamps/IcecreamStamp.js';
+import { LightningStamp } from './stamps/LightningStamp.js';
+import { GoldStamp } from './stamps/GoldStamp.js';
+import { GrassStamp } from './stamps/GrassStamp.js';
+import { TreeStamp } from './stamps/TreeStamp.js';
 
 export class EffectFactory {
     static effectRegistry = new Map();
@@ -54,6 +58,10 @@ export class EffectFactory {
         this.register(new ParrotStamp());
         this.register(new MushroomStamp());
         this.register(new IcecreamStamp());
+        this.register(new LightningStamp());
+        this.register(new GoldStamp());
+        this.register(new GrassStamp());
+        this.register(new TreeStamp());
     }
 
     /**
