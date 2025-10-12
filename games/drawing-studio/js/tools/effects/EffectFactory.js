@@ -28,6 +28,7 @@ import { LightningStamp } from './stamps/LightningStamp.js';
 import { GoldStamp } from './stamps/GoldStamp.js';
 import { GrassStamp } from './stamps/GrassStamp.js';
 import { TreeStamp } from './stamps/TreeStamp.js';
+import { LanternStamp } from './stamps/LanternStamp.js';
 
 export class EffectFactory {
     static effectRegistry = new Map();
@@ -62,6 +63,7 @@ export class EffectFactory {
         this.register(new GoldStamp());
         this.register(new GrassStamp());
         this.register(new TreeStamp());
+        this.register(new LanternStamp());
     }
 
     /**
