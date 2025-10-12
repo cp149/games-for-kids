@@ -2,6 +2,8 @@
  * Magic Selector - Modal for selecting magic brush effect
  */
 
+import { EffectFactory } from '../tools/effects/EffectFactory.js';
+
 export class MagicSelector {
     constructor() {
         this.element = null;
@@ -17,6 +19,18 @@ export class MagicSelector {
         modal.className = 'magic-selector hidden';
         modal.id = 'magic-selector';
 
+        // Get all effects from factory
+        const effects = EffectFactory.getAllEffectInfo();
+
+        // Generate magic cards HTML
+        const cardsHTML = effects.map(effect => `
+            <div class="magic-card" data-effect="${effect.id}">
+                <div class="magic-icon">${effect.icon}</div>
+                <div class="magic-name">${effect.name}</div>
+                <div class="magic-desc">${effect.description}</div>
+            </div>
+        `).join('');
+
         modal.innerHTML = `
             <div class="magic-selector-content">
                 <button class="magic-close-btn" id="magic-close-btn">×</button>
@@ -27,65 +41,7 @@ export class MagicSelector {
                 </div>
 
                 <div class="magic-grid">
-                    <div class="magic-card" data-effect="rainbow">
-                        <div class="magic-icon">🌈</div>
-                        <div class="magic-name">Rainbow</div>
-                        <div class="magic-desc">Smooth color gradient</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="star">
-                        <div class="magic-icon">⭐</div>
-                        <div class="magic-name">Star</div>
-                        <div class="magic-desc">Random colored stars</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="firework">
-                        <div class="magic-icon">🎆</div>
-                        <div class="magic-name">Firework</div>
-                        <div class="magic-desc">Sparkling particles</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="coin">
-                        <div class="magic-icon">💎</div>
-                        <div class="magic-name">Gem</div>
-                        <div class="magic-desc">Glowing crystals & gems</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="sand">
-                        <div class="magic-icon">🏖️</div>
-                        <div class="magic-name">Sand</div>
-                        <div class="magic-desc">Falling sand particles</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="rainbowSand">
-                        <div class="magic-icon">🌈</div>
-                        <div class="magic-name">Rainbow Sand</div>
-                        <div class="magic-desc">Colorful sand</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="butterfly">
-                        <div class="magic-icon">🦋</div>
-                        <div class="magic-name">Butterfly</div>
-                        <div class="magic-desc">Colorful butterflies</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="flower">
-                        <div class="magic-icon">🌸</div>
-                        <div class="magic-name">Flower</div>
-                        <div class="magic-desc">Pretty flowers</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="catFace">
-                        <div class="magic-icon">🐱</div>
-                        <div class="magic-name">Cat Face</div>
-                        <div class="magic-desc">Cute cat faces</div>
-                    </div>
-
-                    <div class="magic-card" data-effect="dogFace">
-                        <div class="magic-icon">🐶</div>
-                        <div class="magic-name">Dog Face</div>
-                        <div class="magic-desc">Happy dog faces</div>
-                    </div>
+                    ${cardsHTML}
                 </div>
             </div>
         `;
