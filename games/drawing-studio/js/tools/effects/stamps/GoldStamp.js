@@ -6,158 +6,116 @@ import { StampEffect } from '../StampEffect.js';
 export class GoldStamp extends StampEffect {
     constructor() {
         super('gold', 'Gold', '💰', 'Chinese gold ingot', false);
+
+        // Gold colors
+        this.goldColors = [
+            '#FFD700', // Gold
+            '#FFA500', // Orange
+            '#FF8C00', // Dark orange
+            '#FFE4B5', // Moccasin
+            '#F0E68C', // Khaki
+            '#DAA520', // Goldenrod
+            '#B8860B', // Dark goldenrod
+            '#FF6347', // Tomato (reddish gold)
+            '#FFA07A', // Light salmon
+            '#FFDB58'  // Mustard
+        ];
+
+        // Load PNG image
+        this.baseImageData = null;
+        this.imageReady = false;
+
+        const img = new Image();
+
+        img.onload = () => {
+            // Process the image to make white transparent and store base image data
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+
+            // Draw the original image
+            ctx.drawImage(img, 0, 0);
+
+            // Get pixel data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+
+            // Make white and near-white pixels transparent
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+
+                // If pixel is white or very light (near white)
+                if (r > 250 && g > 250 && b > 250) {
+                    pixels[i + 3] = 0; // Make transparent
+                }
+            }
+
+            // Store the processed image data
+            this.baseImageData = imageData;
+            this.imageWidth = canvas.width;
+            this.imageHeight = canvas.height;
+            this.imageReady = true;
+            console.log('Gold stamp PNG processed and ready');
+        };
+
+        img.onerror = (e) => {
+            console.error('Failed to load gold.png:', e);
+        };
+
+        img.src = 'assets/icons/gold.png';
     }
 
     draw(ctx, x, y, size) {
         ctx.save();
 
         const scale = size * 2;
+        const imgSize = scale * 1.6;
 
-        // Gold color palette
-        const goldColors = {
-            bright: '#FFD700',
-            medium: '#FFA500',
-            dark: '#DAA520',
-            shine: '#FFFFE0'
-        };
+        if (this.imageReady && this.baseImageData) {
+            // Pick a random color
+            const targetColor = this.goldColors[Math.floor(Math.random() * this.goldColors.length)];
+            const r = parseInt(targetColor.substr(1, 2), 16);
+            const g = parseInt(targetColor.substr(3, 2), 16);
+            const b = parseInt(targetColor.substr(5, 2), 16);
 
-        // Draw Chinese gold ingot (元宝) - traditional shape
-        // Bottom is wide and flat, two ends curl up, middle has waist
+            // Create a new canvas for this colored version
+            const canvas = document.createElement('canvas');
+            canvas.width = this.imageWidth;
+            canvas.height = this.imageHeight;
+            const tempCtx = canvas.getContext('2d');
 
-        // Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        ctx.beginPath();
-        // Bottom flat part
-        ctx.moveTo(x - scale * 0.4 + scale * 0.04, y + scale * 0.2 + scale * 0.04);
-        ctx.lineTo(x + scale * 0.4 + scale * 0.04, y + scale * 0.2 + scale * 0.04);
-        // Right side curls up
-        ctx.quadraticCurveTo(
-            x + scale * 0.45 + scale * 0.04, y + scale * 0.1 + scale * 0.04,
-            x + scale * 0.35 + scale * 0.04, y - scale * 0.15 + scale * 0.04
-        );
-        // Right top
-        ctx.quadraticCurveTo(
-            x + scale * 0.3 + scale * 0.04, y - scale * 0.25 + scale * 0.04,
-            x + scale * 0.15 + scale * 0.04, y - scale * 0.2 + scale * 0.04
-        );
-        // Top waist (concave)
-        ctx.quadraticCurveTo(
-            x + scale * 0.04, y - scale * 0.3 + scale * 0.04,
-            x - scale * 0.15 + scale * 0.04, y - scale * 0.2 + scale * 0.04
-        );
-        // Left top
-        ctx.quadraticCurveTo(
-            x - scale * 0.3 + scale * 0.04, y - scale * 0.25 + scale * 0.04,
-            x - scale * 0.35 + scale * 0.04, y - scale * 0.15 + scale * 0.04
-        );
-        // Left side curls up
-        ctx.quadraticCurveTo(
-            x - scale * 0.45 + scale * 0.04, y + scale * 0.1 + scale * 0.04,
-            x - scale * 0.4 + scale * 0.04, y + scale * 0.2 + scale * 0.04
-        );
-        ctx.closePath();
-        ctx.fill();
+            // Clone the base image data
+            const imageData = tempCtx.createImageData(this.imageWidth, this.imageHeight);
+            imageData.data.set(this.baseImageData.data);
 
-        // Main body - left half (darker)
-        ctx.fillStyle = goldColors.medium;
-        ctx.beginPath();
-        ctx.moveTo(x - scale * 0.4, y + scale * 0.2);
-        ctx.lineTo(x, y + scale * 0.2);
-        ctx.lineTo(x, y - scale * 0.3);
-        ctx.quadraticCurveTo(
-            x - scale * 0.3, y - scale * 0.25,
-            x - scale * 0.35, y - scale * 0.15
-        );
-        ctx.quadraticCurveTo(
-            x - scale * 0.45, y + scale * 0.1,
-            x - scale * 0.4, y + scale * 0.2
-        );
-        ctx.closePath();
-        ctx.fill();
+            const pixels = imageData.data;
 
-        // Main body - right half (lighter)
-        const gradient = ctx.createLinearGradient(
-            x, y - scale * 0.3,
-            x + scale * 0.4, y + scale * 0.2
-        );
-        gradient.addColorStop(0, goldColors.shine);
-        gradient.addColorStop(0.3, goldColors.bright);
-        gradient.addColorStop(0.7, goldColors.medium);
-        gradient.addColorStop(1, goldColors.dark);
+            // Replace all non-transparent pixels with the target color
+            for (let i = 0; i < pixels.length; i += 4) {
+                if (pixels[i + 3] > 0) { // If not transparent
+                    pixels[i] = r;       // Red
+                    pixels[i + 1] = g;   // Green
+                    pixels[i + 2] = b;   // Blue
+                    // Keep original alpha
+                }
+            }
 
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(x, y + scale * 0.2);
-        ctx.lineTo(x + scale * 0.4, y + scale * 0.2);
-        ctx.quadraticCurveTo(
-            x + scale * 0.45, y + scale * 0.1,
-            x + scale * 0.35, y - scale * 0.15
-        );
-        ctx.quadraticCurveTo(
-            x + scale * 0.3, y - scale * 0.25,
-            x + scale * 0.15, y - scale * 0.2
-        );
-        ctx.quadraticCurveTo(
-            x, y - scale * 0.3,
-            x, y + scale * 0.2
-        );
-        ctx.closePath();
-        ctx.fill();
+            // Put colored data to canvas
+            tempCtx.putImageData(imageData, 0, 0);
 
-        // Top waist curve
-        ctx.fillStyle = goldColors.bright;
-        ctx.beginPath();
-        ctx.moveTo(x - scale * 0.15, y - scale * 0.2);
-        ctx.quadraticCurveTo(
-            x, y - scale * 0.3,
-            x + scale * 0.15, y - scale * 0.2
-        );
-        ctx.quadraticCurveTo(
-            x, y - scale * 0.25,
-            x - scale * 0.15, y - scale * 0.2
-        );
-        ctx.closePath();
-        ctx.fill();
-
-        // Outline
-        ctx.strokeStyle = goldColors.dark;
-        ctx.lineWidth = scale * 0.02;
-        ctx.beginPath();
-        ctx.moveTo(x - scale * 0.4, y + scale * 0.2);
-        ctx.lineTo(x + scale * 0.4, y + scale * 0.2);
-        ctx.quadraticCurveTo(
-            x + scale * 0.45, y + scale * 0.1,
-            x + scale * 0.35, y - scale * 0.15
-        );
-        ctx.quadraticCurveTo(
-            x + scale * 0.3, y - scale * 0.25,
-            x + scale * 0.15, y - scale * 0.2
-        );
-        ctx.quadraticCurveTo(
-            x, y - scale * 0.3,
-            x - scale * 0.15, y - scale * 0.2
-        );
-        ctx.quadraticCurveTo(
-            x - scale * 0.3, y - scale * 0.25,
-            x - scale * 0.35, y - scale * 0.15
-        );
-        ctx.quadraticCurveTo(
-            x - scale * 0.45, y + scale * 0.1,
-            x - scale * 0.4, y + scale * 0.2
-        );
-        ctx.stroke();
-
-        // Highlight shine (random position for variety)
-        const shineX = x + scale * (0.05 + Math.random() * 0.25);
-        const shineY = y + scale * (-0.15 + Math.random() * 0.2);
-        const shineWidth = scale * (0.12 + Math.random() * 0.08);
-        const shineHeight = scale * (0.08 + Math.random() * 0.05);
-        const shineRotation = Math.random() * Math.PI * 0.5;
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.beginPath();
-        ctx.ellipse(shineX, shineY, shineWidth, shineHeight, shineRotation, 0, Math.PI * 2);
-        ctx.fill();
+            // Draw to main canvas
+            ctx.drawImage(canvas, x - imgSize / 2, y - imgSize / 2, imgSize, imgSize);
+        } else {
+            // Fallback while loading
+            ctx.font = `${scale * 0.8}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText('💰', x, y);
+        }
 
         ctx.restore();
     }

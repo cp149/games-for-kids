@@ -1,84 +1,159 @@
 import { StampEffect } from '../StampEffect.js';
 
 /**
- * Dog face stamp - super simple and cute
+ * Dog face stamp - using SVG image
  */
 export class DogFaceStamp extends StampEffect {
     constructor() {
         super('dogFace', 'Dog Face', '🐶', 'Super simple and cute', true);
+
+        // Dog colors palette
+        this.dogColors = [
+            '#F4A460', // Sandy brown
+            '#DEB887', // Burlywood
+            '#D2B48C', // Tan
+            '#FFE4B5', // Moccasin
+            '#FFDAB9', // Peach puff
+            '#CD853F', // Peru
+            '#DAA520', // Goldenrod
+            '#BC8F8F', // Rosy brown
+            '#F0E68C', // Khaki
+            '#FFB347'  // Orange
+        ];
+
+        // Load SVG image
+        this.baseImageData = null;
+        this.imageReady = false;
+
+        const img = new Image();
+
+        img.onload = () => {
+            // Process the image to make white transparent and store base image data
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+
+            // Draw the original image
+            ctx.drawImage(img, 0, 0);
+
+            // Get pixel data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+
+            // Make white pixels transparent, keep black/dark pixels for coloring
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+
+                // If pixel is white or very light (near white)
+                if (r > 250 && g > 250 && b > 250) {
+                    pixels[i + 3] = 0; // Make transparent
+                }
+                // Black/dark pixels will be kept and colorized later
+            }
+
+            // Store the processed image data
+            this.baseImageData = imageData;
+            this.imageWidth = canvas.width;
+            this.imageHeight = canvas.height;
+            this.imageReady = true;
+            console.log('Dog stamp SVG processed and ready');
+        };
+
+        img.onerror = (e) => {
+            console.error('Failed to load dog.svg:', e);
+        };
+
+        img.src = 'assets/icons/dog.svg';
     }
 
-    draw(ctx, x, y, size) {
+    draw(ctx, x, y, size, color) {
         ctx.save();
 
         const scale = size * 2;
+        const imgSize = scale * 1.6;
 
-        // Random pastel dog colors
-        const dogColors = ['#F4A460', '#DEB887', '#D2B48C', '#FFE4B5', '#FFDAB9'];
-        const faceColor = dogColors[Math.floor(Math.random() * dogColors.length)];
+        if (this.imageReady && this.baseImageData) {
+            let r, g, b;
 
-        // Main face circle
-        ctx.fillStyle = faceColor;
-        ctx.beginPath();
-        ctx.arc(x, y, scale * 0.45, 0, Math.PI * 2);
-        ctx.fill();
+            // If color is provided, use it as base for random variation
+            if (color && color !== '#000000') {
+                let baseR, baseG, baseB;
 
-        // Simple round floppy ears
-        ctx.beginPath();
-        ctx.arc(x - scale * 0.42, y - scale * 0.1, scale * 0.2, 0, Math.PI * 2);
-        ctx.fill();
+                // Parse the selected color
+                if (color.startsWith('#')) {
+                    baseR = parseInt(color.substr(1, 2), 16);
+                    baseG = parseInt(color.substr(3, 2), 16);
+                    baseB = parseInt(color.substr(5, 2), 16);
+                } else if (color.startsWith('rgb')) {
+                    const matches = color.match(/\d+/g);
+                    baseR = parseInt(matches[0]);
+                    baseG = parseInt(matches[1]);
+                    baseB = parseInt(matches[2]);
+                } else {
+                    baseR = 244;
+                    baseG = 164;
+                    baseB = 96;
+                }
 
-        ctx.beginPath();
-        ctx.arc(x + scale * 0.42, y - scale * 0.1, scale * 0.2, 0, Math.PI * 2);
-        ctx.fill();
+                // Generate random variation around the selected color (±60 variation)
+                const variation = 60;
+                r = Math.max(0, Math.min(255, baseR + (Math.random() - 0.5) * variation * 2));
+                g = Math.max(0, Math.min(255, baseG + (Math.random() - 0.5) * variation * 2));
+                b = Math.max(0, Math.min(255, baseB + (Math.random() - 0.5) * variation * 2));
+            } else {
+                // Default: use random color from palette
+                const targetColor = this.dogColors[Math.floor(Math.random() * this.dogColors.length)];
+                r = parseInt(targetColor.substr(1, 2), 16);
+                g = parseInt(targetColor.substr(3, 2), 16);
+                b = parseInt(targetColor.substr(5, 2), 16);
+            }
 
-        // Simple dot eyes
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(x - scale * 0.15, y - scale * 0.08, scale * 0.06, 0, Math.PI * 2);
-        ctx.fill();
+            // Create a new canvas for this colored version
+            const canvas = document.createElement('canvas');
+            canvas.width = this.imageWidth;
+            canvas.height = this.imageHeight;
+            const tempCtx = canvas.getContext('2d');
 
-        ctx.beginPath();
-        ctx.arc(x + scale * 0.15, y - scale * 0.08, scale * 0.06, 0, Math.PI * 2);
-        ctx.fill();
+            // Enable image smoothing for better quality
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.imageSmoothingQuality = 'high';
 
-        // Simple round nose
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(x, y + scale * 0.1, scale * 0.08, 0, Math.PI * 2);
-        ctx.fill();
+            // Clone the base image data
+            const imageData = tempCtx.createImageData(this.imageWidth, this.imageHeight);
+            imageData.data.set(this.baseImageData.data);
 
-        // Simple smile - just a curve
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = scale * 0.04;
-        ctx.lineCap = 'round';
+            const pixels = imageData.data;
 
-        ctx.beginPath();
-        ctx.arc(x, y + scale * 0.18, scale * 0.12, 0.2, Math.PI - 0.2);
-        ctx.stroke();
+            // Replace all non-transparent pixels with the target color (direct replacement, no brightness)
+            for (let i = 0; i < pixels.length; i += 4) {
+                if (pixels[i + 3] > 0) { // If not transparent
+                    // Direct color replacement (SVG is all black outlines)
+                    pixels[i] = r;       // Red
+                    pixels[i + 1] = g;   // Green
+                    pixels[i + 2] = b;   // Blue
+                    // Keep original alpha
+                }
+            }
 
-        // Pink tongue
-        ctx.fillStyle = '#FF69B4';
-        ctx.beginPath();
-        ctx.arc(x, y + scale * 0.28, scale * 0.06, 0, Math.PI * 2);
-        ctx.fill();
+            // Put colored data to canvas
+            tempCtx.putImageData(imageData, 0, 0);
 
-        // Simple rosy cheeks
-        ctx.fillStyle = 'rgba(255, 105, 180, 0.3)';
-        ctx.beginPath();
-        ctx.arc(x - scale * 0.28, y + scale * 0.1, scale * 0.08, 0, Math.PI * 2);
-        ctx.fill();
+            // Enable image smoothing on main context too
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
 
-        ctx.beginPath();
-        ctx.arc(x + scale * 0.28, y + scale * 0.1, scale * 0.08, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Optional spot on head
-        if (Math.random() > 0.6) {
-            ctx.fillStyle = 'rgba(139, 69, 19, 0.3)';
-            ctx.beginPath();
-            ctx.arc(x + scale * 0.15, y - scale * 0.3, scale * 0.12, 0, Math.PI * 2);
-            ctx.fill();
+            // Draw to main canvas
+            ctx.drawImage(canvas, x - imgSize / 2, y - imgSize / 2, imgSize, imgSize);
+        } else {
+            // Fallback while loading
+            ctx.font = `${scale * 0.8}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#F4A460';
+            ctx.fillText('🐶', x, y);
         }
 
         ctx.restore();
