@@ -7,7 +7,7 @@ export class TextureBrush {
         this.name = 'Texture Brush';
         this.color = '#FF6B6B';
         this.lineWidth = 8;
-        this.texture = 'crayon'; // crayon, watercolor, spray, ink, brush, oil
+        this.texture = 'crayon'; // crayon, watercolor, spray, ink, brush, oil, colorSpray, waterSpray
     }
 
     /**
@@ -85,6 +85,12 @@ export class TextureBrush {
                 break;
             case 'oil':
                 this.drawOil(ctx, x, y);
+                break;
+            case 'colorSpray':
+                this.drawColorSpray(ctx, x, y);
+                break;
+            case 'waterSpray':
+                this.drawWaterSpray(ctx, x, y);
                 break;
             default:
                 this.drawCrayon(ctx, x, y);
@@ -439,6 +445,230 @@ export class TextureBrush {
         }
 
         ctx.restore();
+    }
+
+    /**
+     * Color Spray - Dense color spray effect like spray paint can
+     */
+    drawColorSpray(ctx, x, y) {
+        ctx.save();
+
+        // Convert hex to rgba
+        let r, g, b;
+        if (this.color.startsWith('#')) {
+            r = parseInt(this.color.slice(1, 3), 16);
+            g = parseInt(this.color.slice(3, 5), 16);
+            b = parseInt(this.color.slice(5, 7), 16);
+        }
+
+        const particles = 80; // More particles for denser spray
+        const spread = this.lineWidth * 2; // Wider spread
+
+        for (let i = 0; i < particles; i++) {
+            // Gaussian distribution for realistic spray pattern
+            const angle = Math.random() * Math.PI * 2;
+            const gaussian = Math.abs(this.randomGaussian());
+            const distance = gaussian * spread * 0.8;
+
+            const offsetX = Math.cos(angle) * distance;
+            const offsetY = Math.sin(angle) * distance;
+
+            // Particle size varies - more small particles
+            const size = Math.random() < 0.7 ?
+                Math.random() * 1 + 0.5 :
+                Math.random() * 2 + 1;
+
+            // Color variation for realistic spray
+            const colorVar = 15;
+            const newR = Math.max(0, Math.min(255, r + (Math.random() - 0.5) * colorVar));
+            const newG = Math.max(0, Math.min(255, g + (Math.random() - 0.5) * colorVar));
+            const newB = Math.max(0, Math.min(255, b + (Math.random() - 0.5) * colorVar));
+
+            // Alpha decreases with distance
+            const alpha = (1 - distance / spread) * (0.3 + Math.random() * 0.4);
+
+            ctx.fillStyle = `rgba(${newR}, ${newG}, ${newB}, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(x + offsetX, y + offsetY, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Water Spray - Creates water droplet effect that blurs/smears existing colors with downward drip
+     */
+    drawWaterSpray(ctx, x, y) {
+        ctx.save();
+
+        // Convert hex to rgba
+        let r, g, b;
+        if (this.color.startsWith('#')) {
+            r = parseInt(this.color.slice(1, 3), 16);
+            g = parseInt(this.color.slice(3, 5), 16);
+            b = parseInt(this.color.slice(5, 7), 16);
+        }
+
+        const canvas = ctx.canvas;
+        const spread = this.lineWidth * 3;
+        const dripHeight = this.lineWidth * 4; // Drip distance downward
+
+        // Get current image data to check for existing colors
+        const readX = Math.max(0, x - spread);
+        const readY = Math.max(0, y - spread);
+        const readWidth = Math.min(canvas.width - readX, spread * 2);
+        const readHeight = Math.min(canvas.height - readY, spread + dripHeight);
+
+        const imageData = ctx.getImageData(readX, readY, readWidth, readHeight);
+        const pixels = imageData.data;
+        const width = imageData.width;
+        const height = imageData.height;
+
+        let hasExistingColor = false;
+
+        // Check if there are existing colors nearby
+        for (let i = 3; i < pixels.length; i += 4) {
+            if (pixels[i] > 20) {
+                hasExistingColor = true;
+                break;
+            }
+        }
+
+        if (hasExistingColor) {
+            // Drip/smear existing colors downward
+            const drips = 15;
+
+            for (let i = 0; i < drips; i++) {
+                // Random position around spray center
+                const startAngle = Math.random() * Math.PI * 2;
+                const startDist = Math.random() * spread * 0.8;
+                const startX = Math.floor(startDist * Math.cos(startAngle) + spread);
+                const startY = Math.floor(startDist * Math.sin(startAngle) + spread);
+
+                if (startX >= 0 && startX < width && startY >= 0 && startY < height) {
+                    const pixelIndex = (startY * width + startX) * 4;
+                    const sampleR = pixels[pixelIndex];
+                    const sampleG = pixels[pixelIndex + 1];
+                    const sampleB = pixels[pixelIndex + 2];
+                    const sampleA = pixels[pixelIndex + 3];
+
+                    // Only drip if there's color
+                    if (sampleA > 20) {
+                        // Create vertical drip
+                        const dripLength = Math.random() * dripHeight * 0.8 + dripHeight * 0.2;
+                        const dripWidth = Math.random() * 3 + 2;
+
+                        // Draw drip line downward
+                        for (let d = 0; d < dripLength; d += 0.5) {
+                            const dripY = startY + d;
+                            const fadeOut = 1 - (d / dripLength);
+                            const wobble = Math.sin(d * 0.3) * (dripWidth * 0.3); // Slight wobble
+
+                            // Draw drip pixels
+                            for (let w = -dripWidth; w <= dripWidth; w++) {
+                                const dripX = startX + w + wobble;
+
+                                if (dripX >= 0 && dripX < width && dripY >= 0 && dripY < height) {
+                                    const targetIndex = (Math.floor(dripY) * width + Math.floor(dripX)) * 4;
+
+                                    // Calculate blend based on distance from center and fade
+                                    const distFromCenter = Math.abs(w) / dripWidth;
+                                    const blendFactor = (1 - distFromCenter) * fadeOut * 0.5;
+
+                                    if (blendFactor > 0) {
+                                        pixels[targetIndex] = pixels[targetIndex] * (1 - blendFactor) + sampleR * blendFactor;
+                                        pixels[targetIndex + 1] = pixels[targetIndex + 1] * (1 - blendFactor) + sampleG * blendFactor;
+                                        pixels[targetIndex + 2] = pixels[targetIndex + 2] * (1 - blendFactor) + sampleB * blendFactor;
+                                        pixels[targetIndex + 3] = Math.max(pixels[targetIndex + 3], sampleA * blendFactor);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Put the modified image data back
+            ctx.putImageData(imageData, readX, readY);
+
+            // Add water droplet highlights
+            for (let i = 0; i < 8; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * spread * 0.6;
+                const dropX = Math.cos(angle) * distance;
+                const dropY = Math.sin(angle) * distance + Math.random() * dripHeight * 0.5;
+
+                ctx.fillStyle = `rgba(220, 240, 255, ${0.1 + Math.random() * 0.15})`;
+                ctx.beginPath();
+                ctx.arc(x + dropX, y + dropY, Math.random() * 4 + 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else {
+            // No existing color - draw water drops that drip down
+            const drops = 12;
+
+            for (let i = 0; i < drops; i++) {
+                // Starting position
+                const startAngle = Math.random() * Math.PI * 2;
+                const startDist = Math.random() * spread * 0.5;
+                const startX = x + Math.cos(startAngle) * startDist;
+                const startY = y + Math.sin(startAngle) * startDist;
+
+                // Drip parameters
+                const dripLength = Math.random() * dripHeight * 0.7 + dripHeight * 0.3;
+                const dropSize = Math.random() * 3 + 2;
+
+                // Color variation
+                const colorVar = 20;
+                const newR = Math.max(0, Math.min(255, r + (Math.random() - 0.5) * colorVar));
+                const newG = Math.max(0, Math.min(255, g + (Math.random() - 0.5) * colorVar));
+                const newB = Math.max(0, Math.min(255, b + (Math.random() - 0.5) * colorVar));
+
+                // Draw elongated drip shape
+                const gradient = ctx.createLinearGradient(
+                    startX, startY,
+                    startX, startY + dripLength
+                );
+
+                gradient.addColorStop(0, `rgba(${newR}, ${newG}, ${newB}, 0.3)`);
+                gradient.addColorStop(0.3, `rgba(${newR}, ${newG}, ${newB}, 0.2)`);
+                gradient.addColorStop(0.7, `rgba(${newR}, ${newG}, ${newB}, 0.15)`);
+                gradient.addColorStop(1, `rgba(${newR}, ${newG}, ${newB}, 0.05)`);
+
+                ctx.fillStyle = gradient;
+
+                // Draw teardrop shape
+                ctx.beginPath();
+                ctx.ellipse(startX, startY + dripLength * 0.5, dropSize * 0.6, dripLength * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw droplet at top
+                ctx.fillStyle = `rgba(${newR}, ${newG}, ${newB}, 0.35)`;
+                ctx.beginPath();
+                ctx.arc(startX, startY, dropSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Add highlight on droplet
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + Math.random() * 0.15})`;
+                ctx.beginPath();
+                ctx.arc(startX - dropSize * 0.3, startY - dropSize * 0.3, dropSize * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Helper function for Gaussian random distribution
+     */
+    randomGaussian() {
+        // Box-Muller transform
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
     /**

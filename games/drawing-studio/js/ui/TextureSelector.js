@@ -62,6 +62,18 @@ export class TextureSelector {
                         <div class="texture-name">Oil Paint</div>
                         <div class="texture-desc">Thick & textured</div>
                     </div>
+
+                    <div class="texture-card" data-texture="colorSpray">
+                        <div class="texture-icon">💨</div>
+                        <div class="texture-name">Color Spray</div>
+                        <div class="texture-desc">Dense spray paint</div>
+                    </div>
+
+                    <div class="texture-card" data-texture="waterSpray">
+                        <div class="texture-icon">💧</div>
+                        <div class="texture-name">Water Spray</div>
+                        <div class="texture-desc">Blur & smear colors</div>
+                    </div>
                 </div>
             </div>
         `;
