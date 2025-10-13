@@ -42,6 +42,13 @@
             transform: scaleX(-1); /* Mirror video */
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             display: none; /* Hidden by default */
+            /* Performance optimizations */
+            will-change: transform;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            /* Improve video rendering */
+            image-rendering: optimizeSpeed;
+            image-rendering: -webkit-optimize-contrast;
         }
 
         #pose-status {
@@ -476,6 +483,19 @@
                 let lastFrameTime = 0;
                 const frameInterval = 1000 / 15; // Limit to 15 FPS for pose detection
 
+                // Detect device performance for resolution
+                const isLowEndDevice = () => {
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    const cores = navigator.hardwareConcurrency || 4;
+                    const memory = navigator.deviceMemory || 4;
+                    return isMobile || cores < 4 || memory < 4;
+                };
+
+                // Use lower resolution on low-end devices
+                const videoConfig = isLowEndDevice() ?
+                    { width: 480, height: 360 } :  // Lower res for low-end
+                    { width: 640, height: 480 };   // Standard res
+
                 camera = new Camera(videoElement, {
                     onFrame: async () => {
                         if (pose && cameraActive) {
@@ -487,8 +507,9 @@
                             }
                         }
                     },
-                    width: 640,
-                    height: 480
+                    width: videoConfig.width,
+                    height: videoConfig.height,
+                    facingMode: 'user'
                 });
 
                 await camera.start();
@@ -792,18 +813,19 @@
                         // Rotation
                         coin.angle += 360 * this.k.dt();
 
-                        // Sparkle particles (only if on screen)
+                        // Sparkle particles (optimized - less frequent)
                         if (coin.pos.x < this.k.width() + 50) {
                             coin.sparkleTimer += this.k.dt();
-                            if (coin.sparkleTimer >= 0.15) {
+                            // Reduced from 0.15 to 0.25 (40% fewer particles)
+                            if (coin.sparkleTimer >= 0.25) {
                                 coin.sparkleTimer = 0;
-                                // Spawn small sparkle particles
+                                // Spawn sparkle particle
                                 const angle = this.k.rand(0, 360);
                                 const dist = this.k.rand(15, 25);
                                 const sparklePos = coin.pos.add(this.k.Vec2.fromAngle(angle).scale(dist));
 
                                 this.k.add([
-                                    this.k.rect(3, 3),
+                                    this.k.rect(4, 4), // Slightly larger
                                     this.k.pos(sparklePos),
                                     this.k.color(255, 255, 200),
                                     this.k.opacity(1),
@@ -822,80 +844,34 @@
                     });
                 }
 
-                // Add glow effect for special coins
+                // Add glow effect for special coins (optimized)
                 if (coinType.special) {
-                    // For star, add double glow with different pulse speeds
-                    if (coinType.name === "star") {
-                        // Outer glow (larger, slower pulse)
-                        const outerGlow = this.k.add([
-                            this.k.circle(25),
-                            this.k.pos(coin.pos),
-                            this.k.color(255, 255, 100),
-                            this.k.opacity(0.4),
-                            this.k.anchor("center"),
-                            this.k.z(-2),
-                            this.k.move(this.k.LEFT, this.speed),
-                            this.k.offscreen({ destroy: true })
-                        ]);
+                    // Simplified glow for better performance
+                    const glow = this.k.add([
+                        this.k.circle(coinType.name === "star" ? 20 : 15),
+                        this.k.pos(coin.pos),
+                        this.k.color(...coinType.color),
+                        this.k.opacity(0.35),
+                        this.k.anchor("center"),
+                        this.k.z(-1),
+                        this.k.move(this.k.LEFT, this.speed),
+                        this.k.offscreen({ destroy: true })
+                    ]);
 
-                        outerGlow.onUpdate(() => {
-                            if (!coin.exists() || !outerGlow.exists()) {
-                                if (outerGlow.exists()) this.k.destroy(outerGlow);
-                                return;
-                            }
-                            outerGlow.pos = coin.pos;
-                            const pulse = 1 + Math.sin(this.k.time() * 2) * 0.4;
-                            outerGlow.scale = this.k.vec2(pulse, pulse);
-                        });
+                    // Optimize: Update glow position and scale in one callback
+                    const pulseSpeed = coinType.name === "star" ? 3 : 2;
+                    glow.onUpdate(() => {
+                        if (!coin.exists()) {
+                            if (glow.exists()) this.k.destroy(glow);
+                            return;
+                        }
+                        glow.pos = coin.pos;
+                        // Simplified pulse calculation
+                        const pulse = 1 + Math.sin(this.k.time() * pulseSpeed) * 0.3;
+                        glow.scale = pulse;
+                    });
 
-                        // Inner glow (smaller, faster pulse)
-                        const innerGlow = this.k.add([
-                            this.k.circle(15),
-                            this.k.pos(coin.pos),
-                            this.k.color(255, 255, 200),
-                            this.k.opacity(0.6),
-                            this.k.anchor("center"),
-                            this.k.z(-1),
-                            this.k.move(this.k.LEFT, this.speed),
-                            this.k.offscreen({ destroy: true })
-                        ]);
-
-                        innerGlow.onUpdate(() => {
-                            if (!coin.exists() || !innerGlow.exists()) {
-                                if (innerGlow.exists()) this.k.destroy(innerGlow);
-                                return;
-                            }
-                            innerGlow.pos = coin.pos;
-                            const pulse = 1 + Math.sin(this.k.time() * 5) * 0.5;
-                            innerGlow.scale = this.k.vec2(pulse, pulse);
-                        });
-
-                        coin.glowEffect = [outerGlow, innerGlow];
-                    } else {
-                        // Single glow for ruby and diamond
-                        const glow = this.k.add([
-                            this.k.circle(15),
-                            this.k.pos(coin.pos),
-                            this.k.color(...coinType.color),
-                            this.k.opacity(0.3),
-                            this.k.anchor("center"),
-                            this.k.z(-1),
-                            this.k.move(this.k.LEFT, this.speed),
-                            this.k.offscreen({ destroy: true })
-                        ]);
-
-                        glow.onUpdate(() => {
-                            if (!coin.exists() || !glow.exists()) {
-                                if (glow.exists()) this.k.destroy(glow);
-                                return;
-                            }
-                            glow.pos = coin.pos;
-                            const pulse = 1 + Math.sin(this.k.time() * 3) * 0.3;
-                            glow.scale = this.k.vec2(pulse, pulse);
-                        });
-
-                        coin.glowEffect = glow;
-                    }
+                    coin.glowEffect = glow;
                 }
 
                 return coin;
