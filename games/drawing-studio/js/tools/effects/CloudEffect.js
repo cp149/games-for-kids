@@ -10,12 +10,13 @@ export class CloudEffect extends MagicEffect {
     }
 
     /**
-     * Draw a simple cute cloud - classic cartoon style
+     * Draw cloud using three-layer particle system (CSHorde blog approach)
+     * Core → Inner Fluff → Outer Fluff for realistic cloud generation
      */
     draw(ctx, x, y, size, color) {
         ctx.save();
 
-        const s = size * 1.6;
+        const s = size * 1.5;
 
         // Convert color to RGB
         let r = 255, g = 255, b = 255;
@@ -25,42 +26,97 @@ export class CloudEffect extends MagicEffect {
             b = parseInt(color.slice(5, 7), 16);
         }
 
-        // Make color lighter for cloud effect (pastel)
-        const lightR = Math.min(255, r + (255 - r) * 0.6);
-        const lightG = Math.min(255, g + (255 - g) * 0.6);
-        const lightB = Math.min(255, b + (255 - b) * 0.6);
+        // Make color lighter for cloud
+        const lightR = Math.min(255, r + (255 - r) * 0.8);
+        const lightG = Math.min(255, g + (255 - g) * 0.8);
+        const lightB = Math.min(255, b + (255 - b) * 0.8);
 
-        // Even lighter for edge
-        const edgeR = Math.min(255, r + (255 - r) * 0.8);
-        const edgeG = Math.min(255, g + (255 - g) * 0.8);
-        const edgeB = Math.min(255, b + (255 - b) * 0.8);
+        const particles = [];
 
-        // Draw cloud with slight gradient for depth
-        const puffs = [
-            { x: -0.6, y: 0, r: 0.5 },      // Left
-            { x: 0.6, y: 0, r: 0.5 },       // Right
-            { x: -0.3, y: -0.35, r: 0.55 }, // Top left
-            { x: 0.3, y: -0.35, r: 0.55 },  // Top right
-            { x: 0, y: -0.2, r: 0.65 }      // Center (biggest)
-        ];
+        // Phase 1: Create core particles
+        const numCores = 2 + Math.floor(Math.random() * 2); // 2-3 cores
+        const cores = [];
 
-        puffs.forEach(puff => {
+        for (let i = 0; i < numCores; i++) {
+            const core = {
+                x: x + (Math.random() - 0.5) * s * 0.6,
+                y: y + (Math.random() - 0.5) * s * 0.4,
+                r: s * (0.25 + Math.random() * 0.15),
+                layer: 'core'
+            };
+            cores.push(core);
+            particles.push(core);
+        }
+
+        // Phase 2: Generate inner fluff around each core
+        const innerDensity = 8; // Particles per core
+        const innerRange = s * 0.5;
+
+        cores.forEach(core => {
+            for (let i = 0; i < innerDensity; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * innerRange;
+
+                particles.push({
+                    x: core.x + Math.cos(angle) * distance,
+                    y: core.y + Math.sin(angle) * distance,
+                    r: s * (0.15 + Math.random() * 0.2),
+                    layer: 'inner'
+                });
+            }
+        });
+
+        // Phase 3: Generate outer fluff around inner particles
+        const outerDensity = 3; // Particles per inner particle
+        const innerParticles = particles.filter(p => p.layer === 'inner');
+
+        innerParticles.forEach(inner => {
+            for (let i = 0; i < outerDensity; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * inner.r;
+
+                particles.push({
+                    x: inner.x + Math.cos(angle) * distance,
+                    y: inner.y + Math.sin(angle) * distance,
+                    r: s * (0.08 + Math.random() * 0.15),
+                    layer: 'outer'
+                });
+            }
+        });
+
+        // Sort: draw large particles first, then small (for proper layering)
+        particles.sort((a, b) => b.r - a.r);
+
+        // Draw all particles with gradients
+        particles.forEach(particle => {
             const gradient = ctx.createRadialGradient(
-                x + puff.x * s - s * puff.r * 0.2,
-                y + puff.y * s - s * puff.r * 0.2,
+                particle.x - particle.r * 0.25,
+                particle.y - particle.r * 0.25,
                 0,
-                x + puff.x * s,
-                y + puff.y * s,
-                s * puff.r
+                particle.x,
+                particle.y,
+                particle.r
             );
 
-            gradient.addColorStop(0, `rgb(${lightR}, ${lightG}, ${lightB})`);
-            gradient.addColorStop(0.7, `rgba(${lightR}, ${lightG}, ${lightB}, 0.95)`);
-            gradient.addColorStop(1, `rgba(${edgeR}, ${edgeG}, ${edgeB}, 0.6)`);
+            // Opacity based on layer
+            let baseOpacity;
+            if (particle.layer === 'core') baseOpacity = 0.9;
+            else if (particle.layer === 'inner') baseOpacity = 0.7;
+            else baseOpacity = 0.5;
+
+            // Slight brightness variation
+            const brightness = 0.95 + Math.random() * 0.1;
+            const br = Math.min(255, lightR * brightness);
+            const bg = Math.min(255, lightG * brightness);
+            const bb = Math.min(255, lightB * brightness);
+
+            gradient.addColorStop(0, `rgba(${br}, ${bg}, ${bb}, ${baseOpacity})`);
+            gradient.addColorStop(0.6, `rgba(${br - 8}, ${bg - 8}, ${bb - 8}, ${baseOpacity * 0.7})`);
+            gradient.addColorStop(1, `rgba(${br - 15}, ${bg - 15}, ${bb - 15}, 0)`);
 
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(x + puff.x * s, y + puff.y * s, s * puff.r, 0, Math.PI * 2);
+            ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
             ctx.fill();
         });
 
