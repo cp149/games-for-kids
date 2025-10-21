@@ -303,6 +303,66 @@ export class DrawingEngine {
     }
 
     /**
+     * Load image as background
+     * @param {File|string} source - Image file or data URL
+     * @returns {Promise}
+     */
+    loadImageAsBackground(source) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+
+            img.onload = () => {
+                // Save current state before loading image
+                this.saveState();
+
+                // Calculate dimensions to fit canvas while maintaining aspect ratio
+                const canvasAspect = this.canvas.width / this.canvas.height;
+                const imgAspect = img.width / img.height;
+
+                let drawWidth, drawHeight, offsetX, offsetY;
+
+                if (imgAspect > canvasAspect) {
+                    // Image is wider - fit to width
+                    drawWidth = this.canvas.width;
+                    drawHeight = this.canvas.width / imgAspect;
+                    offsetX = 0;
+                    offsetY = (this.canvas.height - drawHeight) / 2;
+                } else {
+                    // Image is taller - fit to height
+                    drawHeight = this.canvas.height;
+                    drawWidth = this.canvas.height * imgAspect;
+                    offsetX = (this.canvas.width - drawWidth) / 2;
+                    offsetY = 0;
+                }
+
+                // Draw image centered on canvas
+                this.ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+                // Save state after loading
+                this.saveState();
+
+                resolve();
+            };
+
+            img.onerror = (error) => {
+                reject(new Error('Failed to load image'));
+            };
+
+            // Handle File object or data URL
+            if (source instanceof File) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsDataURL(source);
+            } else {
+                img.src = source;
+            }
+        });
+    }
+
+    /**
      * Export canvas as data URL
      * @param {string} type - Image type (default: 'image/png')
      * @returns {string}

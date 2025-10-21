@@ -294,11 +294,42 @@ class DrawingStudioApp {
      * Set up action buttons
      */
     setupActionButtons() {
+        const loadImageBtn = document.getElementById('load-image-btn');
+        const imageFileInput = document.getElementById('image-file-input');
         const templateBtn = document.getElementById('template-btn');
         const clearBtn = document.getElementById('clear-btn');
         const saveBtn = document.getElementById('save-btn');
         const galleryBtn = document.getElementById('gallery-btn');
         const exportBtn = document.getElementById('export-btn');
+
+        // Load Image button
+        if (loadImageBtn && imageFileInput) {
+            loadImageBtn.addEventListener('click', () => {
+                imageFileInput.click();
+            });
+
+            imageFileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    try {
+                        await this.engine.loadImageAsBackground(file);
+                        addAnimatedClass(loadImageBtn, 'pulse');
+
+                        // Feedback
+                        const originalText = loadImageBtn.textContent;
+                        loadImageBtn.textContent = '✅ Loaded!';
+                        setTimeout(() => {
+                            loadImageBtn.textContent = originalText;
+                        }, 1500);
+                    } catch (error) {
+                        console.error('Failed to load image:', error);
+                        alert('Failed to load image. Please try another file.');
+                    }
+                }
+                // Reset file input
+                e.target.value = '';
+            });
+        }
 
         // Template button
         if (templateBtn) {

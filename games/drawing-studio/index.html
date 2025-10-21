@@ -53,6 +53,9 @@
             <!-- Action Buttons -->
             <section class="toolbar-section">
                 <div class="action-buttons">
+                    <button id="load-image-btn" class="action-btn btn-load-image" title="Load image from file or camera">
+                        📷 Load Image
+                    </button>
                     <button id="template-btn" class="action-btn btn-template" title="Choose coloring template">
                         🎨 Template
                     </button>
@@ -73,6 +76,9 @@
                     </button>
                 </div>
             </section>
+
+            <!-- Hidden file input for image loading -->
+            <input type="file" id="image-file-input" accept="image/*" capture="environment" style="display: none;" />
         </aside>
 
         <!-- Canvas Area -->
