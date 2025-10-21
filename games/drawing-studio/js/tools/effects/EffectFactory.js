@@ -11,6 +11,7 @@ import { SandEffect } from './basic/SandEffect.js';
 import { RainbowSandEffect } from './basic/RainbowSandEffect.js';
 import { CloudEffect } from './CloudEffect.js';
 import { MusicNoteEffect } from './MusicNoteEffect.js';
+import { CandyEffect } from './CandyEffect.js';
 
 // Stamp effects
 import { ButterflyStamp } from './stamps/ButterflyStamp.js';
@@ -48,6 +49,7 @@ export class EffectFactory {
         this.register(new RainbowSandEffect());
         this.register(new CloudEffect());
         this.register(new MusicNoteEffect());
+        this.register(new CandyEffect());
 
         // Register stamp effects
         this.register(new ButterflyStamp());

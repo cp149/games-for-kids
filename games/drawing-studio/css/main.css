@@ -231,8 +231,13 @@ body {
     background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 }
 
+.btn-load-image {
+    background: linear-gradient(135deg, #FFB75E 0%, #ED8F03 100%);
+}
+
 .btn-template {
     background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #333;
 }
 
 .btn-save {

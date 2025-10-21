@@ -28,13 +28,7 @@ export class MushroomStamp extends StampEffect {
         ];
         const capColor = capColors[Math.floor(Math.random() * capColors.length)];
 
-        // Random cap position offset
-        const capOffsetX = (Math.random() - 0.5) * scale * 0.15;
-        const capOffsetY = (Math.random() - 0.5) * scale * 0.08;
-        const capX = x + capOffsetX;
-        const capY = y + capOffsetY;
-
-        // Stem
+        // Stem (draw first, centered at x)
         ctx.fillStyle = '#F5F5DC';
         ctx.beginPath();
         ctx.roundRect(x - scale * 0.1, y, scale * 0.2, scale * 0.35, scale * 0.05);
@@ -43,6 +37,10 @@ export class MushroomStamp extends StampEffect {
         // Stem shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
         ctx.fillRect(x + scale * 0.05, y, scale * 0.05, scale * 0.35);
+
+        // Cap position (centered on stem, no random offset)
+        const capX = x;
+        const capY = y;
 
         // Cap
         ctx.fillStyle = capColor;
