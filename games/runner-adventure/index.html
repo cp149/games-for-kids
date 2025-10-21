@@ -703,7 +703,6 @@
                     this.k.area({ scale: 0.3 }),  // Tighter collision box
                     this.k.scale(0.08),
                     this.k.anchor("center"),
-                    this.k.move(this.k.LEFT, this.speed),
                     this.k.offscreen({ destroy: true }),
                     "obstacle"
                 ]);
@@ -791,7 +790,6 @@
                     this.k.scale(coinType.scale),
                     this.k.anchor("center"),
                     this.k.color(...coinType.color),  // Spread array to RGB values
-                    this.k.move(this.k.LEFT, this.speed),
                     this.k.offscreen({ destroy: true }),
                     "collectible"  // Universal tag for all coins
                 ]);
@@ -854,7 +852,6 @@
                         this.k.opacity(0.35),
                         this.k.anchor("center"),
                         this.k.z(-1),
-                        this.k.move(this.k.LEFT, this.speed),
                         this.k.offscreen({ destroy: true })
                     ]);
 
@@ -884,6 +881,111 @@
             }
         }
 
+        class PowerUpSpawner {
+            constructor(k, groundY, speed) {
+                this.k = k;
+                this.groundY = groundY;
+                this.speed = speed;
+
+                // Power-up type configurations
+                this.powerUpTypes = [
+                    {
+                        name: "speed-boost",
+                        emoji: "⚡",
+                        color: [255, 255, 0], // Yellow
+                        scale: 0.5,
+                        duration: 5,
+                        description: "Speed Boost!"
+                    },
+                    {
+                        name: "slow-motion",
+                        emoji: "🕐",
+                        color: [100, 200, 255], // Light blue
+                        scale: 0.5,
+                        duration: 5,
+                        description: "Slow Motion!"
+                    },
+                    {
+                        name: "super-jump",
+                        emoji: "🦘",
+                        color: [255, 150, 0], // Orange
+                        scale: 0.5,
+                        duration: 8,
+                        description: "Super Jump!"
+                    }
+                ];
+            }
+
+            spawn() {
+                const powerUpType = this.k.choose(this.powerUpTypes);
+                // Spawn at comfortable jump heights
+                const yPos = this.k.choose([
+                    this.groundY - 40,  // Low - easy to get while running
+                    this.groundY - 100, // Mid - need a small jump
+                    this.groundY - 160  // High - need a full jump
+                ]);
+
+                const powerUp = this.k.add([
+                    this.k.text(powerUpType.emoji, { size: 40 }),  // Bigger for visibility
+                    this.k.pos(this.k.width(), yPos),
+                    this.k.area({ scale: 0.8 }),
+                    this.k.anchor("center"),
+                    this.k.offscreen({ destroy: true }),
+                    this.k.z(2),
+                    "powerup",
+                    {
+                        powerUpType: powerUpType.name,
+                        duration: powerUpType.duration,
+                        description: powerUpType.description,
+                        floatTime: 0
+                    }
+                ]);
+
+                // Add glow effect - bigger and brighter
+                const glow = this.k.add([
+                    this.k.circle(30),
+                    this.k.pos(this.k.width(), yPos),
+                    this.k.color(powerUpType.color[0], powerUpType.color[1], powerUpType.color[2]),
+                    this.k.opacity(0.5),
+                    this.k.anchor("center"),
+                    this.k.offscreen({ destroy: true }),
+                    this.k.z(1),
+                    {
+                        pulseTime: 0
+                    }
+                ]);
+
+                // Floating animation
+                powerUp.onUpdate(() => {
+                    if (!powerUp.exists()) return;
+                    powerUp.floatTime += this.k.dt();
+                    const floatOffset = Math.sin(powerUp.floatTime * 3) * 5;
+                    powerUp.pos.y = yPos + floatOffset;
+                    glow.pos.y = yPos + floatOffset;
+                });
+
+                // Pulsing glow
+                glow.onUpdate(() => {
+                    if (!glow.exists()) return;
+                    glow.pulseTime += this.k.dt();
+                    glow.opacity = 0.2 + Math.sin(glow.pulseTime * 5) * 0.15;
+                    const scale = 1 + Math.sin(glow.pulseTime * 5) * 0.2;
+                    glow.scale = this.k.vec2(scale, scale);
+                });
+
+                // Link glow to powerup
+                powerUp.glowEffect = glow;
+
+                return powerUp;
+            }
+
+            startSpawning(interval = 12) {
+                return this.k.loop(interval, () => {
+                    this.spawn();
+                });
+            }
+        }
+
         // ===== GAME SCENE =====
         k.scene("game", () => {
             score = 0;
@@ -894,6 +996,12 @@
             let invincible = false;
             let invincibleTimer = 0;
             const INVINCIBLE_DURATION = 5; // seconds
+
+            // Power-up states
+            let activePowerUp = null;
+            let powerUpTimer = 0;
+            let speedMultiplier = 1;
+            let jumpMultiplier = 1;
 
             // Combo multiplier calculation
             function getComboMultiplier(comboCount) {
@@ -1005,7 +1113,7 @@
             player.onUpdate(() => {
                 // Check pose detection for jump
                 if (canPoseJump() && !player.isJumping && !k.debug.paused) {
-                    player.velocityY = -JUMP_FORCE;
+                    player.velocityY = -JUMP_FORCE * jumpMultiplier;
                     player.isJumping = true;
                     playJumpSound();
                 }
@@ -1209,7 +1317,7 @@
             // Jump controls
             k.onKeyPress("space", () => {
                 if (!k.debug.paused && !player.isJumping) {
-                    player.velocityY = -JUMP_FORCE;
+                    player.velocityY = -JUMP_FORCE * jumpMultiplier;
                     player.isJumping = true;
                     playJumpSound();
                 }
@@ -1218,7 +1326,7 @@
             k.onMousePress((mouseBtn) => {
                 // Only jump on left click (button 0)
                 if (mouseBtn === "left" && !k.debug.paused && !player.isJumping) {
-                    player.velocityY = -JUMP_FORCE;
+                    player.velocityY = -JUMP_FORCE * jumpMultiplier;
                     player.isJumping = true;
                     playJumpSound();
                 }
@@ -1226,7 +1334,7 @@
 
             k.onTouchStart(() => {
                 if (!k.debug.paused && !player.isJumping) {
-                    player.velocityY = -JUMP_FORCE;
+                    player.velocityY = -JUMP_FORCE * jumpMultiplier;
                     player.isJumping = true;
                     playJumpSound();
                 }
@@ -1240,10 +1348,33 @@
             const coinSpawner = new CoinSpawner(k, groundY, OBSTACLE_SPEED * gameSpeed);
             coinSpawner.startSpawning(SPAWN_INTERVAL * 2);
 
+            // Spawn power-ups using PowerUpSpawner class
+            const powerUpSpawner = new PowerUpSpawner(k, groundY, OBSTACLE_SPEED * gameSpeed);
+            powerUpSpawner.startSpawning(8); // Every 8 seconds
+
             // Update score
             k.onUpdate(() => {
                 score += k.dt() * 10 * gameSpeed;
                 scoreText.text = `Score: ${Math.floor(score)}`;
+
+                // Manually move all objects based on current gameSpeed
+                k.get("obstacle").forEach(obj => {
+                    obj.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
+                });
+                k.get("collectible").forEach(obj => {
+                    obj.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
+                    // Update glow position if exists
+                    if (obj.glowEffect && obj.glowEffect.exists()) {
+                        obj.glowEffect.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
+                    }
+                });
+                k.get("powerup").forEach(obj => {
+                    obj.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
+                    // Update glow position if exists
+                    if (obj.glowEffect && obj.glowEffect.exists()) {
+                        obj.glowEffect.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
+                    }
+                });
 
                 // Update high score
                 if (Math.floor(score) > highScore) {
@@ -1252,8 +1383,22 @@
                     localStorage.setItem('runnerHighScore', highScore.toString());
                 }
 
-                // Gradually increase speed with max cap at 3.5x (slower progression)
-                gameSpeed = Math.min(3.5, 1 + Math.floor(score / 200) * 0.1);
+                // Update power-up timer
+                if (activePowerUp) {
+                    powerUpTimer -= k.dt();
+                    if (powerUpTimer <= 0) {
+                        // Power-up expired
+                        activePowerUp = null;
+                        speedMultiplier = 1;
+                        jumpMultiplier = 1;
+                        // Reset to natural speed progression
+                        gameSpeed = Math.min(3.5, 1 + Math.floor(score / 200) * 0.1);
+                    }
+                } else {
+                    // Only increase speed naturally when no power-up is active
+                    gameSpeed = Math.min(3.5, 1 + Math.floor(score / 200) * 0.1);
+                }
+
                 speedText.text = `Speed: ${gameSpeed.toFixed(1)}x`;
 
                 // Update combo timer
@@ -1612,50 +1757,169 @@
                 collectCoin(coin, coin.coinType);
             });
 
+            // Collect power-ups
+            player.onCollide("powerup", (powerup) => {
+                if (powerup.collected) return;
+                powerup.collected = true;
+
+                const powerUpType = powerup.powerUpType;
+                const duration = powerup.duration;
+
+                // Destroy glow effect
+                if (powerup.glowEffect && powerup.glowEffect.exists()) {
+                    k.destroy(powerup.glowEffect);
+                }
+                k.destroy(powerup);
+
+                // Immediately activate power-up
+                activePowerUp = powerUpType;
+                powerUpTimer = duration;
+
+                // Apply power-up effects immediately
+                if (activePowerUp === "speed-boost") {
+                    speedMultiplier = 1.5;
+                    gameSpeed = 1.5;
+                } else if (activePowerUp === "slow-motion") {
+                    speedMultiplier = 0.6;
+                    gameSpeed = 0.6;
+                } else if (activePowerUp === "super-jump") {
+                    jumpMultiplier = 1.6;
+                }
+
+                // Show power-up notification
+                const notification = k.add([
+                    k.text(powerup.description, { size: 32 }),
+                    k.pos(k.width() / 2, 150),
+                    k.anchor("center"),
+                    k.color(255, 255, 100),
+                    k.opacity(1),
+                    k.z(100),
+                    k.lifespan(2)
+                ]);
+
+                // Pulse animation
+                notification.onUpdate(() => {
+                    if (!notification.exists()) return;
+                    const scale = 1 + Math.sin(k.time() * 8) * 0.1;
+                    notification.scale = k.vec2(scale, scale);
+                });
+            });
+
+            // Collision with falling rocks
+            player.onCollide("falling-rock", (rock) => {
+                if (invincible) {
+                    // Invincible mode - destroy rock with particle effect
+                    if (!rock.exists()) return;
+                    const rockPos = rock.pos.clone();
+                    k.destroy(rock);
+
+                    // Gray rock particles
+                    for (let i = 0; i < 8; i++) {
+                        const angle = k.rand(0, 360);
+                        const speed = k.rand(80, 150);
+                        k.add([
+                            k.rect(4, 4),
+                            k.pos(rockPos),
+                            k.color(120, 120, 120),
+                            k.opacity(1),
+                            k.anchor("center"),
+                            k.lifespan(0.3),
+                            k.move(angle, speed),
+                            k.z(99)
+                        ]);
+                    }
+                } else {
+                    // Game over
+                    playGameOverSound();
+                    if (currentMusic) currentMusic.stop();
+                    k.go("gameover", Math.floor(score));
+                }
+            });
+
             // Ground decoration using GroundDecorator class
             const groundDecorator = new GroundDecorator(k, groundY, OBSTACLE_SPEED * gameSpeed);
             groundDecorator.startSpawning();
 
-            // Falling flowers (decorative effect)
-            k.loop(2, () => {
-                const xPos = k.rand(0, k.width());
-                const flowerFrame = k.choose([1, 2, 6]); // yellow flower, pink flower, daisy
-                const scale = k.rand(0.08, 0.12);
+            // Falling rocks (hazard) - spawn based on game speed
+            let rockSpawnTimer = 0;
+            const baseRockInterval = 5; // Base interval in seconds
+            k.onUpdate(() => {
+                rockSpawnTimer += k.dt();
+                // Adjust interval based on speed: slower game = less rocks, faster game = more rocks
+                const adjustedInterval = baseRockInterval / Math.max(0.8, gameSpeed);
 
-                const flower = k.add([
-                    k.sprite("ground-deco", { frame: flowerFrame }),
-                    k.pos(xPos, k.rand(-50, 100)),
-                    k.scale(scale),
+                if (rockSpawnTimer >= adjustedInterval) {
+                    rockSpawnTimer = 0;
+
+                    // Spawn rocks in the area where player runs (x: 50-300)
+                    const xPos = k.rand(50, 300);
+                const rockFrame = 4; // pebble/rock frame
+                const scale = k.rand(0.18, 0.25); // Moderate size rocks
+
+                // Warning indicator above rock spawn point
+                const warning = k.add([
+                    k.text("!", { size: 48 }),
+                    k.pos(xPos, 50),
+                    k.color(255, 0, 0),
+                    k.opacity(1),
                     k.anchor("center"),
-                    k.rotate(k.rand(0, 360)),
-                    k.opacity(0.8),
-                    k.offscreen({ destroy: true }),
-                    k.z(-2),
-                    "falling-flower",
+                    k.z(10),
+                    "rock-warning",
                     {
-                        swayTime: 0,
-                        swaySpeed: k.rand(2, 4),
-                        swayAmount: k.rand(20, 40)
+                        pulseTime: 0,
+                        lifetime: 0
                     }
                 ]);
 
-                // Add update behavior directly to flower
-                flower.onUpdate(() => {
-                    if (!flower.exists()) return;
-
-                    flower.swayTime += k.dt();
-                    // Sway left and right
-                    flower.pos.x += Math.sin(flower.swayTime * flower.swaySpeed) * flower.swayAmount * k.dt();
-                    // Fall down
-                    flower.pos.y += 40 * k.dt();
-                    // Gentle rotation
-                    flower.angle += 30 * k.dt();
-
-                    // Destroy if fallen past ground
-                    if (flower.pos.y > groundY + 100 && flower.exists()) {
-                        k.destroy(flower);
+                // Pulse and fade effect for warning
+                warning.onUpdate(() => {
+                    if (!warning.exists()) return;
+                    warning.pulseTime += k.dt() * 10;
+                    warning.lifetime += k.dt();
+                    // Pulse scale
+                    const scaleValue = 1 + Math.sin(warning.pulseTime) * 0.3;
+                    warning.scale = k.vec2(scaleValue, scaleValue);
+                    // Fade out after 0.8 seconds
+                    if (warning.lifetime > 0.8) {
+                        warning.opacity = Math.max(0, 1 - (warning.lifetime - 0.8) / 0.2);
                     }
                 });
+
+                // Destroy warning after 1 second
+                k.wait(1, () => {
+                    if (warning.exists()) k.destroy(warning);
+                });
+
+                const rock = k.add([
+                    k.sprite("ground-deco", { frame: rockFrame }),
+                    k.pos(xPos, -50), // Start above screen
+                    k.scale(scale),
+                    k.anchor("center"),
+                    k.rotate(k.rand(0, 360)),
+                    k.area({ scale: 0.7 }), // Collision detection
+                    k.offscreen({ destroy: true }),
+                    k.z(1),
+                    "falling-rock",
+                    {
+                        rotationSpeed: k.rand(80, 150)
+                    }
+                ]);
+
+                // Add update behavior - rocks fall straight down with rotation
+                rock.onUpdate(() => {
+                    if (!rock.exists()) return;
+
+                    // Fall down fast
+                    rock.pos.y += 150 * k.dt();
+                    // Spin while falling
+                    rock.angle += rock.rotationSpeed * k.dt();
+
+                    // Destroy if fallen past ground
+                    if (rock.pos.y > groundY + 100 && rock.exists()) {
+                        k.destroy(rock);
+                    }
+                });
+                }
             });
 
             // Parallax background - continuous mountain range
