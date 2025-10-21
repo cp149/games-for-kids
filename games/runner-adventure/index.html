@@ -704,8 +704,16 @@
                     this.k.scale(0.08),
                     this.k.anchor("center"),
                     this.k.offscreen({ destroy: true }),
-                    "obstacle"
+                    "obstacle",
+                    {
+                        baseSpeed: this.speed
+                    }
                 ]);
+
+                // Move based on global gameSpeed
+                obstacle.onUpdate(() => {
+                    obstacle.pos.x -= obstacle.baseSpeed * (typeof gameSpeed !== 'undefined' ? gameSpeed : 1) * this.k.dt();
+                });
 
                 return obstacle;
             }
@@ -791,8 +799,21 @@
                     this.k.anchor("center"),
                     this.k.color(...coinType.color),  // Spread array to RGB values
                     this.k.offscreen({ destroy: true }),
-                    "collectible"  // Universal tag for all coins
+                    "collectible",  // Universal tag for all coins
+                    {
+                        baseSpeed: this.speed
+                    }
                 ]);
+
+                // Move based on global gameSpeed
+                coin.onUpdate(() => {
+                    const speed = coin.baseSpeed * (typeof gameSpeed !== 'undefined' ? gameSpeed : 1);
+                    coin.pos.x -= speed * this.k.dt();
+                    // Update glow position if exists
+                    if (coin.glowEffect && coin.glowEffect.exists()) {
+                        coin.glowEffect.pos.x -= speed * this.k.dt();
+                    }
+                });
 
                 // Explicitly set custom properties
                 coin.coinType = coinType.name;
@@ -937,7 +958,9 @@
                         powerUpType: powerUpType.name,
                         duration: powerUpType.duration,
                         description: powerUpType.description,
-                        floatTime: 0
+                        floatTime: 0,
+                        baseSpeed: this.speed,
+                        baseYPos: yPos
                     }
                 ]);
 
@@ -955,13 +978,24 @@
                     }
                 ]);
 
-                // Floating animation
+                // Movement and floating animation
                 powerUp.onUpdate(() => {
                     if (!powerUp.exists()) return;
+
+                    // Move horizontally
+                    const speed = powerUp.baseSpeed * (typeof gameSpeed !== 'undefined' ? gameSpeed : 1);
+                    powerUp.pos.x -= speed * this.k.dt();
+
+                    // Float vertically
                     powerUp.floatTime += this.k.dt();
                     const floatOffset = Math.sin(powerUp.floatTime * 3) * 5;
-                    powerUp.pos.y = yPos + floatOffset;
-                    glow.pos.y = yPos + floatOffset;
+                    powerUp.pos.y = powerUp.baseYPos + floatOffset;
+
+                    // Update glow position
+                    if (glow.exists()) {
+                        glow.pos.x -= speed * this.k.dt();
+                        glow.pos.y = powerUp.baseYPos + floatOffset;
+                    }
                 });
 
                 // Pulsing glow
@@ -1356,25 +1390,6 @@
             k.onUpdate(() => {
                 score += k.dt() * 10 * gameSpeed;
                 scoreText.text = `Score: ${Math.floor(score)}`;
-
-                // Manually move all objects based on current gameSpeed
-                k.get("obstacle").forEach(obj => {
-                    obj.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
-                });
-                k.get("collectible").forEach(obj => {
-                    obj.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
-                    // Update glow position if exists
-                    if (obj.glowEffect && obj.glowEffect.exists()) {
-                        obj.glowEffect.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
-                    }
-                });
-                k.get("powerup").forEach(obj => {
-                    obj.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
-                    // Update glow position if exists
-                    if (obj.glowEffect && obj.glowEffect.exists()) {
-                        obj.glowEffect.pos.x -= OBSTACLE_SPEED * gameSpeed * k.dt();
-                    }
-                });
 
                 // Update high score
                 if (Math.floor(score) > highScore) {
