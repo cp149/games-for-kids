@@ -312,15 +312,7 @@ class DrawingStudioApp {
                 const file = e.target.files[0];
                 if (file) {
                     try {
-                        await this.engine.loadImageAsBackground(file);
-                        addAnimatedClass(loadImageBtn, 'pulse');
-
-                        // Feedback
-                        const originalText = loadImageBtn.textContent;
-                        loadImageBtn.textContent = '✅ Loaded!';
-                        setTimeout(() => {
-                            loadImageBtn.textContent = originalText;
-                        }, 1500);
+                        await this.loadImageWithResize(file);
                     } catch (error) {
                         console.error('Failed to load image:', error);
                         alert('Failed to load image. Please try another file.');
@@ -735,6 +727,45 @@ class DrawingStudioApp {
             console.error('Template load failed:', error);
             alert('Failed to load template');
         }
+    }
+
+    /**
+     * Load image with resize handles
+     * @param {File} file - Image file to resize
+     */
+    async loadImageWithResize(file) {
+        const img = await this.loadImageFile(file);
+        await this.engine.loadImageWithResizeHandles(img);
+
+        const loadImageBtn = document.getElementById('load-image-btn');
+        addAnimatedClass(loadImageBtn, 'pulse');
+
+        const originalText = loadImageBtn.textContent;
+        loadImageBtn.textContent = '✅ Loaded!';
+        setTimeout(() => {
+            loadImageBtn.textContent = originalText;
+        }, 1500);
+    }
+
+    /**
+     * Load image file as Image object
+     * @param {File} file - Image file
+     * @returns {Promise<Image>}
+     */
+    loadImageFile(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target.result;
+            };
+
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
     }
 }
 

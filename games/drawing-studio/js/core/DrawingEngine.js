@@ -303,63 +303,255 @@ export class DrawingEngine {
     }
 
     /**
-     * Load image as background
-     * @param {File|string} source - Image file or data URL
+     * Load image with draggable resize handles
+     * @param {Image} img - Image object
      * @returns {Promise}
      */
-    loadImageAsBackground(source) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
+    async loadImageWithResizeHandles(img) {
+        // Save current state
+        this.saveState();
 
-            img.onload = () => {
-                // Save current state before loading image
-                this.saveState();
+        // Initial size: fit to canvas
+        const canvasAspect = this.canvas.width / this.canvas.height;
+        const imgAspect = img.width / img.height;
 
-                // Calculate dimensions to fit canvas while maintaining aspect ratio
-                const canvasAspect = this.canvas.width / this.canvas.height;
-                const imgAspect = img.width / img.height;
+        let width, height;
+        if (imgAspect > canvasAspect) {
+            width = this.canvas.width;
+            height = this.canvas.width / imgAspect;
+        } else {
+            height = this.canvas.height;
+            width = this.canvas.height * imgAspect;
+        }
 
-                let drawWidth, drawHeight, offsetX, offsetY;
+        const x = (this.canvas.width - width) / 2;
+        const y = (this.canvas.height - height) / 2;
 
-                if (imgAspect > canvasAspect) {
-                    // Image is wider - fit to width
-                    drawWidth = this.canvas.width;
-                    drawHeight = this.canvas.width / imgAspect;
-                    offsetX = 0;
-                    offsetY = (this.canvas.height - drawHeight) / 2;
-                } else {
-                    // Image is taller - fit to height
-                    drawHeight = this.canvas.height;
-                    drawWidth = this.canvas.height * imgAspect;
-                    offsetX = (this.canvas.width - drawWidth) / 2;
-                    offsetY = 0;
+        // Image bounds
+        const bounds = { x, y, width, height };
+
+        // Create resize overlay
+        this.createResizeOverlay(img, bounds);
+    }
+
+    /**
+     * Create resize overlay with corner handles
+     * @param {Image} img - Image to resize
+     * @param {object} bounds - Initial bounds {x, y, width, height}
+     */
+    createResizeOverlay(img, bounds) {
+        // Create overlay layer
+        const overlay = document.createElement('div');
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.zIndex = '1000';
+        overlay.style.background = 'rgba(0,0,0,0.3)';
+        overlay.id = 'resize-overlay';
+
+        // Create image preview canvas
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = this.canvas.width;
+        previewCanvas.height = this.canvas.height;
+        previewCanvas.style.position = 'absolute';
+        previewCanvas.style.top = '0';
+        previewCanvas.style.left = '0';
+        previewCanvas.style.pointerEvents = 'auto';
+        previewCanvas.style.cursor = 'default';
+        const previewCtx = previewCanvas.getContext('2d');
+
+        overlay.appendChild(previewCanvas);
+
+        // Create corner handles
+        const handleSize = 20;
+        const corners = ['nw', 'ne', 'sw', 'se'];
+        const handles = {};
+
+        corners.forEach(corner => {
+            const handle = document.createElement('div');
+            handle.className = 'resize-handle';
+            handle.dataset.corner = corner;
+            handle.style.position = 'absolute';
+            handle.style.width = handleSize + 'px';
+            handle.style.height = handleSize + 'px';
+            handle.style.background = '#4ECDC4';
+            handle.style.border = '2px solid white';
+            handle.style.borderRadius = '50%';
+            handle.style.cursor = corner + '-resize';
+            handle.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+            handle.style.zIndex = '20';
+            handle.style.pointerEvents = 'auto';
+            overlay.appendChild(handle);
+            handles[corner] = handle;
+        });
+
+        // Create confirm button
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = '✓ Confirm';
+        confirmBtn.style.position = 'absolute';
+        confirmBtn.style.bottom = '20px';
+        confirmBtn.style.left = '50%';
+        confirmBtn.style.transform = 'translateX(-50%)';
+        confirmBtn.style.padding = '12px 30px';
+        confirmBtn.style.fontSize = '18px';
+        confirmBtn.style.background = '#4ECDC4';
+        confirmBtn.style.color = 'white';
+        confirmBtn.style.border = 'none';
+        confirmBtn.style.borderRadius = '8px';
+        confirmBtn.style.cursor = 'pointer';
+        confirmBtn.style.fontWeight = 'bold';
+        confirmBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        confirmBtn.style.zIndex = '10';
+        confirmBtn.style.pointerEvents = 'auto';
+        overlay.appendChild(confirmBtn);
+
+        // Render function
+        const render = () => {
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Draw current canvas content first (so existing images are visible)
+            previewCtx.drawImage(this.canvas, 0, 0);
+
+            // Draw new image on top
+            previewCtx.drawImage(img, bounds.x, bounds.y, bounds.width, bounds.height);
+
+            // Update handle positions
+            handles.nw.style.left = bounds.x - handleSize / 2 + 'px';
+            handles.nw.style.top = bounds.y - handleSize / 2 + 'px';
+            handles.ne.style.left = (bounds.x + bounds.width) - handleSize / 2 + 'px';
+            handles.ne.style.top = bounds.y - handleSize / 2 + 'px';
+            handles.sw.style.left = bounds.x - handleSize / 2 + 'px';
+            handles.sw.style.top = (bounds.y + bounds.height) - handleSize / 2 + 'px';
+            handles.se.style.left = (bounds.x + bounds.width) - handleSize / 2 + 'px';
+            handles.se.style.top = (bounds.y + bounds.height) - handleSize / 2 + 'px';
+        };
+
+        // Initial render
+        render();
+
+        // Drag handling
+        let dragCorner = null;
+        let isDraggingImage = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let initialBounds = null;
+
+        const handleMouseDown = (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+
+            const canvasX = (e.clientX - rect.left) * scaleX;
+            const canvasY = (e.clientY - rect.top) * scaleY;
+
+            if (e.target.classList.contains('resize-handle')) {
+                // Dragging corner handle
+                dragCorner = e.target.dataset.corner;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                initialBounds = { ...bounds };
+                e.preventDefault();
+            } else if (canvasX >= bounds.x && canvasX <= bounds.x + bounds.width &&
+                       canvasY >= bounds.y && canvasY <= bounds.y + bounds.height) {
+                // Dragging image itself
+                isDraggingImage = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                initialBounds = { ...bounds };
+                previewCanvas.style.cursor = 'move';
+                e.preventDefault();
+            }
+        };
+
+        const handleMouseMove = (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            const scaledDx = dx * scaleX;
+            const scaledDy = dy * scaleY;
+
+            if (dragCorner) {
+                // Resize via corner handle
+                switch (dragCorner) {
+                    case 'nw':
+                        bounds.x = initialBounds.x + scaledDx;
+                        bounds.y = initialBounds.y + scaledDy;
+                        bounds.width = initialBounds.width - scaledDx;
+                        bounds.height = initialBounds.height - scaledDy;
+                        break;
+                    case 'ne':
+                        bounds.y = initialBounds.y + scaledDy;
+                        bounds.width = initialBounds.width + scaledDx;
+                        bounds.height = initialBounds.height - scaledDy;
+                        break;
+                    case 'sw':
+                        bounds.x = initialBounds.x + scaledDx;
+                        bounds.width = initialBounds.width - scaledDx;
+                        bounds.height = initialBounds.height + scaledDy;
+                        break;
+                    case 'se':
+                        bounds.width = initialBounds.width + scaledDx;
+                        bounds.height = initialBounds.height + scaledDy;
+                        break;
                 }
 
-                // Draw image centered on canvas
-                this.ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                // Enforce minimum size
+                if (bounds.width < 50) bounds.width = 50;
+                if (bounds.height < 50) bounds.height = 50;
 
-                // Save state after loading
-                this.saveState();
-
-                resolve();
-            };
-
-            img.onerror = (error) => {
-                reject(new Error('Failed to load image'));
-            };
-
-            // Handle File object or data URL
-            if (source instanceof File) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    img.src = e.target.result;
-                };
-                reader.onerror = () => reject(new Error('Failed to read file'));
-                reader.readAsDataURL(source);
+                render();
+            } else if (isDraggingImage) {
+                // Move image
+                bounds.x = initialBounds.x + scaledDx;
+                bounds.y = initialBounds.y + scaledDy;
+                render();
             } else {
-                img.src = source;
+                // Update cursor when hovering over image
+                const canvasX = (e.clientX - rect.left) * scaleX;
+                const canvasY = (e.clientY - rect.top) * scaleY;
+
+                if (canvasX >= bounds.x && canvasX <= bounds.x + bounds.width &&
+                    canvasY >= bounds.y && canvasY <= bounds.y + bounds.height) {
+                    previewCanvas.style.cursor = 'move';
+                } else {
+                    previewCanvas.style.cursor = 'default';
+                }
             }
+        };
+
+        const handleMouseUp = () => {
+            dragCorner = null;
+            isDraggingImage = false;
+            previewCanvas.style.cursor = 'default';
+        };
+
+        // Confirm button
+        confirmBtn.addEventListener('click', () => {
+            // Draw to main canvas
+            this.ctx.drawImage(img, bounds.x, bounds.y, bounds.width, bounds.height);
+            this.saveState();
+
+            // Remove overlay
+            overlay.remove();
+
+            // Cleanup
+            document.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
         });
+
+        // Attach events
+        document.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        // Add to DOM
+        this.canvas.parentElement.appendChild(overlay);
     }
 
     /**
