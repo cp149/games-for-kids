@@ -239,32 +239,67 @@ class PuzzleGame {
         const time = document.getElementById('timer').textContent;
         const moves = this.moveCount;
 
-        setTimeout(() => {
-            alert(`🎉 Congratulations!\n\nTime: ${time}\nMoves: ${moves}\n\nYou completed the puzzle!`);
-        }, 800);
-
-        // Add celebration effect
-        this.showCelebration();
+        // Add celebration effect with stats
+        this.showCelebration(time, moves);
     }
 
-    showCelebration() {
-        // Create confetti effect
-        const container = document.getElementById('puzzle-board');
-        for (let i = 0; i < 50; i++) {
+    showCelebration(time, moves) {
+        // Create confetti effect - more confetti across whole screen
+        for (let i = 0; i < 100; i++) {
             const confetti = document.createElement('div');
             confetti.className = 'confetti';
             confetti.style.cssText = `
-                position: absolute;
-                width: 10px;
-                height: 10px;
+                position: fixed;
+                width: ${5 + Math.random() * 10}px;
+                height: ${5 + Math.random() * 10}px;
                 background: hsl(${Math.random() * 360}, 100%, 50%);
                 left: ${Math.random() * 100}%;
-                top: -10px;
+                top: -20px;
+                border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
                 animation: fall ${2 + Math.random() * 2}s linear;
+                z-index: 9999;
             `;
-            container.appendChild(confetti);
+            document.body.appendChild(confetti);
 
             setTimeout(() => confetti.remove(), 4000);
         }
+
+        // Show stats in a nice banner after a short delay
+        setTimeout(() => {
+            const statsBanner = document.createElement('div');
+            statsBanner.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(255, 255, 255, 0.95);
+                padding: 20px 40px;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                z-index: 10001;
+                font-size: 18px;
+                text-align: center;
+                animation: slideUp 0.5s ease-out;
+            `;
+            statsBanner.innerHTML = `
+                <div style="color: #667eea; font-weight: bold; margin-bottom: 10px;">Puzzle Complete!</div>
+                <div style="color: #666;">⏱️ Time: ${time} | 🔄 Moves: ${moves}</div>
+            `;
+
+            const slideUpStyle = document.createElement('style');
+            slideUpStyle.textContent = `
+                @keyframes slideUp {
+                    from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(slideUpStyle);
+            document.body.appendChild(statsBanner);
+
+            setTimeout(() => {
+                statsBanner.remove();
+                slideUpStyle.remove();
+            }, 4000);
+        }, 1500);
     }
 }
