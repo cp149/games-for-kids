@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧩 Puzzle Master - Fun Puzzle Game for Kids</title>
+    <meta name="description" content="Create and solve puzzles from your own images! Load photos, adjust difficulty, and have fun!">
+
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- Load classes in order -->
+    <script src="js/classes/PuzzlePiece.js"></script>
+    <script src="js/classes/PuzzleBoard.js"></script>
+    <script src="js/classes/ImageLoader.js"></script>
+    <script src="js/classes/PuzzleGame.js"></script>
+
+    <!-- Initialize game -->
+    <script>
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create game instance
+            const game = new PuzzleGame('game-container');
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Press 'H' for hint
+                if (e.key === 'h' || e.key === 'H') {
+                    if (game.puzzleBoard) {
+                        game.puzzleBoard.showHint();
+                    }
+                }
+
+                // Press 'R' to shuffle/reset
+                if (e.key === 'r' || e.key === 'R') {
+                    if (game.puzzleBoard) {
+                        game.puzzleBoard.reset();
+                        game.resetStats();
+                    }
+                }
+
+                // Press Space to toggle reference
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    document.getElementById('toggle-reference').click();
+                }
+            });
+
+            // Add visibility change handling
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && game.timerInterval) {
+                    game.stopTimer();
+                } else if (!document.hidden && game.puzzleBoard && game.puzzleBoard.piecesPlaced < game.puzzleBoard.pieces.length) {
+                    game.startTimer();
+                }
+            });
+
+            // Log game start
+            console.log('🧩 Puzzle Master initialized!');
+            console.log('Keyboard shortcuts:');
+            console.log('  H - Show hint');
+            console.log('  R - Shuffle/Reset');
+            console.log('  Space - Toggle reference image');
+        });
+    </script>
+</body>
+</html>
