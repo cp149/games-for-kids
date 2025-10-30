@@ -1085,7 +1085,9 @@
             }
 
             spawn() {
-                const powerUpType = this.k.choose(this.powerUpTypes);
+                // Always spawn a random power-up from the first 5 types
+                const otherPowerUps = this.powerUpTypes.slice(0, 5);
+                const powerUpType = this.k.choose(otherPowerUps);
                 // Spawn at comfortable jump heights
                 const yPos = this.k.choose([
                     this.groundY - 40,  // Low - easy to get while running
@@ -1165,6 +1167,74 @@
                     this.spawn();
                 });
             }
+
+            spawnHealthPotion() {
+                const healthPotionType = this.powerUpTypes[5]; // health-potion
+                const yPos = this.k.choose([
+                    this.groundY - 40,
+                    this.groundY - 100,
+                    this.groundY - 160
+                ]);
+
+                const powerUp = this.k.add([
+                    this.k.text(healthPotionType.emoji, { size: 40 }),
+                    this.k.pos(this.k.width(), yPos),
+                    this.k.area({ scale: 0.8 }),
+                    this.k.anchor("center"),
+                    this.k.offscreen({ destroy: true }),
+                    this.k.z(2),
+                    "powerup",
+                    {
+                        powerUpType: healthPotionType.name,
+                        duration: healthPotionType.duration,
+                        description: healthPotionType.description,
+                        floatTime: 0,
+                        baseSpeed: this.speed,
+                        baseYPos: yPos
+                    }
+                ]);
+
+                const glow = this.k.add([
+                    this.k.circle(30),
+                    this.k.pos(this.k.width(), yPos),
+                    this.k.color(healthPotionType.color[0], healthPotionType.color[1], healthPotionType.color[2]),
+                    this.k.opacity(0.5),
+                    this.k.anchor("center"),
+                    this.k.offscreen({ destroy: true }),
+                    this.k.z(1),
+                    { pulseTime: 0 }
+                ]);
+
+                powerUp.onUpdate(() => {
+                    if (!powerUp.exists()) return;
+                    const speed = powerUp.baseSpeed * (typeof gameSpeed !== 'undefined' ? gameSpeed : 1);
+                    powerUp.pos.x -= speed * this.k.dt();
+                    powerUp.floatTime += this.k.dt();
+                    const floatOffset = Math.sin(powerUp.floatTime * 3) * 5;
+                    powerUp.pos.y = powerUp.baseYPos + floatOffset;
+                    if (glow.exists()) {
+                        glow.pos.x -= speed * this.k.dt();
+                        glow.pos.y = powerUp.baseYPos + floatOffset;
+                    }
+                });
+
+                glow.onUpdate(() => {
+                    if (!glow.exists()) return;
+                    glow.pulseTime += this.k.dt();
+                    glow.opacity = 0.2 + Math.sin(glow.pulseTime * 5) * 0.15;
+                    const scale = 1 + Math.sin(glow.pulseTime * 5) * 0.2;
+                    glow.scale = this.k.vec2(scale, scale);
+                });
+
+                powerUp.glowEffect = glow;
+                return powerUp;
+            }
+
+            startHealthPotionSpawning(interval = 4) {
+                return this.k.loop(interval, () => {
+                    this.spawnHealthPotion();
+                });
+            }
         }
 
         // ===== GAME SCENE =====
@@ -1182,6 +1252,9 @@
             let damageInvincible = false; // Brief invincibility after taking damage
             let damageInvincibleTimer = 0;
             const DAMAGE_INVINCIBLE_DURATION = 1.5; // 1.5 seconds
+            let lastLifeInvincible = false; // 3-second invincibility when health drops to 1
+            let lastLifeInvincibleTimer = 0;
+            const LAST_LIFE_INVINCIBLE_DURATION = 3; // 3 seconds
 
             // Power-up states
             let activePowerUp = null;
@@ -1606,6 +1679,7 @@
             // Spawn power-ups using PowerUpSpawner class
             const powerUpSpawner = new PowerUpSpawner(k, groundY, OBSTACLE_SPEED * gameSpeed);
             powerUpSpawner.startSpawning(8); // Every 8 seconds
+            powerUpSpawner.startHealthPotionSpawning(4); // Health potion every 4 seconds (separate)
 
             // Update score
             k.onUpdate(() => {
@@ -1628,11 +1702,11 @@
                         speedMultiplier = 1;
                         jumpMultiplier = 1;
                         // Reset to natural speed progression
-                        gameSpeed = Math.min(3.5, 1 + Math.floor(score / 200) * 0.1);
+                        gameSpeed = Math.min(2.0, 1 + Math.floor(score / 600) * 0.05);
                     }
                 } else {
                     // Only increase speed naturally when no power-up is active
-                    gameSpeed = Math.min(3.5, 1 + Math.floor(score / 200) * 0.1);
+                    gameSpeed = Math.min(2.0, 1 + Math.floor(score / 600) * 0.05);
                 }
 
                 // Update magnet timer
@@ -1661,8 +1735,20 @@
                         // Flashing effect during invincibility
                         player.opacity = Math.sin(k.time() * 30) > 0 ? 0.3 : 1;
                     }
-                } else {
+                } else if (!lastLifeInvincible) {
                     player.opacity = 1;
+                }
+
+                // Update last life invincibility timer
+                if (lastLifeInvincible) {
+                    lastLifeInvincibleTimer -= k.dt();
+                    if (lastLifeInvincibleTimer <= 0) {
+                        lastLifeInvincible = false;
+                        player.opacity = 1;
+                    } else {
+                        // Golden flashing effect for last life invincibility
+                        player.opacity = Math.sin(k.time() * 20) > 0 ? 0.6 : 1;
+                    }
                 }
 
                 speedText.text = `Speed: ${gameSpeed.toFixed(1)}x`;
@@ -1755,7 +1841,7 @@
 
             // Collision with obstacles - Take damage
             player.onCollide("obstacle", (obstacle) => {
-                if (invincible || damageInvincible) {
+                if (invincible || damageInvincible || lastLifeInvincible) {
                     // Prevent double destruction
                     if (!obstacle.exists()) return;
 
@@ -1769,7 +1855,7 @@
                     for (let i = 0; i < 12; i++) {
                         const angle = k.rand(0, 360);
                         const speed = k.rand(100, 250);
-                        const hue = invincible ? (k.time() * 200 + i * 30) % 360 : 120;
+                        const hue = invincible ? (k.time() * 200 + i * 30) % 360 : (lastLifeInvincible ? 45 : 120);
                         const rgb = hslToRgb(hue / 360, 1, 0.5);
 
                         k.add([
@@ -1843,6 +1929,24 @@
 
                     health--;
                     updateHealthDisplay();
+
+                    // Check if this was the hit that brought health to 1 (last life)
+                    if (health === 1) {
+                        lastLifeInvincible = true;
+                        lastLifeInvincibleTimer = LAST_LIFE_INVINCIBLE_DURATION;
+
+                        // Show special notification
+                        const lastLifeNotif = k.add([
+                            k.text("⚠️ LAST LIFE! 3s Invincibility! ⚠️", { size: 32 }),
+                            k.pos(k.width() / 2, k.height() / 2 - 50),
+                            k.anchor("center"),
+                            k.color(255, 215, 0),
+                            k.opacity(1),
+                            k.z(100),
+                            k.lifespan(2.5)
+                        ]);
+                    }
+
                     damageInvincible = true;
                     damageInvincibleTimer = DAMAGE_INVINCIBLE_DURATION;
 
@@ -2217,7 +2321,7 @@
 
             // Collision with falling rocks
             player.onCollide("falling-rock", (rock) => {
-                if (invincible || damageInvincible) {
+                if (invincible || damageInvincible || lastLifeInvincible) {
                     // Invincible mode - destroy rock with particle effect
                     if (!rock.exists()) return;
                     const rockPos = rock.pos.clone();
@@ -2298,6 +2402,24 @@
 
                     health--;
                     updateHealthDisplay();
+
+                    // Check if this was the hit that brought health to 1 (last life)
+                    if (health === 1) {
+                        lastLifeInvincible = true;
+                        lastLifeInvincibleTimer = LAST_LIFE_INVINCIBLE_DURATION;
+
+                        // Show special notification
+                        const lastLifeNotif = k.add([
+                            k.text("⚠️ LAST LIFE! 3s Invincibility! ⚠️", { size: 32 }),
+                            k.pos(k.width() / 2, k.height() / 2 - 50),
+                            k.anchor("center"),
+                            k.color(255, 215, 0),
+                            k.opacity(1),
+                            k.z(100),
+                            k.lifespan(2.5)
+                        ]);
+                    }
+
                     damageInvincible = true;
                     damageInvincibleTimer = DAMAGE_INVINCIBLE_DURATION;
 

@@ -1,183 +1,250 @@
-# Runner Adventure - KAPLAY Prototype
+# 🏃 Runner Adventure
 
-A simple endless runner game built with KAPLAY to demonstrate the framework's capabilities.
+An endless runner game controlled by **body movements** using pose detection technology.
 
-## Features ✨
+## 🎮 Core Features
 
-- **Auto-running player** with jump mechanics
-- **Procedural obstacle generation** with increasing difficulty
-- **Collectible coins** for bonus points
-- **Score system** with speed multiplier
-- **Animated background** (clouds, grass)
-- **Game over and restart** functionality
-- **Responsive controls** (keyboard, mouse, touch)
+### Control System
+- **📸 Pose Detection**: Real-time body tracking with MediaPipe
+- **🖐️ Jump Control**: Raise one hand above shoulder to jump
+- **✨ Invincibility**: Raise both hands for star power mode
+- **📷 Camera Toggle**: Switch between front/rear camera
 
-## How to Play 🎮
+### Health & Lives
+- **❤️ 5 Hearts System**: Start with 5 lives, lose 1 per hit
+- **🛡️ Damage Invincibility**: 1.5s flash effect after taking damage
+- **💚 Health Potion**: Restores 1 heart (max 5)
+- **Game Over**: Happens when all hearts are lost
 
-1. Open `index.html` in a web browser
-2. Click "Start Game" or press SPACE
-3. Jump over obstacles by:
-   - Pressing **SPACE** (keyboard)
-   - **Clicking** (mouse)
-   - **Tapping** (touch screen)
-4. Collect **gold coins** for bonus points
-5. Survive as long as possible!
+### Visual Effects
+- **Trail Effects**: Colored trails during combo/invincibility
+- **Particle Systems**: Explosions, dust, healing effects
+- **Dynamic Backgrounds**: Parallax mountains and clouds
 
-## Technical Details 🔧
+## 🎯 Collectibles
+
+### Coins (Auto-spawns every 3s)
+- **Regular Coin** 🪙 (70%): 50 points
+- **Ruby** 💎 (10%): 200 points - red gem
+- **Diamond** 💠 (5%): 500 points - cyan gem
+- **Star** ⭐ (15%): 100 points + invincibility mode
+
+### Coin Lines (30% chance)
+- **3-5 coins** spawning in vertical/diagonal formation
+- Encourages strategic jumping to collect all
+- Smaller coins for easier collection
+
+### Coin Rain Event 🌧️
+- **Random trigger**: Every 30-60 seconds
+- **Duration**: 5 seconds of falling coins
+- **Spawn rate**: 1-2 coins every 0.25s
+- Large notification with emoji
+
+## 💎 Power-Ups System
+
+### Speed Boost ⚡
+- **Duration**: 5 seconds
+- **Effect**: 1.5x game speed
+- **Color**: Yellow
+
+### Slow Motion 🕐
+- **Duration**: 5 seconds
+- **Effect**: 0.6x game speed (easier dodging)
+- **Color**: Light blue
+
+### Super Jump 🦘
+- **Duration**: 8 seconds
+- **Effect**: 1.6x jump height
+- **Color**: Orange
+
+### Coin Magnet 🧲
+- **Duration**: 8 seconds
+- **Effect**: Auto-attracts coins within 200px radius
+- **Visual**: Coins pulled toward player
+
+### Shield 🛡️
+- **Duration**: 15 seconds or until one hit
+- **Effect**: Blocks one damage from rock/cactus
+- **Visual**: Pulsing blue circle
+- **Break Effect**: Blue particle explosion
+
+### Health Potion ❤️
+- **Effect**: Instant +1 health (max 5)
+- **Visual**: Pink healing particles
+- **Notification**: "+1 Health!"
+
+## 🎯 Obstacles
+
+### Cacti 🌵
+- **Spawn Interval**: Every 2.5 seconds
+- **Damage**: -1 heart
+- **Effect**: Green particle explosion
+- **Collision**: Tight hitbox (0.3 scale)
+
+### Falling Rocks 🪨
+- **Base Interval**: 7 seconds (scales with speed)
+- **Warning**: Red "!" indicator 1.5s before impact
+- **Spawn Area**: Random X position (50-300px)
+- **Damage**: -1 heart
+- **Effect**: Gray rock particles
+
+## 📊 Scoring System
+
+### Base Score
+- **Passive**: 10 points/second × game speed
+- **Coins**: Base value × combo multiplier
+
+### Combo Multipliers
+- **0-4 combo**: 1x (no bonus)
+- **5-9 combo**: 1.5x (yellow trail)
+- **10-19 combo**: 2x (orange trail)
+- **20+ combo**: 3x (red trail)
+- **Timeout**: 3 seconds without collecting
+
+### Special Events
+- **Star Collection**: Rainbow effects + invincibility
+- **Diamond/Ruby**: Ring expansion + burst
+- **Combo Level Up**: Screen flash + particles + sound
+
+## 🎮 Game Progression
+
+### Dynamic Difficulty
+- **Speed Scaling**: +0.1x every 200 points
+- **Max Speed**: 3.5x
+- **Rock Frequency**: Adjusts with game speed
+- **Starting Speed**: 1.0x
+
+### High Score
+- Saved to localStorage
+- Displayed in menu and game over
+- Updates in real-time
+
+## 🖥️ UI Layout
+
+### Top Left Panel
+- Score (current)
+- Best (high score)
+- Speed (multiplier)
+
+### Top Right
+- Health: ❤️❤️❤️❤️❤️ (red/black hearts)
+
+### Top Center (when active)
+- Combo count and multiplier
+- Combo timer progress bar
+- Invincibility timer (rainbow text)
+
+## 🎵 Audio System
+
+### Background Music
+- **Menu**: Calm background theme
+- **Gameplay**: Upbeat running music
+- **Invincible**: Special star power theme
+
+### Sound Effects
+- Jump, coin collection, special coins
+- Combo level up, game over
+- Power-up collection
+
+## 🔧 Technical Implementation
 
 ### Built with KAPLAY
+- **Game Engine**: KAPLAY v3001.0.0
+- **Pose Detection**: MediaPipe
+- **Single HTML File**: ~2500 lines
 
-This prototype demonstrates KAPLAY's core features:
+### Performance Optimizations
+- Manual movement (O(1) vs O(3n))
+- Efficient collision detection
+- Offscreen auto-destroy
+- Tight collision boxes
 
-**✅ Components Used:**
-- `k.rect()` - Shape rendering
-- `k.circle()` - Circle shapes for coins
-- `k.pos()` - Position component
-- `k.area()` - Collision detection
-- `k.body()` - Physics (gravity, jumping)
-- `k.move()` - Movement component
-- `k.color()` - Coloring
-- `k.offscreen()` - Auto-cleanup
+### Modular Architecture
+Ready for future expansion:
+- Separated spawner classes
+- Game state management
+- Easy to add new features
+- Clear code organization
 
-**✅ Game Loop:**
-- `k.onUpdate()` - Frame updates
-- `k.loop()` - Timed events (spawning)
+## 📝 Version History
 
-**✅ Input:**
-- `k.onKeyPress()` - Keyboard
-- `k.onClick()` - Mouse
-- `k.onTouchStart()` - Touch
+- **v1.0**: Basic runner with keyboard controls
+- **v1.1**: Added power-up system (speed, slow-mo, super jump)
+- **v1.2**: Implemented 5-heart health system
+- **v1.3**: Added magnet and shield power-ups
+- **v1.4**: Added health potion and coin rain event
+- **v1.5**: Implemented coin lines for better flow
+- **v1.6**: Balance adjustments (rock/coin rain frequency)
 
-**✅ Scenes:**
-- `menu` - Start screen
-- `game` - Main gameplay
-- `gameover` - End screen
+## 🐛 Bug Fixes Applied
 
-**✅ Effects:**
-- Simple particle system (coin collection)
-- Lifespan component for temporary objects
-- Dynamic speed scaling
+1. Fixed power-up crashes (gameSpeed override)
+2. Adjusted rock spawning frequency
+3. Improved collision detection fairness
+4. Added damage invincibility system
+5. Performance optimization (movement system)
 
-## Code Structure 📝
+## 🎯 Balance Adjustments
 
-```javascript
-// Initialize KAPLAY
-const k = kaplay({ ... });
+### Enemy Spawn Rates
+- Cacti: 2.5s interval (was 1.5s)
+- Rocks: 7s base interval (was 5s)
+- Both scale with game speed
 
-// Define scenes
-k.scene("menu", () => { ... });
-k.scene("game", () => { ... });
-k.scene("gameover", (score) => { ... });
+### Coin Rain
+- Spawn: 1-2 coins per 0.25s (was 2-3 per 0.15s)
+- Roughly 50% reduction in density
 
-// Start game
-k.go("menu");
-```
+### Health System
+- 5 hearts total
+- 1.5s invincibility after damage
+- Prevents instant death scenarios
 
-## Game Mechanics 🎯
+## 🎮 How to Play
 
-### Scoring
-- **+10 points/second** (base rate)
-- **+50 points** per coin collected
-- Score multiplied by current speed
+1. **Allow camera access** when prompted
+2. **Raise one hand** above shoulder to jump
+3. **Raise both hands** for invincibility mode
+4. **Collect coins** and power-ups
+5. **Avoid obstacles** (cacti and falling rocks)
+6. **Survive as long as possible!**
 
-### Difficulty Scaling
-- Game speed increases every 100 points
-- Speed = 1.0x → 1.1x → 1.2x → ...
-- Faster obstacles as game progresses
+## 📱 Device Support
 
-### Physics
-- Gravity: 1600 units
-- Jump force: 600 units
-- Player stays grounded until jump
+- **Desktop**: Chrome, Firefox, Safari, Edge
+- **Tablet**: iPad, Android tablets (excellent experience!)
+- **Mobile**: Touch-enabled phones
+- **Camera**: Front/rear camera support
 
-## Current Limitations ⚠️
+## 🌟 Tips for Players
 
-This is a **basic prototype** to validate KAPLAY integration:
+1. **Watch for warnings**: Red "!" means rock incoming
+2. **Collect coin lines**: All coins in sequence for big combos
+3. **Use magnet wisely**: Activate during coin rain for max profit
+4. **Save shield**: Best for high-speed sections
+5. **Health potions rare**: Don't waste invincibility on cacti
 
-- ❌ No sprites (using colored rectangles)
-- ❌ No animations
-- ❌ No sound effects or music
-- ❌ No multi-language support (i18n)
-- ❌ No persistent high scores
-- ❌ No advanced UI components
-- ❌ Simple graphics
+## 🚀 Future Ideas
 
-## Next Steps 🚀
+- [ ] More power-up types (slow-time bubble, double coins)
+- [ ] Different environments (desert, snow, space)
+- [ ] Achievements system
+- [ ] Daily challenges
+- [ ] Multiplayer race mode
+- [ ] Character customization
 
-### Phase 2: Enhanced Version
-1. **Add sprites** - Character and obstacle graphics
-2. **Add animations** - Running, jumping animations
-3. **Add audio** - Background music and sound effects
-4. **Integrate i18n** - Multi-language support
-5. **Better UI** - Styled menus and HUD
+## 📊 Statistics
 
-### Phase 3: Extensions
-6. **Scoring system** - Stars, combos, high scores
-7. **Power-ups** - Shield, double jump, speed boost
-8. **Multiple themes** - Different visual styles
-9. **Level progression** - Different environments
+- **Total Features**: 30+
+- **Power-Up Types**: 6
+- **Coin Types**: 4
+- **Obstacle Types**: 2
+- **Lines of Code**: ~2500
+- **Development Time**: 2 weeks
 
-### Phase 4: Advanced Features
-10. **MediaPipe** - Hand gesture controls
-11. **TTS** - Voice feedback
-12. **Mobile optimization** - Better touch controls
+---
 
-## File Size 📊
+**Made with ❤️ for kids around the world**
 
-- **HTML file:** ~12KB
-- **KAPLAY (CDN):** ~200KB (cached by browser)
-- **Total load:** ~212KB (first visit), ~12KB (cached)
-
-## Performance 🚀
-
-- **60 FPS** on modern browsers
-- **Works on mobile** (tested on touch devices)
-- **Low memory usage** (auto-cleanup of off-screen objects)
-
-## Lessons Learned 📚
-
-### What Works Well:
-- ✅ KAPLAY setup is extremely simple
-- ✅ Component-based architecture is intuitive
-- ✅ Scene system is perfect for game states
-- ✅ Physics "just works" out of the box
-- ✅ Collision detection is trivial
-- ✅ Mobile support is built-in
-
-### What to Improve:
-- Need custom extensions for i18n
-- Need custom UI components for polish
-- Need sprite management strategy
-- Need audio asset organization
-
-### Time Spent:
-- Setup and learning: **~1 hour**
-- Building prototype: **~2 hours**
-- **Total: ~3 hours** 🎉
-
-Compare to custom engine: Would take **3-4 weeks**!
-
-## Comparison with Memory Match
-
-| Feature | Memory Match | Runner Prototype |
-|---------|-------------|------------------|
-| Framework | Vanilla JS | KAPLAY |
-| Lines of Code | ~1,450 | ~350 |
-| Development Time | 2-3 days | 3 hours |
-| File Size | 35KB | 12KB |
-| Physics | Manual | Built-in |
-| Collision | Manual | Built-in |
-| Mobile Support | Custom | Built-in |
-
-**Result:** KAPLAY is **10x faster** for development! 🚀
-
-## Try It 👉
-
-Open `games/runner-adventure/index.html` in your browser or visit:
-`https://cp149.github.io/games-for-kids/games/runner-adventure/`
-
-## Credits
-
-- **Game Engine:** KAPLAY (https://kaplayjs.com/)
-- **Framework:** KAPLAY v3001.0.0
-- **License:** MIT
+Game Engine: [KAPLAY](https://kaplayjs.com/)
+Pose Detection: [MediaPipe](https://mediapipe.dev/)
