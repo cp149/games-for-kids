@@ -48,7 +48,7 @@ class PuzzleGame {
                         <button class="control-btn" id="toggle-reference">👁️ Reference</button>
                     </div>
 
-                    <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
                 </div>
 
                 <div class="game-area">

@@ -38,19 +38,34 @@ class PuzzleBoard {
         const containerWidth = this.boardContainer.clientWidth || 600;
         const containerHeight = this.boardContainer.clientHeight || 500;
 
-        const maxWidth = Math.min(600, containerWidth - 40);
-        const maxHeight = Math.min(600, containerHeight - 40);
+        // Set minimum and maximum dimensions to keep pieces at reasonable size
+        const minSize = 400; // Minimum dimension to keep pieces large enough
+        const maxWidth = Math.max(minSize, Math.min(600, containerWidth - 40));
+        const maxHeight = Math.max(minSize, Math.min(600, containerHeight - 40));
 
         console.log('Max size:', maxWidth, 'x', maxHeight);
 
         const imageAspect = this.image.width / this.image.height;
 
+        // Calculate board size maintaining aspect ratio but ensuring minimum size
         if (imageAspect > 1) {
+            // Landscape image
             this.boardWidth = maxWidth;
             this.boardHeight = maxWidth / imageAspect;
+            // Ensure height is not too small
+            if (this.boardHeight < minSize / 2) {
+                this.boardHeight = minSize / 2;
+                this.boardWidth = this.boardHeight * imageAspect;
+            }
         } else {
+            // Portrait image
             this.boardHeight = maxHeight;
             this.boardWidth = maxHeight * imageAspect;
+            // Ensure width is not too small
+            if (this.boardWidth < minSize / 2) {
+                this.boardWidth = minSize / 2;
+                this.boardHeight = this.boardWidth / imageAspect;
+            }
         }
 
         this.pieceWidth = this.boardWidth / this.difficulty;
