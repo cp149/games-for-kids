@@ -16,6 +16,7 @@ class PuzzlePiece {
         this.isPlaced = false;
         this.isInSidebar = true;
         this.zIndex = 1;
+        this.boardContainer = null; // Store board container reference
 
         this.dragStartX = 0;
         this.dragStartY = 0;
@@ -57,31 +58,29 @@ class PuzzlePiece {
         e.preventDefault();
         this.isDragging = true;
         this.canvas.style.cursor = 'grabbing';
-        this.zIndex = 100;
+        this.zIndex = 9999;
         this.canvas.style.zIndex = this.zIndex;
 
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
+        // Get current position before any changes
         const rect = this.canvas.getBoundingClientRect();
         this.dragStartX = clientX - rect.left;
         this.dragStartY = clientY - rect.top;
 
-        // If piece is in sidebar, move it to board container
+        // Store board container reference for later (always get it fresh)
+        this.boardContainer = document.getElementById('puzzle-board');
         if (this.isInSidebar) {
-            const boardContainer = document.getElementById('puzzle-board');
-            this.canvas.style.position = 'absolute';
-            this.canvas.style.margin = '0';
-
-            // Position piece where it was clicked relative to board
-            const boardRect = boardContainer.getBoundingClientRect();
-            this.currentX = clientX - boardRect.left - this.dragStartX;
-            this.currentY = clientY - boardRect.top - this.dragStartY;
-
-            boardContainer.appendChild(this.canvas);
-            this.updatePosition();
             this.isInSidebar = false;
         }
+
+        // Always move to body with fixed position during drag
+        this.canvas.style.position = 'fixed';
+        this.canvas.style.left = rect.left + 'px';
+        this.canvas.style.top = rect.top + 'px';
+        this.canvas.style.margin = '0';
+        document.body.appendChild(this.canvas);
     }
 
     onDragMove(e) {
@@ -91,13 +90,19 @@ class PuzzlePiece {
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        const container = this.canvas.parentElement;
-        const containerRect = container.getBoundingClientRect();
+        // If using fixed position (during drag), position directly
+        if (this.canvas.style.position === 'fixed') {
+            this.canvas.style.left = (clientX - this.dragStartX) + 'px';
+            this.canvas.style.top = (clientY - this.dragStartY) + 'px';
+        } else {
+            const container = this.canvas.parentElement;
+            const containerRect = container.getBoundingClientRect();
 
-        this.currentX = clientX - containerRect.left - this.dragStartX;
-        this.currentY = clientY - containerRect.top - this.dragStartY;
+            this.currentX = clientX - containerRect.left - this.dragStartX;
+            this.currentY = clientY - containerRect.top - this.dragStartY;
 
-        this.updatePosition();
+            this.updatePosition();
+        }
     }
 
     onDragEnd(e) {
@@ -107,6 +112,30 @@ class PuzzlePiece {
         this.canvas.style.cursor = 'grab';
         this.zIndex = 1;
         this.canvas.style.zIndex = this.zIndex;
+
+        // Check if piece is dropped inside board area
+        const rect = this.canvas.getBoundingClientRect();
+        const boardRect = this.boardContainer.getBoundingClientRect();
+
+        const isInsideBoard = (
+            rect.left >= boardRect.left &&
+            rect.right <= boardRect.right &&
+            rect.top >= boardRect.top &&
+            rect.bottom <= boardRect.bottom
+        );
+
+        if (isInsideBoard && this.boardContainer) {
+            // Dropped inside board - keep it there
+            this.currentX = rect.left - boardRect.left;
+            this.currentY = rect.top - boardRect.top;
+
+            this.canvas.style.position = 'absolute';
+            this.boardContainer.appendChild(this.canvas);
+            this.updatePosition();
+        } else {
+            // Dropped outside board - return to sidebar
+            this.returnToSidebar();
+        }
 
         // Fire custom event for snap detection
         const event = new CustomEvent('pieceDropped', {
@@ -124,6 +153,19 @@ class PuzzlePiece {
         this.currentX = x;
         this.currentY = y;
         this.updatePosition();
+    }
+
+    returnToSidebar() {
+        // Return piece to sidebar
+        const piecesArea = document.getElementById('pieces-area');
+        if (piecesArea) {
+            this.canvas.style.position = 'relative';
+            this.canvas.style.left = 'auto';
+            this.canvas.style.top = 'auto';
+            this.canvas.style.margin = '10px auto';
+            piecesArea.appendChild(this.canvas);
+            this.isInSidebar = true;
+        }
     }
 
     snapToCorrectPosition() {

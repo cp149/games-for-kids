@@ -11,6 +11,12 @@ class PuzzleGame {
         this.timerInterval = null;
         this.moveCount = 0;
 
+        // Background music
+        this.bgMusic = null;
+        this.currentMusicIndex = 0;
+        this.musicFiles = ['assets/sounds/m1.mp3', 'assets/sounds/m2.mp3'];
+        this.isMusicPlaying = false;
+
         this.init();
     }
 
@@ -46,6 +52,7 @@ class PuzzleGame {
                         <button class="control-btn" id="shuffle-btn">🔀 Shuffle</button>
                         <button class="control-btn" id="hint-btn">💡 Hint</button>
                         <button class="control-btn" id="toggle-reference">👁️ Reference</button>
+                        <button class="control-btn" id="music-btn">🎵 Music</button>
                     </div>
 
                     <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
@@ -141,6 +148,11 @@ class PuzzleGame {
             this.moveCount++;
             document.getElementById('moves').textContent = this.moveCount;
         });
+
+        // Music control
+        document.getElementById('music-btn').addEventListener('click', () => {
+            this.toggleMusic();
+        });
     }
 
     loadDefaultImage() {
@@ -206,6 +218,9 @@ class PuzzleGame {
         // Reset stats
         this.resetStats();
         this.startTimer();
+
+        // Auto-start music
+        this.autoStartMusic();
     }
 
     startTimer() {
@@ -301,5 +316,71 @@ class PuzzleGame {
                 slideUpStyle.remove();
             }, 4000);
         }, 1500);
+    }
+
+    initMusic() {
+        if (!this.bgMusic) {
+            this.bgMusic = new Audio(this.musicFiles[this.currentMusicIndex]);
+            this.bgMusic.loop = false;
+            this.bgMusic.volume = 0.4;
+
+            // Auto-switch to next music when current ends
+            this.bgMusic.addEventListener('ended', () => {
+                this.currentMusicIndex = (this.currentMusicIndex + 1) % this.musicFiles.length;
+                this.bgMusic.src = this.musicFiles[this.currentMusicIndex];
+                if (this.isMusicPlaying) {
+                    this.bgMusic.play();
+                }
+            });
+        }
+    }
+
+    toggleMusic() {
+        this.initMusic();
+        const btn = document.getElementById('music-btn');
+
+        if (this.isMusicPlaying) {
+            this.bgMusic.pause();
+            this.isMusicPlaying = false;
+            btn.textContent = '🎵 Music';
+            btn.style.opacity = '0.7';
+        } else {
+            this.bgMusic.play().catch(err => {
+                console.log('Audio play failed:', err);
+            });
+            this.isMusicPlaying = true;
+            btn.textContent = '🔇 Music';
+            btn.style.opacity = '1';
+        }
+    }
+
+    stopMusic() {
+        if (this.bgMusic && this.isMusicPlaying) {
+            this.bgMusic.pause();
+            this.isMusicPlaying = false;
+            const btn = document.getElementById('music-btn');
+            if (btn) {
+                btn.textContent = '🎵 Music';
+                btn.style.opacity = '0.7';
+            }
+        }
+    }
+
+    autoStartMusic() {
+        // Only auto-start if music is not already playing
+        if (!this.isMusicPlaying) {
+            this.initMusic();
+            this.bgMusic.play().then(() => {
+                this.isMusicPlaying = true;
+                const btn = document.getElementById('music-btn');
+                if (btn) {
+                    btn.textContent = '🔇 Music';
+                    btn.style.opacity = '1';
+                }
+            }).catch(err => {
+                // Browser may block autoplay, user needs to click music button
+                console.log('Autoplay blocked, user interaction required:', err);
+            });
+        }
     }
 }

@@ -31,40 +31,54 @@ class PuzzleBoard {
         this.piecesContainer.innerHTML = '';
         this.boardContainer.style.position = 'relative';
 
-        // Calculate board dimensions
-        console.log('Container size:', this.boardContainer.clientWidth, 'x', this.boardContainer.clientHeight);
+        // Wait for layout to complete before calculating size
+        requestAnimationFrame(() => {
+            this.calculateAndCreatePuzzle();
+        });
+    }
 
-        // Use actual container size or fallback to reasonable defaults
-        const containerWidth = this.boardContainer.clientWidth || 600;
-        const containerHeight = this.boardContainer.clientHeight || 500;
+    calculateAndCreatePuzzle() {
+        // Calculate board dimensions - use parent container size
+        const parentContainer = this.boardContainer.parentElement;
+        console.log('Parent container size:', parentContainer.clientWidth, 'x', parentContainer.clientHeight);
 
-        // Set minimum and maximum dimensions to keep pieces at reasonable size
-        const minSize = 400; // Minimum dimension to keep pieces large enough
-        const maxWidth = Math.max(minSize, Math.min(600, containerWidth - 40));
-        const maxHeight = Math.max(minSize, Math.min(600, containerHeight - 40));
+        // Use actual parent container size
+        let containerWidth = parentContainer.clientWidth;
+        let containerHeight = parentContainer.clientHeight;
+
+        // If still 0, use window size as fallback
+        if (!containerWidth || !containerHeight) {
+            containerWidth = window.innerWidth * 0.6;
+            containerHeight = window.innerHeight * 0.7;
+        }
+
+        console.log('Using container size:', containerWidth, 'x', containerHeight);
+
+        // Use full container size with padding for borders and spacing
+        const padding = 60; // Account for padding and borders
+        const maxWidth = containerWidth - padding;
+        const maxHeight = containerHeight - padding;
 
         console.log('Max size:', maxWidth, 'x', maxHeight);
 
         const imageAspect = this.image.width / this.image.height;
 
-        // Calculate board size maintaining aspect ratio but ensuring minimum size
+        // Calculate board size maintaining aspect ratio
         if (imageAspect > 1) {
             // Landscape image
             this.boardWidth = maxWidth;
             this.boardHeight = maxWidth / imageAspect;
-            // Ensure height is not too small
-            if (this.boardHeight < minSize / 2) {
-                this.boardHeight = minSize / 2;
-                this.boardWidth = this.boardHeight * imageAspect;
+            if (this.boardHeight > maxHeight) {
+                this.boardHeight = maxHeight;
+                this.boardWidth = maxHeight * imageAspect;
             }
         } else {
             // Portrait image
             this.boardHeight = maxHeight;
             this.boardWidth = maxHeight * imageAspect;
-            // Ensure width is not too small
-            if (this.boardWidth < minSize / 2) {
-                this.boardWidth = minSize / 2;
-                this.boardHeight = this.boardWidth / imageAspect;
+            if (this.boardWidth > maxWidth) {
+                this.boardWidth = maxWidth;
+                this.boardHeight = maxWidth / imageAspect;
             }
         }
 
