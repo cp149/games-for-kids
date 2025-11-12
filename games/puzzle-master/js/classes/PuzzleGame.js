@@ -55,7 +55,8 @@ class PuzzleGame {
                         <button class="control-btn" id="music-btn">🎵 Music</button>
                     </div>
 
-                    <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
+                    <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
                 </div>
 
                 <div class="game-area">
@@ -104,13 +105,16 @@ class PuzzleGame {
         });
 
         document.getElementById('load-camera-btn').addEventListener('click', () => {
-            this.imageLoader.loadFromCamera()
-                .then(img => this.startNewPuzzle(img))
-                .catch(err => {
-                    if (!err.message.includes('cancelled')) {
-                        alert('Camera error: ' + err.message);
-                    }
-                });
+            document.getElementById('camera-input').click();
+        });
+
+        document.getElementById('camera-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.imageLoader.loadFromFile(file)
+                    .then(img => this.startNewPuzzle(img))
+                    .catch(err => alert('Failed to load image: ' + err.message));
+            }
         });
 
         // Game controls
