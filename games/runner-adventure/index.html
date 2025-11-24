@@ -573,8 +573,8 @@
         }
 
         // Initialize KAPLAY - defaults to fullscreen
+        // No background color needed - sprite backgrounds cover entire screen
         const k = kaplay({
-            background: [135, 206, 235], // Sky blue
             gravity: 2400  // Increased gravity
         });
 
@@ -587,7 +587,11 @@
         });
         k.loadSprite("obstacle", "assets/images/obstacle.png");
         k.loadSprite("coin", "assets/images/coin.png");
-        k.loadSprite("background", "assets/images/background.png");
+        // Load background images
+        k.loadSprite("menu-bg", "assets/images/2.png");      // Menu background
+        k.loadSprite("game-bg1", "assets/images/1.png");     // Game background 1
+        k.loadSprite("game-bg2", "assets/images/3.png");     // Game background 2
+        k.loadSprite("game-bg3", "assets/images/4.png");     // Game background 3
         k.loadSprite("ground-deco", "assets/images/deco.png", {
             sliceX: 4,  // 4 columns
             sliceY: 2   // 2 rows = 8 decorations total
@@ -685,6 +689,71 @@
                 return this.k.loop(this.spawnInterval, () => {
                     this.spawn();
                 });
+            }
+        }
+
+        // CloudSpawner class - spawns clouds with multiple layers
+        class CloudSpawner {
+            constructor(k, options = {}) {
+                this.k = k;
+                this.layers = options.layers || [
+                    // Far clouds - slower, smaller, more opaque
+                    {
+                        interval: 4,
+                        minScale: 0.1,
+                        maxScale: 0.18,  // Reduced from 0.3
+                        minY: 50,
+                        maxY: 250,
+                        speed: 40,
+                        opacity: 0.7,
+                        zIndex: -3
+                    },
+                    // Near clouds - faster, slightly larger, more transparent
+                    {
+                        interval: 6,
+                        minScale: 0.12,
+                        maxScale: 0.22,  // Reduced from 0.4
+                        minY: 80,
+                        maxY: 300,
+                        speed: 60,
+                        opacity: 0.5,
+                        zIndex: -2
+                    }
+                ];
+                this.cloudTypes = options.cloudTypes || ["cloud", "cloud2"];
+                this.loopHandles = [];
+            }
+
+            spawnCloud(layer) {
+                const cloudType = this.k.choose(this.cloudTypes);
+                this.k.add([
+                    this.k.sprite(cloudType),
+                    this.k.pos(this.k.width(), this.k.rand(layer.minY, layer.maxY)),
+                    this.k.scale(this.k.rand(layer.minScale, layer.maxScale)),
+                    this.k.opacity(layer.opacity),
+                    this.k.move(this.k.LEFT, layer.speed),
+                    this.k.offscreen({ destroy: true }),
+                    this.k.z(layer.zIndex),
+                    "cloud"
+                ]);
+            }
+
+            startSpawning() {
+                this.loopHandles = this.layers.map(layer => {
+                    return this.k.loop(layer.interval, () => {
+                        this.spawnCloud(layer);
+                    });
+                });
+                return this.loopHandles;
+            }
+
+            stopSpawning() {
+                this.loopHandles.forEach(handle => {
+                    if (handle && handle.cancel) {
+                        handle.cancel();
+                    }
+                });
+                this.loopHandles = [];
             }
         }
 
@@ -1331,25 +1400,62 @@
             console.log("Ground Y:", groundY);
             console.log("Player Y:", groundY - 45);
 
-            // Add fullscreen background
-            const background = k.add([
-                k.rect(k.width(), k.height()),
+            // Add scrolling parallax background using single image (4.png - 1408x736)
+            const bgImageWidth = 1408;
+            const bgImageHeight = 736;
+            const bgScale = k.height() / bgImageHeight;
+            const bgWidth = Math.floor(bgImageWidth * bgScale); // Integer width
+            const scrollSpeed = 50;
+
+            // Create THREE copies to ensure full coverage during transitions
+            const bg1 = k.add([
+                k.sprite("game-bg3"),
                 k.pos(0, 0),
-                k.color(135, 206, 235),
-                k.z(-10),
-                {
-                    baseColor: [135, 206, 235],
-                    targetColor: [135, 206, 235]
-                }
+                k.scale(bgScale),
+                k.z(-10)
+            ]);
+            const bg2 = k.add([
+                k.sprite("game-bg3"),
+                k.pos(bgWidth, 0),
+                k.scale(bgScale),
+                k.z(-10)
+            ]);
+            const bg3 = k.add([
+                k.sprite("game-bg3"),
+                k.pos(bgWidth * 2, 0),
+                k.scale(bgScale),
+                k.z(-10)
             ]);
 
-            // Add ground
+            // Simple scroll with reset - all integer math
+            let bgX1 = 0;
+            let bgX2 = bgWidth;
+            let bgX3 = bgWidth * 2;
+
+            k.onUpdate(() => {
+                const move = Math.round(scrollSpeed * k.dt());
+                bgX1 -= move;
+                bgX2 -= move;
+                bgX3 -= move;
+
+                // Reset when fully off screen
+                if (bgX1 <= -bgWidth) bgX1 += bgWidth * 3;
+                if (bgX2 <= -bgWidth) bgX2 += bgWidth * 3;
+                if (bgX3 <= -bgWidth) bgX3 += bgWidth * 3;
+
+                bg1.pos.x = bgX1;
+                bg2.pos.x = bgX2;
+                bg3.pos.x = bgX3;
+            });
+
+            // Add ground (semi-transparent)
             const ground = k.add([
                 k.rect(k.width(), 100),
                 k.pos(0, groundY),
                 k.area(),
                 k.body({ isStatic: true }),
                 k.color(COLORS.ground),
+                k.opacity(0.3),
                 "ground"
             ]);
 
@@ -1764,7 +1870,6 @@
                         comboText.opacity = 0;
                         comboBarBg.opacity = 0;
                         comboBar.opacity = 0;
-                        background.targetColor = [135, 206, 235]; // Reset to sky blue
                     } else {
                         // Show combo display
                         const multiplier = getComboMultiplier(combo);
@@ -1786,27 +1891,12 @@
                         comboBarBg.opacity = 0.5;
                         comboBar.opacity = 0.8;
 
-                        // Change background tint based on combo level
-                        if (combo >= 20) {
-                            background.targetColor = [155, 180, 255]; // Intense blue-purple
-                        } else if (combo >= 10) {
-                            background.targetColor = [145, 200, 245]; // Light purple-blue
-                        } else if (combo >= 5) {
-                            background.targetColor = [140, 210, 240]; // Slightly tinted
-                        }
                     }
                 } else {
                     comboText.opacity = 0;
                     comboBarBg.opacity = 0;
                     comboBar.opacity = 0;
-                    background.targetColor = [135, 206, 235]; // Sky blue
                 }
-
-                // Smoothly transition background color
-                background.baseColor[0] += (background.targetColor[0] - background.baseColor[0]) * k.dt() * 2;
-                background.baseColor[1] += (background.targetColor[1] - background.baseColor[1]) * k.dt() * 2;
-                background.baseColor[2] += (background.targetColor[2] - background.baseColor[2]) * k.dt() * 2;
-                background.color = k.rgb(background.baseColor[0], background.baseColor[1], background.baseColor[2]);
 
                 // Update invincible timer
                 if (invincible) {
@@ -2483,9 +2573,9 @@
                 }
             });
 
-            // Ground decoration using GroundDecorator class
-            const groundDecorator = new GroundDecorator(k, groundY, OBSTACLE_SPEED * gameSpeed);
-            groundDecorator.startSpawning();
+            // Ground decoration using GroundDecorator class (temporarily disabled)
+            // const groundDecorator = new GroundDecorator(k, groundY, OBSTACLE_SPEED * gameSpeed);
+            // groundDecorator.startSpawning();
 
             // Coin rain event system
             let coinRainTimer = 0;
@@ -2668,47 +2758,23 @@
                 }
             });
 
-            // Parallax background - continuous mountain range
-            k.loop(8, () => {
-                k.add([
-                    k.sprite("mountains-range"),
-                    k.pos(k.width(), groundY),
-                    k.scale(k.rand(0.3, 0.5)),
-                    k.anchor("bot"),
-                    k.opacity(0.4),
-                    k.move(k.LEFT, 30),  // Slower parallax
-                    k.offscreen({ destroy: true }),
-                    k.z(-5)
-                ]);
-            });
+            // Parallax background - continuous mountain range (disabled)
+            // k.loop(8, () => {
+            //     k.add([
+            //         k.sprite("mountains-range"),
+            //         k.pos(k.width(), groundY),
+            //         k.scale(k.rand(0.3, 0.5)),
+            //         k.anchor("bot"),
+            //         k.opacity(0.4),
+            //         k.move(k.LEFT, 30),  // Slower parallax
+            //         k.offscreen({ destroy: true }),
+            //         k.z(-5)
+            //     ]);
+            // });
 
-            // Clouds in background (multiple layers, varied)
-            k.loop(4, () => {
-                const cloudType = k.choose(["cloud", "cloud2"]);
-                k.add([
-                    k.sprite(cloudType),
-                    k.pos(k.width(), k.rand(50, 250)),
-                    k.scale(k.rand(0.15, 0.3)),  // Even smaller clouds
-                    k.opacity(0.7),
-                    k.move(k.LEFT, 40),  // Medium speed
-                    k.offscreen({ destroy: true }),
-                    k.z(-3)
-                ]);
-            });
-
-            // Closer clouds (varied)
-            k.loop(6, () => {
-                const cloudType = k.choose(["cloud", "cloud2"]);
-                k.add([
-                    k.sprite(cloudType),
-                    k.pos(k.width(), k.rand(80, 300)),
-                    k.scale(k.rand(0.2, 0.4)),  // Even smaller clouds
-                    k.opacity(0.5),
-                    k.move(k.LEFT, 60),  // Faster
-                    k.offscreen({ destroy: true }),
-                    k.z(-2)
-                ]);
-            });
+            // Clouds using CloudSpawner class (smaller max size)
+            const cloudSpawner = new CloudSpawner(k);
+            cloudSpawner.startSpawning();
 
             // Sun decoration
             k.add([
@@ -2826,10 +2892,10 @@
 
         // ===== MENU SCENE =====
         k.scene("menu", () => {
-            // Background - cover entire screen (may crop edges)
-            const bgScale = Math.max(k.width() / 512, k.height() / 512);
+            // Background - cover entire screen using 2.png
+            const bgScale = Math.max(k.width() / 1024, k.height() / 1024);
             k.add([
-                k.sprite("background"),
+                k.sprite("menu-bg"),
                 k.pos(k.width() / 2, k.height() / 2),
                 k.anchor("center"),
                 k.scale(bgScale),
