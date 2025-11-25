@@ -1,6 +1,10 @@
 /**
  * PuzzleBoard - Manages the puzzle board, pieces, and game logic
  */
+
+// Use unified config (BOARD_CONFIG alias for backward compatibility)
+const BOARD_CONFIG = CONFIG.BOARD;
+
 class PuzzleBoard {
     constructor(container, image, difficulty = 3) {
         this.boardContainer = container;
@@ -13,14 +17,8 @@ class PuzzleBoard {
         this.boardWidth = 0;
         this.boardHeight = 0;
 
-        // Adaptive snap distance based on difficulty (generous for better UX)
-        const snapDistances = {
-            2: 80,  // Easy: very forgiving
-            3: 60,  // Medium: forgiving
-            4: 50,  // Hard: moderate
-            5: 40   // Expert: still reasonable
-        };
-        this.snapDistance = snapDistances[difficulty] || 60;
+        // Adaptive snap distance based on difficulty
+        this.snapDistance = BOARD_CONFIG.SNAP_DISTANCES[difficulty] || 60;
 
         this.piecesPlaced = 0;
         this.onComplete = null;
@@ -99,8 +97,13 @@ class PuzzleBoard {
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = this.boardWidth;
         tempCanvas.height = this.boardHeight;
-        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true, alpha: false });
         tempCtx.drawImage(this.image, 0, 0, this.boardWidth, this.boardHeight);
+
+        // Read full image data once (more efficient than multiple getImageData calls)
+        const fullImageData = tempCtx.getImageData(0, 0, this.boardWidth, this.boardHeight);
+        const pieceW = Math.floor(this.pieceWidth);
+        const pieceH = Math.floor(this.pieceHeight);
 
         let pieceId = 0;
 
@@ -109,14 +112,12 @@ class PuzzleBoard {
                 const x = col * this.pieceWidth;
                 const y = row * this.pieceHeight;
 
-                const pieceImageData = tempCtx.getImageData(
-                    Math.floor(x), Math.floor(y),
-                    Math.floor(this.pieceWidth), Math.floor(this.pieceHeight)
-                );
+                // Extract piece data from full image (memory operation, faster than getImageData)
+                const pieceImageData = this.extractPieceData(fullImageData, Math.floor(x), Math.floor(y), pieceW, pieceH);
 
                 const pieceCanvas = document.createElement('canvas');
-                pieceCanvas.width = Math.floor(this.pieceWidth);
-                pieceCanvas.height = Math.floor(this.pieceHeight);
+                pieceCanvas.width = pieceW;
+                pieceCanvas.height = pieceH;
 
                 const piece = new PuzzlePiece(
                     pieceId++,
@@ -135,6 +136,28 @@ class PuzzleBoard {
                 this.pieces.push(piece);
             }
         }
+    }
+
+    // Extract piece data from full image data using TypedArray.set() for better performance
+    extractPieceData(fullImageData, startX, startY, pieceW, pieceH) {
+        const pieceData = new ImageData(pieceW, pieceH);
+        const fullWidth = fullImageData.width;
+        const fullData = fullImageData.data;
+        const pieceDataArray = pieceData.data;
+        const rowBytes = pieceW * 4;
+
+        // Use TypedArray.set() for row-by-row copy (30-50% faster than pixel-by-pixel)
+        for (let py = 0; py < pieceH; py++) {
+            const srcStart = ((startY + py) * fullWidth + startX) * 4;
+            const destStart = py * rowBytes;
+            // Extract source row as subarray and copy to destination
+            pieceDataArray.set(
+                fullData.subarray(srcStart, srcStart + rowBytes),
+                destStart
+            );
+        }
+
+        return pieceData;
     }
 
     placePiecesInSidebar() {
@@ -193,62 +216,49 @@ class PuzzleBoard {
         // Play completion sound
         this.playSound('complete');
 
-        // Show completion message
+        // Show completion message using CSS class
         const message = document.createElement('div');
-        message.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 60px;
-            border-radius: 20px;
-            font-size: 32px;
-            font-weight: bold;
-            z-index: 10000;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            animation: popIn 0.5s ease-out;
-        `;
+        message.className = 'completion-message';
         message.textContent = '🎉 Congratulations! 🎉';
         document.body.appendChild(message);
 
-        // Add pop-in animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes popIn {
-                0% { transform: translate(-50%, -50%) scale(0); }
-                70% { transform: translate(-50%, -50%) scale(1.1); }
-                100% { transform: translate(-50%, -50%) scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
-
         setTimeout(() => {
             message.remove();
-            style.remove();
-        }, 3000);
+        }, BOARD_CONFIG.COMPLETION_MESSAGE_DURATION);
 
         // Fire callback
         if (this.onComplete) {
             setTimeout(() => {
                 this.onComplete();
-            }, 500);
+            }, BOARD_CONFIG.COMPLETION_CALLBACK_DELAY);
         }
     }
 
-    playSound(type) {
-        const audioContext = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) return;
+    async playSound(type) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
 
-        const ctx = new audioContext();
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
+        // Reuse or create audio context
+        if (!this.audioContext) {
+            this.audioContext = new AudioContext();
+        }
+        const ctx = this.audioContext;
 
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
+        // Resume if suspended (browser autoplay policy) - properly await
+        if (ctx.state === 'suspended') {
+            try {
+                await ctx.resume();
+            } catch (e) {
+                // Ignore resume errors (e.g., user gesture required)
+                return;
+            }
+        }
 
         if (type === 'success') {
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
             oscillator.frequency.setValueAtTime(800, ctx.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
             gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
@@ -289,59 +299,68 @@ class PuzzleBoard {
         this.pieces = [];
         this.boardContainer.innerHTML = '';
         this.piecesContainer.innerHTML = '';
+
+        // Close audio context to free resources
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
     }
 
     showHint() {
         const unplacedPiece = this.pieces.find(p => !p.isPlaced);
         if (!unplacedPiece) return;
 
-        // Scroll to piece if in sidebar
-        if (unplacedPiece.isInSidebar) {
-            unplacedPiece.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const duration = BOARD_CONFIG.HINT_DURATION;
+
+        // Highlight the piece
+        this.highlightPiece(unplacedPiece, duration);
+
+        // Show ghost preview on board
+        this.showGhostPreview(unplacedPiece, duration);
+    }
+
+    // Scroll element into view if in sidebar
+    scrollToElement(element, isInSidebar) {
+        if (isInSidebar) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+    }
 
-        // Enhanced highlight with pulse animation
-        unplacedPiece.canvas.style.border = '4px solid #FFD700';
-        unplacedPiece.canvas.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.8)';
-        unplacedPiece.canvas.style.animation = 'hintPulse 0.5s ease-in-out 4';
-
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes hintPulse {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-            }
-        `;
-        document.head.appendChild(style);
-
+    // Add a CSS class temporarily and remove after duration
+    addTemporaryClass(element, className, duration) {
+        element.classList.add(className);
         setTimeout(() => {
-            unplacedPiece.canvas.style.border = '1px solid rgba(0, 0, 0, 0.1)';
-            unplacedPiece.canvas.style.boxShadow = 'none';
-            unplacedPiece.canvas.style.animation = '';
-            style.remove();
-        }, 2500);
+            element.classList.remove(className);
+        }, duration);
+    }
 
-        // Enhanced ghost with preview
+    // Highlight a piece with visual feedback
+    highlightPiece(piece, duration) {
+        this.scrollToElement(piece.canvas, piece.isInSidebar);
+        this.addTemporaryClass(piece.canvas, 'hint-highlight', duration);
+    }
+
+    // Show ghost preview at correct position
+    showGhostPreview(piece, duration) {
         const ghost = document.createElement('canvas');
         ghost.width = this.pieceWidth;
         ghost.height = this.pieceHeight;
+        ghost.className = 'hint-ghost';
+        ghost.style.left = piece.correctX + 'px';
+        ghost.style.top = piece.correctY + 'px';
+
+        // Draw piece preview with overlay
         const ctx = ghost.getContext('2d');
-        ctx.putImageData(unplacedPiece.imageData, 0, 0);
+        ctx.putImageData(piece.imageData, 0, 0);
         ctx.globalAlpha = 0.3;
         ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
         ctx.fillRect(0, 0, ghost.width, ghost.height);
 
-        ghost.style.position = 'absolute';
-        ghost.style.left = unplacedPiece.correctX + 'px';
-        ghost.style.top = unplacedPiece.correctY + 'px';
-        ghost.style.border = '4px dashed #FFD700';
-        ghost.style.pointerEvents = 'none';
-        ghost.style.opacity = '0.6';
-        ghost.classList.add('hint-ghost');
-
         this.boardContainer.appendChild(ghost);
+
         setTimeout(() => {
             ghost.remove();
-        }, 2500);
+        }, duration);
     }
 }

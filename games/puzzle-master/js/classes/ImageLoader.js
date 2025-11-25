@@ -6,12 +6,17 @@ class ImageLoader {
         this.currentImage = null;
         this.onImageLoaded = null;
         this.imageCache = new Map();
+        this.cacheOrder = [];  // LRU tracking
+        this.cacheMaxSize = CONFIG.IMAGE_LOADER.CACHE_MAX_SIZE;
+        this.activeStream = null;  // Track active camera stream
+        this.captureUI = null;  // Track capture UI for cleanup
+        this.errorMessages = CONFIG.IMAGE_LOADER.ERROR_MESSAGES;
     }
 
     loadFromFile(file) {
         return new Promise((resolve, reject) => {
             if (!file.type.startsWith('image/')) {
-                reject(new Error('File is not an image'));
+                reject(new Error(this.errorMessages.NOT_IMAGE));
                 return;
             }
 
@@ -27,13 +32,13 @@ class ImageLoader {
                     resolve(img);
                 };
                 img.onerror = () => {
-                    reject(new Error('Failed to load image'));
+                    reject(new Error(this.errorMessages.LOAD_FAILED));
                 };
                 img.src = e.target.result;
             };
 
             reader.onerror = () => {
-                reject(new Error('Failed to read file'));
+                reject(new Error(this.errorMessages.READ_FAILED));
             };
 
             reader.readAsDataURL(file);
@@ -55,7 +60,7 @@ class ImageLoader {
             img.crossOrigin = 'anonymous';
 
             img.onload = () => {
-                this.imageCache.set(url, img);
+                this.addToCache(url, img);
                 this.currentImage = img;
                 if (this.onImageLoaded) {
                     this.onImageLoaded(img);
@@ -64,7 +69,7 @@ class ImageLoader {
             };
 
             img.onerror = () => {
-                reject(new Error('Failed to load image from URL'));
+                reject(new Error(this.errorMessages.URL_FAILED));
             };
 
             img.src = url;
@@ -75,31 +80,39 @@ class ImageLoader {
         return new Promise((resolve, reject) => {
             // Check if browser supports camera
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                reject(new Error('Camera not supported'));
+                reject(new Error(this.errorMessages.CAMERA_NOT_SUPPORTED));
                 return;
             }
+
+            // Cleanup any existing camera resources first
+            this.cleanupCamera();
 
             // Create video element for camera preview
             const video = document.createElement('video');
             video.autoplay = true;
+            video.playsInline = true;  // Important for iOS
+            video.muted = true;  // Required for autoplay on iOS
+            video.setAttribute('playsinline', '');  // iOS compatibility
+            video.setAttribute('webkit-playsinline', '');  // Older iOS webkit prefix
             video.style.display = 'none';
 
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
+                    // Track active stream for cleanup
+                    this.activeStream = stream;
                     video.srcObject = stream;
 
                     // Wait for video to be ready
                     video.onloadedmetadata = () => {
                         // Create capture button UI
-                        const captureUI = this.createCaptureUI(video, stream);
-                        document.body.appendChild(captureUI);
+                        this.captureUI = this.createCaptureUI(video, stream);
+                        document.body.appendChild(this.captureUI);
 
                         // Return promise that resolves when photo is taken
                         resolve(new Promise((resolveCapture, rejectCapture) => {
-                            captureUI.querySelector('.capture-btn').onclick = () => {
+                            this.captureUI.querySelector('.capture-btn').onclick = () => {
                                 const img = this.captureFromVideo(video);
-                                stream.getTracks().forEach(track => track.stop());
-                                captureUI.remove();
+                                this.cleanupCamera();
                                 this.currentImage = img;
                                 if (this.onImageLoaded) {
                                     this.onImageLoaded(img);
@@ -107,69 +120,55 @@ class ImageLoader {
                                 resolveCapture(img);
                             };
 
-                            captureUI.querySelector('.cancel-btn').onclick = () => {
-                                stream.getTracks().forEach(track => track.stop());
-                                captureUI.remove();
-                                rejectCapture(new Error('Camera capture cancelled'));
+                            this.captureUI.querySelector('.cancel-btn').onclick = () => {
+                                this.cleanupCamera();
+                                rejectCapture(new Error(this.errorMessages.CAMERA_CANCELLED));
                             };
                         }));
                     };
+
+                    // Handle video error
+                    video.onerror = () => {
+                        this.cleanupCamera();
+                        reject(new Error(this.errorMessages.VIDEO_ERROR));
+                    };
                 })
                 .catch(err => {
-                    reject(new Error('Camera access denied: ' + err.message));
+                    this.cleanupCamera();
+                    reject(new Error(this.errorMessages.CAMERA_ACCESS_DENIED + ': ' + err.message));
                 });
         });
     }
 
+    // Cleanup camera resources
+    cleanupCamera() {
+        if (this.activeStream) {
+            this.activeStream.getTracks().forEach(track => track.stop());
+            this.activeStream = null;
+        }
+        if (this.captureUI) {
+            this.captureUI.remove();
+            this.captureUI = null;
+        }
+    }
+
     createCaptureUI(video, stream) {
+        // Use CSS classes instead of inline styles (styles defined in styles.css)
         const container = document.createElement('div');
         container.className = 'camera-capture-ui';
-        container.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        `;
 
         video.style.display = 'block';
-        video.style.maxWidth = '90%';
-        video.style.maxHeight = '70vh';
 
         const controls = document.createElement('div');
-        controls.style.cssText = 'margin-top: 20px; display: flex; gap: 20px;';
+        controls.className = 'camera-controls';
 
         const captureBtn = document.createElement('button');
         captureBtn.className = 'capture-btn';
         captureBtn.textContent = '📸 Capture';
-        captureBtn.style.cssText = `
-            padding: 15px 30px;
-            font-size: 18px;
-            cursor: pointer;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 8px;
-        `;
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'cancel-btn';
         cancelBtn.textContent = '❌ Cancel';
-        cancelBtn.style.cssText = `
-            padding: 15px 30px;
-            font-size: 18px;
-            cursor: pointer;
-            background: #f44336;
-            color: white;
-            border: none;
-            border-radius: 8px;
-        `;
 
         controls.appendChild(captureBtn);
         controls.appendChild(cancelBtn);
@@ -195,5 +194,36 @@ class ImageLoader {
 
     getCurrentImage() {
         return this.currentImage;
+    }
+
+    // Add to cache with LRU eviction
+    addToCache(url, img) {
+        // If already exists, remove to update order
+        if (this.imageCache.has(url)) {
+            this.imageCache.delete(url);
+            const index = this.cacheOrder.indexOf(url);
+            if (index > -1) {
+                this.cacheOrder.splice(index, 1);
+            }
+        }
+
+        // Add new entry
+        this.imageCache.set(url, img);
+        this.cacheOrder.push(url);
+
+        // Evict oldest if over capacity
+        while (this.cacheOrder.length > this.cacheMaxSize) {
+            const oldestUrl = this.cacheOrder.shift();
+            this.imageCache.delete(oldestUrl);
+        }
+    }
+
+    // Cleanup all resources
+    destroy() {
+        this.cleanupCamera();
+        this.imageCache.clear();
+        this.cacheOrder = [];
+        this.currentImage = null;
+        this.onImageLoaded = null;
     }
 }

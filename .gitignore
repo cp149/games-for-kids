@@ -82,3 +82,4 @@ ENV/
 .node_repl_history
 *.tgz
 .yarn-integrity
+claudedocs

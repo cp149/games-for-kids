@@ -11,7 +11,8 @@
 <body>
     <div id="game-container"></div>
 
-    <!-- Load classes in order -->
+    <!-- Load config first, then classes in order -->
+    <script src="js/config.js"></script>
     <script src="js/classes/PuzzlePiece.js"></script>
     <script src="js/classes/PuzzleBoard.js"></script>
     <script src="js/classes/ImageLoader.js"></script>
@@ -24,8 +25,8 @@
             // Create game instance
             const game = new PuzzleGame('game-container');
 
-            // Add keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
+            // Bind keyboard handler for potential cleanup
+            game.handleKeydown = (e) => {
                 // Press 'H' for hint
                 if (e.key === 'h' || e.key === 'H') {
                     if (game.puzzleBoard) {
@@ -46,17 +47,30 @@
                     e.preventDefault();
                     document.getElementById('toggle-reference').click();
                 }
-            });
+            };
+            document.addEventListener('keydown', game.handleKeydown);
 
-            // Add visibility change handling
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden && game.timerInterval) {
-                    game.stopTimer();
-                } else if (!document.hidden && game.puzzleBoard && game.puzzleBoard.piecesPlaced < game.puzzleBoard.pieces.length) {
-                    game.startTimer();
+            // Bind visibility change handler for potential cleanup
+            game.handleVisibilityChange = () => {
+                if (document.hidden) {
+                    if (game.timerInterval) {
+                        game.stopTimer(true);  // Save elapsed time
+                        game.timerWasPaused = true;
+                    }
+                } else if (!document.hidden && game.timerWasPaused) {
+                    // Resume timer if puzzle is not complete
+                    if (game.puzzleBoard && game.puzzleBoard.piecesPlaced < game.puzzleBoard.pieces.length) {
+                        game.startTimer(true);  // Resume from saved time
+                    }
+                    game.timerWasPaused = false;
                 }
-            });
+            };
+            document.addEventListener('visibilitychange', game.handleVisibilityChange);
 
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', () => {
+                game.destroy();
+            });
         });
     </script>
 </body>

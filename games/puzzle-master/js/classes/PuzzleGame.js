@@ -1,6 +1,10 @@
 /**
  * PuzzleGame - Main game controller
  */
+
+// Use unified config (GAME_CONFIG alias for backward compatibility)
+const GAME_CONFIG = CONFIG.GAME;
+
 class PuzzleGame {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -9,14 +13,24 @@ class PuzzleGame {
         this.currentDifficulty = 3;
         this.startTime = 0;
         this.timerInterval = null;
+        this.elapsedBeforePause = 0;  // Track elapsed time for pause/resume
         this.moveCount = 0;
         this.winCount = 0;  // Track wins for auto difficulty upgrade
+        this.timerWasPaused = false;  // Track timer pause state for visibility change
 
         // Background music
         this.bgMusic = null;
         this.currentMusicIndex = 0;
-        this.musicFiles = ['assets/sounds/m1.mp3', 'assets/sounds/m2.mp3'];
         this.isMusicPlaying = false;
+        this.handleMusicEnded = null;  // Bound handler for cleanup
+
+        // Bound event handlers for cleanup
+        this.handlePieceDropped = null;
+        this.handleKeydown = null;
+        this.handleVisibilityChange = null;
+
+        // Store DOM element handlers for cleanup
+        this.domHandlers = new Map();
 
         this.init();
     }
@@ -34,32 +48,18 @@ class PuzzleGame {
             setTimeout(() => {
                 this.showTutorial();
                 localStorage.setItem('puzzleMasterTutorialSeen', 'true');
-            }, 1000);
+            }, GAME_CONFIG.TUTORIAL_DELAY);
         }
     }
 
     showTutorial() {
         const tutorial = document.createElement('div');
-        tutorial.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
-            z-index: 10001;
-            max-width: 400px;
-            text-align: center;
-            animation: slideIn 0.3s ease-out;
-        `;
-
+        tutorial.className = 'tutorial-modal';
         tutorial.innerHTML = `
-            <h2 style="color: #667eea; margin-bottom: 20px;">Welcome to Puzzle Master! 🧩</h2>
-            <div style="text-align: left; margin: 20px 0; line-height: 1.6;">
+            <h2>Welcome to Puzzle Master! 🧩</h2>
+            <div class="tutorial-content">
                 <p><strong>How to Play:</strong></p>
-                <ul style="margin: 10px 0; padding-left: 20px;">
+                <ul>
                     <li>Drag pieces from the right to the board</li>
                     <li>Pieces snap when close to correct position</li>
                     <li>Use <strong>H</strong> key for hints</li>
@@ -67,52 +67,22 @@ class PuzzleGame {
                     <li>Press <strong>Space</strong> to view reference image</li>
                 </ul>
             </div>
-            <button id="tutorial-close" style="
-                padding: 12px 30px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 16px;
-                margin-top: 10px;
-            ">Got it!</button>
+            <button class="tutorial-btn" id="tutorial-close">Got it!</button>
         `;
-
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-                to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            }
-        `;
-        document.head.appendChild(style);
 
         const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 10000;
-        `;
+        overlay.className = 'modal-overlay';
 
         document.body.appendChild(overlay);
         document.body.appendChild(tutorial);
 
-        document.getElementById('tutorial-close').onclick = () => {
+        const closeTutorial = () => {
             tutorial.remove();
             overlay.remove();
-            style.remove();
         };
 
-        overlay.onclick = () => {
-            tutorial.remove();
-            overlay.remove();
-            style.remove();
-        };
+        document.getElementById('tutorial-close').onclick = closeTutorial;
+        overlay.onclick = closeTutorial;
     }
 
     createUI() {
@@ -167,89 +137,98 @@ class PuzzleGame {
         `;
     }
 
+    // Helper to add DOM event listener with cleanup tracking
+    addDomListener(elementId, event, handler) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            const boundHandler = handler.bind(this);
+            element.addEventListener(event, boundHandler);
+            // Store for cleanup
+            const key = `${elementId}:${event}`;
+            this.domHandlers.set(key, { element, event, handler: boundHandler });
+        }
+    }
+
     setupEventListeners() {
         // Difficulty slider
-        const slider = document.getElementById('difficulty-slider');
-        slider.addEventListener('input', (e) => {
+        this.addDomListener('difficulty-slider', 'input', function(e) {
             this.currentDifficulty = parseInt(e.target.value);
             this.updateDifficultyLabel();
         });
-        slider.addEventListener('change', () => {
+        this.addDomListener('difficulty-slider', 'change', function() {
             this.startNewPuzzle();
         });
 
         // Image loading
-        document.getElementById('load-file-btn').addEventListener('click', () => {
+        this.addDomListener('load-file-btn', 'click', function() {
             document.getElementById('file-input').click();
         });
 
-        document.getElementById('file-input').addEventListener('change', (e) => {
+        this.addDomListener('file-input', 'change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 this.imageLoader.loadFromFile(file)
                     .then(img => this.startNewPuzzle(img))
-                    .catch(err => alert('Failed to load image: ' + err.message));
+                    .catch(err => this.showToast('Failed to load image', 'error'));
             }
         });
 
-        document.getElementById('load-camera-btn').addEventListener('click', () => {
+        this.addDomListener('load-camera-btn', 'click', function() {
             document.getElementById('camera-input').click();
         });
 
-        document.getElementById('camera-input').addEventListener('change', (e) => {
+        this.addDomListener('camera-input', 'change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 this.imageLoader.loadFromFile(file)
                     .then(img => this.startNewPuzzle(img))
-                    .catch(err => alert('Failed to load image: ' + err.message));
+                    .catch(err => this.showToast('Failed to load image', 'error'));
             }
         });
 
         // Game controls - Shuffle creates new puzzle with current difficulty
-        document.getElementById('shuffle-btn').addEventListener('click', () => {
+        this.addDomListener('shuffle-btn', 'click', function() {
             this.startNewPuzzle();
         });
 
-        document.getElementById('hint-btn').addEventListener('click', () => {
+        this.addDomListener('hint-btn', 'click', function() {
             if (this.puzzleBoard) {
                 this.puzzleBoard.showHint();
             }
         });
 
         // Reference toggle
-        document.getElementById('toggle-reference').addEventListener('click', () => {
+        this.addDomListener('toggle-reference', 'click', function() {
             const modal = document.getElementById('reference-modal');
             modal.style.display = 'flex';
         });
 
-        document.getElementById('close-modal').addEventListener('click', () => {
+        this.addDomListener('close-modal', 'click', function() {
             document.getElementById('reference-modal').style.display = 'none';
         });
 
-        document.getElementById('reference-modal').addEventListener('click', (e) => {
+        this.addDomListener('reference-modal', 'click', function(e) {
             if (e.target.id === 'reference-modal') {
                 document.getElementById('reference-modal').style.display = 'none';
             }
         });
 
-        // Track moves
-        document.addEventListener('pieceDropped', () => {
+        // Track moves - bind handler for cleanup
+        this.handlePieceDropped = () => {
             this.moveCount++;
             document.getElementById('moves').textContent = this.moveCount;
-        });
+        };
+        document.addEventListener('pieceDropped', this.handlePieceDropped);
 
         // Music control
-        document.getElementById('music-btn').addEventListener('click', () => {
+        this.addDomListener('music-btn', 'click', function() {
             this.toggleMusic();
         });
     }
 
     loadDefaultImage() {
         // Load a random background image from shared lib
-        const bgImages = [
-            '../lib/images/background/2.png',
-            '../lib/images/background/3.png'
-        ];
+        const bgImages = GAME_CONFIG.DEFAULT_IMAGES;
         const randomBg = bgImages[Math.floor(Math.random() * bgImages.length)];
 
         const img = new Image();
@@ -266,21 +245,22 @@ class PuzzleGame {
 
     loadGeneratedImage() {
         // Fallback: Create a colorful generated image
+        const { SIZE, CIRCLE_RADIUS, CIRCLE_X, CIRCLE_Y } = GAME_CONFIG.GENERATED_IMAGE;
         const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 400;
+        canvas.width = SIZE;
+        canvas.height = SIZE;
         const ctx = canvas.getContext('2d');
 
-        const gradient = ctx.createLinearGradient(0, 0, 400, 400);
+        const gradient = ctx.createLinearGradient(0, 0, SIZE, SIZE);
         gradient.addColorStop(0, '#FF6B6B');
         gradient.addColorStop(0.5, '#4ECDC4');
         gradient.addColorStop(1, '#45B7D1');
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 400, 400);
+        ctx.fillRect(0, 0, SIZE, SIZE);
 
         ctx.fillStyle = '#FFE66D';
         ctx.beginPath();
-        ctx.arc(100, 100, 60, 0, Math.PI * 2);
+        ctx.arc(CIRCLE_X, CIRCLE_Y, CIRCLE_RADIUS, 0, Math.PI * 2);
         ctx.fill();
 
         const img = new Image();
@@ -330,9 +310,17 @@ class PuzzleGame {
         this.startTimer();
     }
 
-    startTimer() {
-        this.stopTimer();
-        this.startTime = Date.now();
+    startTimer(resume = false) {
+        this.stopTimer(false);  // Don't save elapsed when starting
+
+        if (resume && this.elapsedBeforePause > 0) {
+            // Resume from paused time
+            this.startTime = Date.now() - this.elapsedBeforePause;
+        } else {
+            // Fresh start
+            this.startTime = Date.now();
+            this.elapsedBeforePause = 0;
+        }
 
         this.timerInterval = setInterval(() => {
             const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
@@ -342,8 +330,12 @@ class PuzzleGame {
         }, 1000);
     }
 
-    stopTimer() {
+    stopTimer(saveElapsed = true) {
         if (this.timerInterval) {
+            if (saveElapsed) {
+                // Save elapsed time for potential resume
+                this.elapsedBeforePause = Date.now() - this.startTime;
+            }
             clearInterval(this.timerInterval);
             this.timerInterval = null;
         }
@@ -351,6 +343,7 @@ class PuzzleGame {
 
     resetStats() {
         this.moveCount = 0;
+        this.elapsedBeforePause = 0;
         document.getElementById('moves').textContent = '0';
         document.getElementById('timer').textContent = '00:00';
     }
@@ -363,7 +356,8 @@ class PuzzleGame {
 
         // Track wins and auto upgrade difficulty
         this.winCount++;
-        if (this.winCount % 2 === 0 && this.currentDifficulty < 5) {
+        if (this.winCount % GAME_CONFIG.WINS_PER_DIFFICULTY_UPGRADE === 0 &&
+            this.currentDifficulty < GAME_CONFIG.MAX_DIFFICULTY) {
             this.currentDifficulty++;
             this.updateDifficultyUI();
         }
@@ -373,13 +367,8 @@ class PuzzleGame {
     }
 
     updateDifficultyLabel() {
-        const labels = {
-            2: 'Easy (4)',
-            3: 'Medium (9)',
-            4: 'Hard (16)',
-            5: 'Expert (25)'
-        };
-        document.getElementById('difficulty-label').textContent = labels[this.currentDifficulty];
+        document.getElementById('difficulty-label').textContent =
+            GAME_CONFIG.DIFFICULTY_LABELS[this.currentDifficulty];
     }
 
     updateDifficultyUI() {
@@ -388,20 +377,20 @@ class PuzzleGame {
     }
 
     showCelebration(time, moves) {
+        // Use fewer confetti elements for better performance
         const fragment = document.createDocumentFragment();
+        const confettiCount = GAME_CONFIG.CONFETTI_COUNT;
 
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < confettiCount; i++) {
             const confetti = document.createElement('div');
             confetti.className = 'confetti';
-            const size = 5 + Math.random() * 10;
-            confetti.style.width = size + 'px';
-            confetti.style.height = size + 'px';
-            confetti.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
-            confetti.style.left = Math.random() * 100 + '%';
-            confetti.style.top = '-20px';
-            confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-            confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
-
+            const size = 8 + Math.random() * 12;
+            // Use CSS custom properties for better performance
+            confetti.style.setProperty('--confetti-size', `${size}px`);
+            confetti.style.setProperty('--confetti-color', `hsl(${Math.random() * 360}, 100%, 50%)`);
+            confetti.style.setProperty('--confetti-left', `${Math.random() * 100}%`);
+            confetti.style.setProperty('--confetti-radius', Math.random() > 0.5 ? '50%' : '0');
+            confetti.style.setProperty('--confetti-duration', `${2 + Math.random() * 2}s`);
             fragment.appendChild(confetti);
         }
 
@@ -409,90 +398,70 @@ class PuzzleGame {
 
         setTimeout(() => {
             document.querySelectorAll('.confetti').forEach(c => c.remove());
-        }, 4000);
+        }, GAME_CONFIG.CONFETTI_DURATION);
 
         // Show stats in a nice banner after a short delay
         setTimeout(() => {
             const statsBanner = document.createElement('div');
-            statsBanner.style.cssText = `
-                position: fixed;
-                bottom: 30px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(255, 255, 255, 0.95);
-                padding: 20px 40px;
-                border-radius: 15px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-                z-index: 10001;
-                font-size: 18px;
-                text-align: center;
-                animation: slideUp 0.5s ease-out;
-            `;
+            statsBanner.className = 'stats-banner';
             statsBanner.innerHTML = `
-                <div style="color: #667eea; font-weight: bold; margin-bottom: 10px;">Puzzle Complete!</div>
-                <div style="color: #666;">⏱️ Time: ${time} | 🔄 Moves: ${moves}</div>
+                <div class="stats-title">Puzzle Complete!</div>
+                <div class="stats-details">⏱️ Time: ${time} | 🔄 Moves: ${moves}</div>
             `;
 
-            const slideUpStyle = document.createElement('style');
-            slideUpStyle.textContent = `
-                @keyframes slideUp {
-                    from { transform: translateX(-50%) translateY(100px); opacity: 0; }
-                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
-                }
-            `;
-            document.head.appendChild(slideUpStyle);
             document.body.appendChild(statsBanner);
 
             setTimeout(() => {
                 statsBanner.remove();
-                slideUpStyle.remove();
-            }, 4000);
-        }, 1500);
+            }, GAME_CONFIG.STATS_DISPLAY_DURATION);
+        }, GAME_CONFIG.CELEBRATION_DELAY);
     }
 
     initMusic() {
         if (!this.bgMusic) {
-            this.bgMusic = new Audio(this.musicFiles[this.currentMusicIndex]);
+            this.bgMusic = new Audio(GAME_CONFIG.MUSIC_FILES[this.currentMusicIndex]);
             this.bgMusic.loop = false;
-            this.bgMusic.volume = 0.4;
+            this.bgMusic.volume = GAME_CONFIG.MUSIC_VOLUME;
 
-            // Auto-switch to next music when current ends
-            this.bgMusic.addEventListener('ended', () => {
-                this.currentMusicIndex = (this.currentMusicIndex + 1) % this.musicFiles.length;
-                this.bgMusic.src = this.musicFiles[this.currentMusicIndex];
+            // Bind handler once for cleanup
+            this.handleMusicEnded = () => {
+                this.currentMusicIndex = (this.currentMusicIndex + 1) % GAME_CONFIG.MUSIC_FILES.length;
+                this.bgMusic.src = GAME_CONFIG.MUSIC_FILES[this.currentMusicIndex];
                 if (this.isMusicPlaying) {
                     this.bgMusic.play();
                 }
-            });
+            };
+            this.bgMusic.addEventListener('ended', this.handleMusicEnded);
+        }
+    }
+
+    // Update music button appearance based on playing state
+    updateMusicButtonState(isPlaying) {
+        const btn = document.getElementById('music-btn');
+        if (btn) {
+            btn.textContent = isPlaying ? '🔇 Music' : '🎵 Music';
+            btn.style.opacity = isPlaying ? '1' : '0.7';
         }
     }
 
     toggleMusic() {
         this.initMusic();
-        const btn = document.getElementById('music-btn');
 
         if (this.isMusicPlaying) {
             this.bgMusic.pause();
             this.isMusicPlaying = false;
-            btn.textContent = '🎵 Music';
-            btn.style.opacity = '0.7';
         } else {
             this.bgMusic.play().catch(() => {});
             this.isMusicPlaying = true;
-            btn.textContent = '🔇 Music';
-            btn.style.opacity = '1';
         }
+        this.updateMusicButtonState(this.isMusicPlaying);
     }
 
     stopMusic() {
         if (this.bgMusic && this.isMusicPlaying) {
             this.bgMusic.pause();
             this.isMusicPlaying = false;
-            const btn = document.getElementById('music-btn');
-            if (btn) {
-                btn.textContent = '🎵 Music';
-                btn.style.opacity = '0.7';
-            }
+            this.updateMusicButtonState(false);
         }
     }
 
@@ -502,12 +471,79 @@ class PuzzleGame {
             this.initMusic();
             this.bgMusic.play().then(() => {
                 this.isMusicPlaying = true;
-                const btn = document.getElementById('music-btn');
-                if (btn) {
-                    btn.textContent = '🔇 Music';
-                    btn.style.opacity = '1';
-                }
+                this.updateMusicButtonState(true);
             }).catch(() => {});
         }
+    }
+
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, GAME_CONFIG.TOAST_DURATION);
+    }
+
+    // Cleanup temporary DOM elements
+    cleanupTemporaryElements() {
+        const selectors = ['.confetti', '.toast', '.tutorial-modal', '.modal-overlay', '.stats-banner'];
+        selectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => el.remove());
+        });
+    }
+
+    // Cleanup all resources to prevent memory leaks
+    destroy() {
+        // Stop timer
+        this.stopTimer();
+
+        // Stop and cleanup music
+        if (this.bgMusic) {
+            this.bgMusic.pause();
+            if (this.handleMusicEnded) {
+                this.bgMusic.removeEventListener('ended', this.handleMusicEnded);
+            }
+            this.bgMusic = null;
+        }
+
+        // Remove pieceDropped listener
+        if (this.handlePieceDropped) {
+            document.removeEventListener('pieceDropped', this.handlePieceDropped);
+        }
+
+        // Remove keyboard listener
+        if (this.handleKeydown) {
+            document.removeEventListener('keydown', this.handleKeydown);
+        }
+
+        // Remove visibility change listener
+        if (this.handleVisibilityChange) {
+            document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+        }
+
+        // Remove all tracked DOM listeners
+        if (this.domHandlers) {
+            this.domHandlers.forEach(({ element, event, handler }) => {
+                element.removeEventListener(event, handler);
+            });
+            this.domHandlers.clear();
+        }
+
+        // Destroy puzzle board
+        if (this.puzzleBoard) {
+            this.puzzleBoard.destroy();
+            this.puzzleBoard = null;
+        }
+
+        // Cleanup image loader
+        if (this.imageLoader) {
+            this.imageLoader.destroy();
+        }
+
+        // Clear temporary elements
+        this.cleanupTemporaryElements();
     }
 }

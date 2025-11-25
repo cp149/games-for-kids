@@ -121,7 +121,9 @@ body {
 }
 
 .control-btn {
-    padding: 8px 18px;
+    padding: 10px 18px;
+    min-height: 44px;
+    min-width: 44px;
     background: #ff9a3c;
     color: #ffffff;
     border: 2px solid #ff9a3c;
@@ -129,6 +131,8 @@ body {
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
+    /* Touch-friendly: ensure adequate tap target */
+    touch-action: manipulation;
 }
 
 .control-btn:hover {
@@ -435,7 +439,9 @@ body {
 
     .control-btn {
         font-size: 12px;
-        padding: 5px 12px;
+        padding: 10px 14px;
+        min-height: 44px;
+        min-width: 44px;
     }
 
     .game-area {
@@ -486,7 +492,9 @@ body {
 
     .control-btn {
         font-size: 11px;
-        padding: 4px 10px;
+        padding: 10px 12px;
+        min-height: 44px;
+        min-width: 44px;
     }
 
     .game-area {
@@ -543,4 +551,282 @@ body {
     color: #ff9a3c;
     font-size: 1.2em;
     font-weight: 700;
+}
+
+/* Reusable Animations */
+@keyframes slideIn {
+    from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes popIn {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    70% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes toastIn {
+    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes hintPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* ===== CSS Variables for Responsive ===== */
+:root {
+    --header-padding: 16px 28px;
+    --header-font-size: 1.6em;
+    --stats-gap: 32px;
+    --stats-font-size: 0.95em;
+    --controls-padding: 14px 28px;
+    --btn-padding: 8px 18px;
+    --btn-font-size: 14px;
+    --game-area-padding: 20px;
+    --game-area-gap: 20px;
+    --board-min-height: 500px;
+    --board-padding: 16px;
+    --pieces-width: 260px;
+    --confetti-count: 30;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --header-padding: 12px 16px;
+        --header-font-size: 1.3em;
+        --stats-gap: 12px;
+        --stats-font-size: 0.85em;
+        --controls-padding: 8px 16px;
+        --btn-padding: 5px 12px;
+        --btn-font-size: 12px;
+        --game-area-padding: 12px;
+        --game-area-gap: 12px;
+        --board-min-height: 300px;
+        --board-padding: 12px;
+        --pieces-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --header-padding: 8px 12px;
+        --header-font-size: 1.2em;
+        --stats-gap: 8px;
+        --stats-font-size: 0.8em;
+        --controls-padding: 6px 12px;
+        --btn-padding: 4px 10px;
+        --btn-font-size: 11px;
+        --game-area-padding: 8px;
+        --game-area-gap: 8px;
+        --board-padding: 8px;
+    }
+}
+
+/* ===== Modal & Overlay Components ===== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+}
+
+.tutorial-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+    z-index: 10001;
+    max-width: 400px;
+    text-align: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+.tutorial-modal h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+.tutorial-modal .tutorial-content {
+    text-align: left;
+    margin: 20px 0;
+    line-height: 1.6;
+}
+
+.tutorial-modal ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.tutorial-modal .tutorial-btn {
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+.tutorial-modal .tutorial-btn:hover {
+    opacity: 0.9;
+}
+
+/* Stats Banner */
+.stats-banner {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 10001;
+    font-size: 18px;
+    text-align: center;
+    animation: slideUp 0.5s ease-out;
+}
+
+.stats-banner .stats-title {
+    color: #667eea;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.stats-banner .stats-details {
+    color: #666;
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 10002;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: toastIn 0.3s ease-out;
+    color: white;
+}
+
+.toast.toast-success {
+    background: #4CAF50;
+}
+
+.toast.toast-error {
+    background: #f44336;
+}
+
+.toast.toast-info {
+    background: #2196F3;
+}
+
+/* Confetti with CSS Variables */
+.confetti {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    width: var(--confetti-size, 10px);
+    height: var(--confetti-size, 10px);
+    background: var(--confetti-color, hsl(0, 100%, 50%));
+    left: var(--confetti-left, 50%);
+    top: -20px;
+    border-radius: var(--confetti-radius, 50%);
+    animation: confettiFall var(--confetti-duration, 3s) ease-out forwards;
+    will-change: transform, opacity;
+}
+
+/* Camera Capture UI */
+.camera-capture-ui {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.camera-capture-ui video {
+    max-width: 90%;
+    max-height: 70vh;
+}
+
+.camera-capture-ui .camera-controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 20px;
+}
+
+.camera-capture-ui .capture-btn,
+.camera-capture-ui .cancel-btn {
+    padding: 15px 30px;
+    font-size: 18px;
+    cursor: pointer;
+    color: white;
+    border: none;
+    border-radius: 8px;
+}
+
+.camera-capture-ui .capture-btn {
+    background: #4CAF50;
+}
+
+.camera-capture-ui .cancel-btn {
+    background: #f44336;
+}
+
+/* Completion Message */
+.completion-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px 60px;
+    border-radius: 20px;
+    font-size: 32px;
+    font-weight: bold;
+    z-index: 10000;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: popIn 0.5s ease-out;
+}
+
+/* Hint Highlight */
+.hint-highlight {
+    border: 4px solid #FFD700 !important;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.8) !important;
+    animation: hintPulse 0.5s ease-in-out 4 !important;
+}
+
+/* Hint Ghost Preview */
+.hint-ghost {
+    position: absolute;
+    border: 4px dashed #FFD700;
+    pointer-events: none;
+    opacity: 0.6;
+    animation: hintPulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 3;
 }
