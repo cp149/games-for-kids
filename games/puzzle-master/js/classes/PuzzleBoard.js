@@ -6,13 +6,22 @@ class PuzzleBoard {
         this.boardContainer = container;
         this.piecesContainer = null;
         this.image = image;
-        this.difficulty = difficulty; // 2=Easy, 3=Medium, 4=Hard, 5=Expert
+        this.difficulty = difficulty;
         this.pieces = [];
         this.pieceWidth = 0;
         this.pieceHeight = 0;
         this.boardWidth = 0;
         this.boardHeight = 0;
-        this.snapDistance = 30;
+
+        // Adaptive snap distance based on difficulty (generous for better UX)
+        const snapDistances = {
+            2: 80,  // Easy: very forgiving
+            3: 60,  // Medium: forgiving
+            4: 50,  // Hard: moderate
+            5: 40   // Expert: still reasonable
+        };
+        this.snapDistance = snapDistances[difficulty] || 60;
+
         this.piecesPlaced = 0;
         this.onComplete = null;
 
@@ -23,7 +32,6 @@ class PuzzleBoard {
         this.piecesContainer = document.getElementById('pieces-area');
 
         if (!this.piecesContainer) {
-            console.error('pieces-area not found!');
             return;
         }
 
@@ -31,63 +39,54 @@ class PuzzleBoard {
         this.piecesContainer.innerHTML = '';
         this.boardContainer.style.position = 'relative';
 
-        // Wait for layout to complete before calculating size
         requestAnimationFrame(() => {
             this.calculateAndCreatePuzzle();
         });
     }
 
     calculateAndCreatePuzzle() {
-        // Calculate board dimensions - use parent container size
         const parentContainer = this.boardContainer.parentElement;
-        console.log('Parent container size:', parentContainer.clientWidth, 'x', parentContainer.clientHeight);
 
-        // Use actual parent container size
         let containerWidth = parentContainer.clientWidth;
         let containerHeight = parentContainer.clientHeight;
 
-        // If still 0, use window size as fallback
         if (!containerWidth || !containerHeight) {
-            containerWidth = window.innerWidth * 0.6;
-            containerHeight = window.innerHeight * 0.7;
+            containerWidth = window.innerWidth * 0.7;
+            containerHeight = window.innerHeight * 0.75;
         }
 
-        console.log('Using container size:', containerWidth, 'x', containerHeight);
-
-        // Use full container size with padding for borders and spacing
-        const padding = 60; // Account for padding and borders
+        // Minimal padding for maximum space usage
+        const padding = 32;
         const maxWidth = containerWidth - padding;
         const maxHeight = containerHeight - padding;
 
-        console.log('Max size:', maxWidth, 'x', maxHeight);
-
         const imageAspect = this.image.width / this.image.height;
 
-        // Calculate board size maintaining aspect ratio
-        if (imageAspect > 1) {
-            // Landscape image
-            this.boardWidth = maxWidth;
-            this.boardHeight = maxWidth / imageAspect;
-            if (this.boardHeight > maxHeight) {
-                this.boardHeight = maxHeight;
-                this.boardWidth = maxHeight * imageAspect;
-            }
-        } else {
-            // Portrait image
-            this.boardHeight = maxHeight;
-            this.boardWidth = maxHeight * imageAspect;
-            if (this.boardWidth > maxWidth) {
-                this.boardWidth = maxWidth;
-                this.boardHeight = maxWidth / imageAspect;
+        // Calculate optimal size while maintaining aspect ratio
+        let targetWidth = maxWidth;
+        let targetHeight = maxWidth / imageAspect;
+
+        if (targetHeight > maxHeight) {
+            targetHeight = maxHeight;
+            targetWidth = maxHeight * imageAspect;
+        }
+
+        // Ensure minimum size for playability
+        const minSize = 300;
+        if (targetWidth < minSize || targetHeight < minSize) {
+            if (imageAspect > 1) {
+                targetWidth = minSize;
+                targetHeight = minSize / imageAspect;
+            } else {
+                targetHeight = minSize;
+                targetWidth = minSize * imageAspect;
             }
         }
 
+        this.boardWidth = Math.floor(targetWidth);
+        this.boardHeight = Math.floor(targetHeight);
         this.pieceWidth = this.boardWidth / this.difficulty;
         this.pieceHeight = this.boardHeight / this.difficulty;
-
-        console.log('Board:', this.boardWidth, 'x', this.boardHeight);
-        console.log('Piece:', this.pieceWidth, 'x', this.pieceHeight);
-        console.log('Difficulty:', this.difficulty);
 
         this.boardContainer.style.width = this.boardWidth + 'px';
         this.boardContainer.style.height = this.boardHeight + 'px';
@@ -97,7 +96,6 @@ class PuzzleBoard {
     }
 
     createPieces() {
-        // Create temporary canvas to slice image
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = this.boardWidth;
         tempCanvas.height = this.boardHeight;
@@ -111,24 +109,15 @@ class PuzzleBoard {
                 const x = col * this.pieceWidth;
                 const y = row * this.pieceHeight;
 
-                console.log(`Getting imageData at (${x}, ${y}) size ${this.pieceWidth}x${this.pieceHeight}`);
-
-                // Extract piece image data
                 const pieceImageData = tempCtx.getImageData(
                     Math.floor(x), Math.floor(y),
                     Math.floor(this.pieceWidth), Math.floor(this.pieceHeight)
                 );
 
-                console.log(`Got imageData: ${pieceImageData.width}x${pieceImageData.height}`);
-
-                // Create canvas for this piece
                 const pieceCanvas = document.createElement('canvas');
                 pieceCanvas.width = Math.floor(this.pieceWidth);
                 pieceCanvas.height = Math.floor(this.pieceHeight);
 
-                console.log(`Creating piece ${pieceId}: canvas ${pieceCanvas.width}x${pieceCanvas.height}, imageData ${pieceImageData.width}x${pieceImageData.height}`);
-
-                // Create piece object
                 const piece = new PuzzlePiece(
                     pieceId++,
                     row,
@@ -139,7 +128,6 @@ class PuzzleBoard {
                     y
                 );
 
-                // Listen for piece drop events
                 pieceCanvas.addEventListener('pieceDropped', (e) => {
                     this.handlePieceDrop(e.detail.piece);
                 });
@@ -150,18 +138,13 @@ class PuzzleBoard {
     }
 
     placePiecesInSidebar() {
-        console.log('placePiecesInSidebar called, pieces count:', this.pieces.length);
-        console.log('piecesContainer:', this.piecesContainer);
-
-        // Shuffle pieces order
         const shuffledPieces = [...this.pieces];
         for (let i = shuffledPieces.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffledPieces[i], shuffledPieces[j]] = [shuffledPieces[j], shuffledPieces[i]];
         }
 
-        // Place pieces in sidebar
-        shuffledPieces.forEach((piece, index) => {
+        shuffledPieces.forEach((piece) => {
             piece.canvas.style.position = 'relative';
             piece.canvas.style.left = '0';
             piece.canvas.style.top = '0';
@@ -171,11 +154,8 @@ class PuzzleBoard {
             piece.currentY = 0;
             piece.isInSidebar = true;
 
-            console.log(`Adding piece ${index} to sidebar, canvas size:`, piece.canvas.width, 'x', piece.canvas.height);
             this.piecesContainer.appendChild(piece.canvas);
         });
-
-        console.log('Sidebar children count:', this.piecesContainer.children.length);
     }
 
     handlePieceDrop(piece) {
@@ -183,13 +163,21 @@ class PuzzleBoard {
             piece.snapToCorrectPosition();
             this.piecesPlaced++;
 
-            // Play success sound
+            this.updateProgress();
+
             this.playSound('success');
 
-            // Check if puzzle is complete
             if (this.piecesPlaced === this.pieces.length) {
                 this.onPuzzleComplete();
             }
+        }
+    }
+
+    updateProgress() {
+        const progress = Math.round((this.piecesPlaced / this.pieces.length) * 100);
+        const progressElement = document.getElementById('progress');
+        if (progressElement) {
+            progressElement.textContent = progress + '%';
         }
     }
 
@@ -245,16 +233,42 @@ class PuzzleBoard {
     }
 
     playSound(type) {
-        // Sound placeholder - can be implemented later
+        const audioContext = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) return;
+
+        const ctx = new audioContext();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
         if (type === 'success') {
-            // Snap sound
+            oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.1);
         } else if (type === 'complete') {
-            // Victory sound
+            const notes = [523, 659, 784, 1047];
+            notes.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.15 + 0.2);
+                osc.start(ctx.currentTime + i * 0.15);
+                osc.stop(ctx.currentTime + i * 0.15 + 0.2);
+            });
         }
     }
 
     reset() {
         this.piecesPlaced = 0;
+        this.updateProgress();
         this.pieces.forEach(piece => {
             piece.isPlaced = false;
             piece.isInSidebar = true;
@@ -273,33 +287,56 @@ class PuzzleBoard {
     }
 
     showHint() {
-        // Find first unplaced piece
         const unplacedPiece = this.pieces.find(p => !p.isPlaced);
-        if (unplacedPiece) {
-            // Highlight the piece
-            unplacedPiece.canvas.style.border = '3px solid yellow';
-            unplacedPiece.canvas.style.boxShadow = '0 0 20px yellow';
-            setTimeout(() => {
-                unplacedPiece.canvas.style.border = '1px solid rgba(0, 0, 0, 0.1)';
-                unplacedPiece.canvas.style.boxShadow = 'none';
-            }, 2000);
+        if (!unplacedPiece) return;
 
-            // Show ghost image at correct position on board
-            const ghost = document.createElement('div');
-            ghost.style.position = 'absolute';
-            ghost.style.left = unplacedPiece.correctX + 'px';
-            ghost.style.top = unplacedPiece.correctY + 'px';
-            ghost.style.width = this.pieceWidth + 'px';
-            ghost.style.height = this.pieceHeight + 'px';
-            ghost.style.border = '3px dashed yellow';
-            ghost.style.backgroundColor = 'rgba(255, 255, 0, 0.2)';
-            ghost.style.pointerEvents = 'none';
-            ghost.classList.add('hint-ghost');
-
-            this.boardContainer.appendChild(ghost);
-            setTimeout(() => {
-                ghost.remove();
-            }, 2000);
+        // Scroll to piece if in sidebar
+        if (unplacedPiece.isInSidebar) {
+            unplacedPiece.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+
+        // Enhanced highlight with pulse animation
+        unplacedPiece.canvas.style.border = '4px solid #FFD700';
+        unplacedPiece.canvas.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.8)';
+        unplacedPiece.canvas.style.animation = 'hintPulse 0.5s ease-in-out 4';
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes hintPulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        setTimeout(() => {
+            unplacedPiece.canvas.style.border = '1px solid rgba(0, 0, 0, 0.1)';
+            unplacedPiece.canvas.style.boxShadow = 'none';
+            unplacedPiece.canvas.style.animation = '';
+            style.remove();
+        }, 2500);
+
+        // Enhanced ghost with preview
+        const ghost = document.createElement('canvas');
+        ghost.width = this.pieceWidth;
+        ghost.height = this.pieceHeight;
+        const ctx = ghost.getContext('2d');
+        ctx.putImageData(unplacedPiece.imageData, 0, 0);
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+        ctx.fillRect(0, 0, ghost.width, ghost.height);
+
+        ghost.style.position = 'absolute';
+        ghost.style.left = unplacedPiece.correctX + 'px';
+        ghost.style.top = unplacedPiece.correctY + 'px';
+        ghost.style.border = '4px dashed #FFD700';
+        ghost.style.pointerEvents = 'none';
+        ghost.style.opacity = '0.6';
+        ghost.classList.add('hint-ghost');
+
+        this.boardContainer.appendChild(ghost);
+        setTimeout(() => {
+            ghost.remove();
+        }, 2500);
     }
 }

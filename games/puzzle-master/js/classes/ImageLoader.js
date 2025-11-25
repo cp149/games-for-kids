@@ -5,6 +5,7 @@ class ImageLoader {
     constructor() {
         this.currentImage = null;
         this.onImageLoaded = null;
+        this.imageCache = new Map();
     }
 
     loadFromFile(file) {
@@ -40,11 +41,21 @@ class ImageLoader {
     }
 
     loadFromURL(url) {
+        if (this.imageCache.has(url)) {
+            const cachedImg = this.imageCache.get(url);
+            this.currentImage = cachedImg;
+            if (this.onImageLoaded) {
+                this.onImageLoaded(cachedImg);
+            }
+            return Promise.resolve(cachedImg);
+        }
+
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.crossOrigin = 'anonymous'; // For external images
+            img.crossOrigin = 'anonymous';
 
             img.onload = () => {
+                this.imageCache.set(url, img);
                 this.currentImage = img;
                 if (this.onImageLoaded) {
                     this.onImageLoaded(img);

@@ -6,8 +6,8 @@ class PuzzlePiece {
         this.id = id;
         this.row = row;
         this.col = col;
-        this.imageData = imageData; // Canvas image data for this piece
-        this.canvas = canvas; // Individual canvas element for this piece
+        this.imageData = imageData;
+        this.canvas = canvas;
         this.correctX = correctX;
         this.correctY = correctY;
         this.currentX = 0;
@@ -16,40 +16,54 @@ class PuzzlePiece {
         this.isPlaced = false;
         this.isInSidebar = true;
         this.zIndex = 1;
-        this.boardContainer = null; // Store board container reference
+        this.boardContainer = null;
 
         this.dragStartX = 0;
         this.dragStartY = 0;
+
+        // Bind event handlers once
+        this.handleDragStart = this.onDragStart.bind(this);
+        this.handleDragMove = this.onDragMove.bind(this);
+        this.handleDragEnd = this.onDragEnd.bind(this);
 
         this.setupCanvas();
         this.attachEventListeners();
     }
 
     setupCanvas() {
-        // Don't set position here - will be set by placePiecesInSidebar or onDragStart
         this.canvas.style.cursor = 'grab';
         this.canvas.style.zIndex = this.zIndex;
         this.canvas.classList.add('puzzle-piece');
 
-        console.log(`PuzzlePiece ${this.id} setupCanvas: canvas ${this.canvas.width}x${this.canvas.height}, imageData ${this.imageData.width}x${this.imageData.height}`);
-
-        // Draw the piece image
         const ctx = this.canvas.getContext('2d');
         ctx.putImageData(this.imageData, 0, 0);
-
-        console.log(`After putImageData: canvas ${this.canvas.width}x${this.canvas.height}`);
     }
 
     attachEventListeners() {
-        // Mouse events
-        this.canvas.addEventListener('mousedown', (e) => this.onDragStart(e));
-        document.addEventListener('mousemove', (e) => this.onDragMove(e));
-        document.addEventListener('mouseup', (e) => this.onDragEnd(e));
+        // Only attach canvas-specific mousedown/touchstart
+        // Move and end events will be attached dynamically during drag
+        this.canvas.addEventListener('mousedown', this.handleDragStart);
+        this.canvas.addEventListener('touchstart', this.handleDragStart, { passive: false });
+    }
 
-        // Touch events for mobile
-        this.canvas.addEventListener('touchstart', (e) => this.onDragStart(e), { passive: false });
-        document.addEventListener('touchmove', (e) => this.onDragMove(e), { passive: false });
-        document.addEventListener('touchend', (e) => this.onDragEnd(e));
+    removeEventListeners() {
+        this.canvas.removeEventListener('mousedown', this.handleDragStart);
+        this.canvas.removeEventListener('touchstart', this.handleDragStart);
+        this.removeDragListeners();
+    }
+
+    attachDragListeners() {
+        document.addEventListener('mousemove', this.handleDragMove);
+        document.addEventListener('mouseup', this.handleDragEnd);
+        document.addEventListener('touchmove', this.handleDragMove, { passive: false });
+        document.addEventListener('touchend', this.handleDragEnd);
+    }
+
+    removeDragListeners() {
+        document.removeEventListener('mousemove', this.handleDragMove);
+        document.removeEventListener('mouseup', this.handleDragEnd);
+        document.removeEventListener('touchmove', this.handleDragMove);
+        document.removeEventListener('touchend', this.handleDragEnd);
     }
 
     onDragStart(e) {
@@ -61,25 +75,27 @@ class PuzzlePiece {
         this.zIndex = 9999;
         this.canvas.style.zIndex = this.zIndex;
 
+        // Attach drag listeners dynamically
+        this.attachDragListeners();
+
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        // Get current position before any changes
         const rect = this.canvas.getBoundingClientRect();
         this.dragStartX = clientX - rect.left;
         this.dragStartY = clientY - rect.top;
 
-        // Store board container reference for later (always get it fresh)
         this.boardContainer = document.getElementById('puzzle-board');
         if (this.isInSidebar) {
             this.isInSidebar = false;
         }
 
-        // Always move to body with fixed position during drag
+        // Use CSS transform for better performance
         this.canvas.style.position = 'fixed';
         this.canvas.style.left = rect.left + 'px';
         this.canvas.style.top = rect.top + 'px';
         this.canvas.style.margin = '0';
+        this.canvas.style.willChange = 'transform';
         document.body.appendChild(this.canvas);
     }
 
@@ -112,32 +128,43 @@ class PuzzlePiece {
         this.canvas.style.cursor = 'grab';
         this.zIndex = 1;
         this.canvas.style.zIndex = this.zIndex;
+        this.canvas.style.willChange = 'auto';
 
-        // Check if piece is dropped inside board area
+        // Remove drag listeners immediately
+        this.removeDragListeners();
+
         const rect = this.canvas.getBoundingClientRect();
         const boardRect = this.boardContainer.getBoundingClientRect();
 
-        const isInsideBoard = (
-            rect.left >= boardRect.left &&
-            rect.right <= boardRect.right &&
-            rect.top >= boardRect.top &&
-            rect.bottom <= boardRect.bottom
+        // Use piece center for more forgiving detection
+        const pieceCenterX = rect.left + rect.width / 2;
+        const pieceCenterY = rect.top + rect.height / 2;
+
+        // Check if piece center is inside or near board (with margin)
+        const margin = 50; // Allow some overflow
+        const isNearBoard = (
+            pieceCenterX >= boardRect.left - margin &&
+            pieceCenterX <= boardRect.right + margin &&
+            pieceCenterY >= boardRect.top - margin &&
+            pieceCenterY <= boardRect.bottom + margin
         );
 
-        if (isInsideBoard && this.boardContainer) {
-            // Dropped inside board - keep it there
+        if (isNearBoard && this.boardContainer) {
+            // Calculate position relative to board
             this.currentX = rect.left - boardRect.left;
             this.currentY = rect.top - boardRect.top;
+
+            // Clamp to board bounds
+            this.currentX = Math.max(0, Math.min(this.currentX, boardRect.width - rect.width));
+            this.currentY = Math.max(0, Math.min(this.currentY, boardRect.height - rect.height));
 
             this.canvas.style.position = 'absolute';
             this.boardContainer.appendChild(this.canvas);
             this.updatePosition();
         } else {
-            // Dropped outside board - return to sidebar
             this.returnToSidebar();
         }
 
-        // Fire custom event for snap detection
         const event = new CustomEvent('pieceDropped', {
             detail: { piece: this }
         });
@@ -159,12 +186,24 @@ class PuzzlePiece {
         // Return piece to sidebar
         const piecesArea = document.getElementById('pieces-area');
         if (piecesArea) {
+            // Reset all drag-related styles
             this.canvas.style.position = 'relative';
             this.canvas.style.left = 'auto';
             this.canvas.style.top = 'auto';
             this.canvas.style.margin = '10px auto';
+            this.canvas.style.transform = 'none';
+            this.canvas.style.pointerEvents = 'auto';
+            this.canvas.style.cursor = 'grab';
+
             piecesArea.appendChild(this.canvas);
             this.isInSidebar = true;
+            this.isDragging = false;
+
+            // Ensure event listeners are attached
+            this.canvas.removeEventListener('mousedown', this.handleDragStart);
+            this.canvas.removeEventListener('touchstart', this.handleDragStart);
+            this.canvas.addEventListener('mousedown', this.handleDragStart);
+            this.canvas.addEventListener('touchstart', this.handleDragStart, { passive: false });
         }
     }
 
@@ -190,6 +229,7 @@ class PuzzlePiece {
     }
 
     destroy() {
+        this.removeEventListeners();
         this.canvas.remove();
     }
 }

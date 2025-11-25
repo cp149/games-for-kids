@@ -587,11 +587,11 @@
         });
         k.loadSprite("obstacle", "assets/images/obstacle.png");
         k.loadSprite("coin", "assets/images/coin.png");
-        // Load background images
-        k.loadSprite("menu-bg", "assets/images/2.png");      // Menu background
-        k.loadSprite("game-bg1", "assets/images/1.png");     // Game background 1
-        k.loadSprite("game-bg2", "assets/images/3.png");     // Game background 2
-        k.loadSprite("game-bg3", "assets/images/4.png");     // Game background 3
+        // Load background images from shared lib
+        k.loadSprite("menu-bg", "../lib/images/background/2.png");      // Menu background
+        k.loadSprite("game-bg1", "../lib/images/background/1.png");     // Game background 1
+        k.loadSprite("game-bg2", "../lib/images/background/3.png");     // Game background 2
+        k.loadSprite("game-bg3", "../lib/images/background/4.png");     // Game background 3
         k.loadSprite("ground-deco", "assets/images/deco.png", {
             sliceX: 4,  // 4 columns
             sliceY: 2   // 2 rows = 8 decorations total

@@ -24,6 +24,94 @@ class PuzzleGame {
         this.createUI();
         this.setupEventListeners();
         this.loadDefaultImage();
+        this.showTutorialIfNeeded();
+    }
+
+    showTutorialIfNeeded() {
+        const hasSeenTutorial = localStorage.getItem('puzzleMasterTutorialSeen');
+        if (!hasSeenTutorial) {
+            setTimeout(() => {
+                this.showTutorial();
+                localStorage.setItem('puzzleMasterTutorialSeen', 'true');
+            }, 1000);
+        }
+    }
+
+    showTutorial() {
+        const tutorial = document.createElement('div');
+        tutorial.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            z-index: 10001;
+            max-width: 400px;
+            text-align: center;
+            animation: slideIn 0.3s ease-out;
+        `;
+
+        tutorial.innerHTML = `
+            <h2 style="color: #667eea; margin-bottom: 20px;">Welcome to Puzzle Master! 🧩</h2>
+            <div style="text-align: left; margin: 20px 0; line-height: 1.6;">
+                <p><strong>How to Play:</strong></p>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>Drag pieces from the right to the board</li>
+                    <li>Pieces snap when close to correct position</li>
+                    <li>Use <strong>H</strong> key for hints</li>
+                    <li>Use <strong>R</strong> key to shuffle</li>
+                    <li>Press <strong>Space</strong> to view reference image</li>
+                </ul>
+            </div>
+            <button id="tutorial-close" style="
+                padding: 12px 30px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                margin-top: 10px;
+            ">Got it!</button>
+        `;
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+                to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+        `;
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(tutorial);
+
+        document.getElementById('tutorial-close').onclick = () => {
+            tutorial.remove();
+            overlay.remove();
+            style.remove();
+        };
+
+        overlay.onclick = () => {
+            tutorial.remove();
+            overlay.remove();
+            style.remove();
+        };
     }
 
     createUI() {
@@ -34,6 +122,7 @@ class PuzzleGame {
                     <div class="game-stats">
                         <span class="timer">⏱️ <span id="timer">00:00</span></span>
                         <span class="moves">🔄 <span id="moves">0</span> moves</span>
+                        <span class="progress">🧩 <span id="progress">0%</span></span>
                     </div>
                 </header>
 
@@ -160,13 +249,34 @@ class PuzzleGame {
     }
 
     loadDefaultImage() {
-        // Create a colorful default image
+        // Load a random background image from shared lib
+        const bgImages = [
+            '../lib/images/background/1.png',
+            '../lib/images/background/2.png',
+            '../lib/images/background/3.png',
+            '../lib/images/background/4.png'
+        ];
+        const randomBg = bgImages[Math.floor(Math.random() * bgImages.length)];
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = randomBg;
+        img.onload = () => {
+            this.startNewPuzzle(img);
+        };
+        img.onerror = () => {
+            // Fallback to generated image if loading fails
+            this.loadGeneratedImage();
+        };
+    }
+
+    loadGeneratedImage() {
+        // Fallback: Create a colorful generated image
         const canvas = document.createElement('canvas');
         canvas.width = 400;
         canvas.height = 400;
         const ctx = canvas.getContext('2d');
 
-        // Create gradient background
         const gradient = ctx.createLinearGradient(0, 0, 400, 400);
         gradient.addColorStop(0, '#FF6B6B');
         gradient.addColorStop(0.5, '#4ECDC4');
@@ -174,21 +284,9 @@ class PuzzleGame {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, 400, 400);
 
-        // Add some shapes
         ctx.fillStyle = '#FFE66D';
         ctx.beginPath();
         ctx.arc(100, 100, 60, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#A8E6CF';
-        ctx.fillRect(250, 80, 100, 100);
-
-        ctx.fillStyle = '#FF8B94';
-        ctx.beginPath();
-        ctx.moveTo(200, 300);
-        ctx.lineTo(300, 300);
-        ctx.lineTo(250, 220);
-        ctx.closePath();
         ctx.fill();
 
         const img = new Image();
@@ -202,28 +300,30 @@ class PuzzleGame {
         const img = image || this.imageLoader.getCurrentImage();
         if (!img) return;
 
+        // Stop timer and cleanup before starting new puzzle
+        this.stopTimer();
+
         // Destroy existing puzzle
         if (this.puzzleBoard) {
             this.puzzleBoard.destroy();
         }
 
+        // Clear any existing confetti
+        document.querySelectorAll('.confetti').forEach(c => c.remove());
+
         // Create new puzzle
         const boardContainer = document.getElementById('puzzle-board');
         this.puzzleBoard = new PuzzleBoard(boardContainer, img, this.currentDifficulty);
 
-        // Set completion callback
         this.puzzleBoard.onComplete = () => {
             this.onPuzzleComplete();
         };
 
-        // Update reference image
         document.getElementById('reference-img').src = img.src;
 
-        // Reset stats
         this.resetStats();
         this.startTimer();
 
-        // Auto-start music
         this.autoStartMusic();
     }
 
@@ -263,25 +363,28 @@ class PuzzleGame {
     }
 
     showCelebration(time, moves) {
-        // Create confetti effect - more confetti across whole screen
+        const fragment = document.createDocumentFragment();
+
         for (let i = 0; i < 100; i++) {
             const confetti = document.createElement('div');
             confetti.className = 'confetti';
-            confetti.style.cssText = `
-                position: fixed;
-                width: ${5 + Math.random() * 10}px;
-                height: ${5 + Math.random() * 10}px;
-                background: hsl(${Math.random() * 360}, 100%, 50%);
-                left: ${Math.random() * 100}%;
-                top: -20px;
-                border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
-                animation: fall ${2 + Math.random() * 2}s linear;
-                z-index: 9999;
-            `;
-            document.body.appendChild(confetti);
+            const size = 5 + Math.random() * 10;
+            confetti.style.width = size + 'px';
+            confetti.style.height = size + 'px';
+            confetti.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.top = '-20px';
+            confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+            confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
 
-            setTimeout(() => confetti.remove(), 4000);
+            fragment.appendChild(confetti);
         }
+
+        document.body.appendChild(fragment);
+
+        setTimeout(() => {
+            document.querySelectorAll('.confetti').forEach(c => c.remove());
+        }, 4000);
 
         // Show stats in a nice banner after a short delay
         setTimeout(() => {
@@ -349,9 +452,7 @@ class PuzzleGame {
             btn.textContent = '🎵 Music';
             btn.style.opacity = '0.7';
         } else {
-            this.bgMusic.play().catch(err => {
-                console.log('Audio play failed:', err);
-            });
+            this.bgMusic.play().catch(() => {});
             this.isMusicPlaying = true;
             btn.textContent = '🔇 Music';
             btn.style.opacity = '1';
@@ -381,10 +482,7 @@ class PuzzleGame {
                     btn.textContent = '🔇 Music';
                     btn.style.opacity = '1';
                 }
-            }).catch(err => {
-                // Browser may block autoplay, user needs to click music button
-                console.log('Autoplay blocked, user interaction required:', err);
-            });
+            }).catch(() => {});
         }
     }
 }
