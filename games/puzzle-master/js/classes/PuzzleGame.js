@@ -10,6 +10,7 @@ class PuzzleGame {
         this.startTime = 0;
         this.timerInterval = null;
         this.moveCount = 0;
+        this.winCount = 0;  // Track wins for auto difficulty upgrade
 
         // Background music
         this.bgMusic = null;
@@ -129,19 +130,17 @@ class PuzzleGame {
                 <div class="controls-panel">
                     <div class="difficulty-selector">
                         <label>Difficulty:</label>
-                        <button class="diff-btn" data-difficulty="2">Easy (4)</button>
-                        <button class="diff-btn active" data-difficulty="3">Medium (9)</button>
-                        <button class="diff-btn" data-difficulty="4">Hard (16)</button>
-                        <button class="diff-btn" data-difficulty="5">Expert (25)</button>
+                        <input type="range" id="difficulty-slider" min="2" max="5" value="3" class="difficulty-slider">
+                        <span id="difficulty-label" class="difficulty-label">Medium (9)</span>
+                        <button class="control-btn" id="shuffle-btn">🔀 New</button>
                     </div>
 
                     <div class="image-controls">
-                        <button class="control-btn" id="load-file-btn">📁 Load Image</button>
+                        <button class="control-btn" id="load-file-btn">📁 Image</button>
                         <button class="control-btn" id="load-camera-btn">📷 Camera</button>
-                        <button class="control-btn" id="shuffle-btn">🔀 Shuffle</button>
                         <button class="control-btn" id="hint-btn">💡 Hint</button>
-                        <button class="control-btn" id="toggle-reference">👁️ Reference</button>
-                        <button class="control-btn" id="music-btn">🎵 Music</button>
+                        <button class="control-btn" id="toggle-reference">👁️ Ref</button>
+                        <button class="control-btn" id="music-btn">🎵</button>
                     </div>
 
                     <input type="file" id="file-input" accept="image/*" style="display: none;">
@@ -169,14 +168,14 @@ class PuzzleGame {
     }
 
     setupEventListeners() {
-        // Difficulty buttons
-        document.querySelectorAll('.diff-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.currentDifficulty = parseInt(e.target.dataset.difficulty);
-                this.startNewPuzzle();
-            });
+        // Difficulty slider
+        const slider = document.getElementById('difficulty-slider');
+        slider.addEventListener('input', (e) => {
+            this.currentDifficulty = parseInt(e.target.value);
+            this.updateDifficultyLabel();
+        });
+        slider.addEventListener('change', () => {
+            this.startNewPuzzle();
         });
 
         // Image loading
@@ -206,12 +205,9 @@ class PuzzleGame {
             }
         });
 
-        // Game controls
+        // Game controls - Shuffle creates new puzzle with current difficulty
         document.getElementById('shuffle-btn').addEventListener('click', () => {
-            if (this.puzzleBoard) {
-                this.puzzleBoard.reset();
-                this.resetStats();
-            }
+            this.startNewPuzzle();
         });
 
         document.getElementById('hint-btn').addEventListener('click', () => {
@@ -236,10 +232,15 @@ class PuzzleGame {
             }
         });
 
-        // Track moves
+        // Track moves and start music on first piece placed
         document.addEventListener('pieceDropped', () => {
             this.moveCount++;
             document.getElementById('moves').textContent = this.moveCount;
+
+            // Start music when first piece is successfully placed
+            if (this.puzzleBoard && this.puzzleBoard.piecesPlaced === 1 && !this.isMusicPlaying) {
+                this.autoStartMusic();
+            }
         });
 
         // Music control
@@ -251,10 +252,8 @@ class PuzzleGame {
     loadDefaultImage() {
         // Load a random background image from shared lib
         const bgImages = [
-            '../lib/images/background/1.png',
             '../lib/images/background/2.png',
-            '../lib/images/background/3.png',
-            '../lib/images/background/4.png'
+            '../lib/images/background/3.png'
         ];
         const randomBg = bgImages[Math.floor(Math.random() * bgImages.length)];
 
@@ -300,6 +299,11 @@ class PuzzleGame {
         const img = image || this.imageLoader.getCurrentImage();
         if (!img) return;
 
+        // Save current image for shuffle functionality
+        if (image) {
+            this.imageLoader.currentImage = image;
+        }
+
         // Stop timer and cleanup before starting new puzzle
         this.stopTimer();
 
@@ -323,8 +327,6 @@ class PuzzleGame {
 
         this.resetStats();
         this.startTimer();
-
-        this.autoStartMusic();
     }
 
     startTimer() {
@@ -358,8 +360,30 @@ class PuzzleGame {
         const time = document.getElementById('timer').textContent;
         const moves = this.moveCount;
 
+        // Track wins and auto upgrade difficulty
+        this.winCount++;
+        if (this.winCount % 2 === 0 && this.currentDifficulty < 5) {
+            this.currentDifficulty++;
+            this.updateDifficultyUI();
+        }
+
         // Add celebration effect with stats
         this.showCelebration(time, moves);
+    }
+
+    updateDifficultyLabel() {
+        const labels = {
+            2: 'Easy (4)',
+            3: 'Medium (9)',
+            4: 'Hard (16)',
+            5: 'Expert (25)'
+        };
+        document.getElementById('difficulty-label').textContent = labels[this.currentDifficulty];
+    }
+
+    updateDifficultyUI() {
+        document.getElementById('difficulty-slider').value = this.currentDifficulty;
+        this.updateDifficultyLabel();
     }
 
     showCelebration(time, moves) {

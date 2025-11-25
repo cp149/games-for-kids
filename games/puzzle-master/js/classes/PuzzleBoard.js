@@ -52,13 +52,12 @@ class PuzzleBoard {
 
         if (!containerWidth || !containerHeight) {
             containerWidth = window.innerWidth * 0.7;
-            containerHeight = window.innerHeight * 0.75;
+            containerHeight = window.innerHeight * 0.7;
         }
 
-        // Minimal padding for maximum space usage
-        const padding = 32;
-        const maxWidth = containerWidth - padding;
-        const maxHeight = containerHeight - padding;
+        // Use most of the container space
+        const maxWidth = containerWidth - 16;
+        const maxHeight = containerHeight - 16;
 
         const imageAspect = this.image.width / this.image.height;
 
@@ -83,8 +82,9 @@ class PuzzleBoard {
             }
         }
 
-        this.boardWidth = Math.floor(targetWidth);
-        this.boardHeight = Math.floor(targetHeight);
+        // Ensure board dimensions are divisible by difficulty for perfect fit
+        this.boardWidth = Math.floor(targetWidth / this.difficulty) * this.difficulty;
+        this.boardHeight = Math.floor(targetHeight / this.difficulty) * this.difficulty;
         this.pieceWidth = this.boardWidth / this.difficulty;
         this.pieceHeight = this.boardHeight / this.difficulty;
 
