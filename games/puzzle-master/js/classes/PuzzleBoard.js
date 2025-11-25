@@ -167,6 +167,11 @@ class PuzzleBoard {
 
             this.playSound('success');
 
+            // Notify first piece placed
+            if (this.piecesPlaced === 1 && this.onFirstPiecePlaced) {
+                this.onFirstPiecePlaced();
+            }
+
             if (this.piecesPlaced === this.pieces.length) {
                 this.onPuzzleComplete();
             }

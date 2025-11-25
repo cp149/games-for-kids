@@ -232,15 +232,10 @@ class PuzzleGame {
             }
         });
 
-        // Track moves and start music on first piece placed
+        // Track moves
         document.addEventListener('pieceDropped', () => {
             this.moveCount++;
             document.getElementById('moves').textContent = this.moveCount;
-
-            // Start music when first piece is successfully placed
-            if (this.puzzleBoard && this.puzzleBoard.piecesPlaced === 1 && !this.isMusicPlaying) {
-                this.autoStartMusic();
-            }
         });
 
         // Music control
@@ -321,6 +316,12 @@ class PuzzleGame {
 
         this.puzzleBoard.onComplete = () => {
             this.onPuzzleComplete();
+        };
+
+        this.puzzleBoard.onFirstPiecePlaced = () => {
+            if (!this.isMusicPlaying) {
+                this.autoStartMusic();
+            }
         };
 
         document.getElementById('reference-img').src = img.src;
