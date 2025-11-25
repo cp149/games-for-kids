@@ -218,6 +218,52 @@ class ImageLoader {
         }
     }
 
+    /**
+     * Load a random default image from config
+     * @returns {Promise<Image>}
+     */
+    loadRandomDefault() {
+        const bgImages = CONFIG.GAME.DEFAULT_IMAGES;
+        const randomBg = bgImages[Math.floor(Math.random() * bgImages.length)];
+        return this.loadFromURL(randomBg);
+    }
+
+    /**
+     * Generate a colorful fallback image
+     * @returns {Promise<Image>}
+     */
+    loadGeneratedFallback() {
+        return new Promise((resolve) => {
+            const { SIZE, CIRCLE_RADIUS, CIRCLE_X, CIRCLE_Y } = CONFIG.GAME.GENERATED_IMAGE;
+            const canvas = document.createElement('canvas');
+            canvas.width = SIZE;
+            canvas.height = SIZE;
+            const ctx = canvas.getContext('2d');
+
+            const gradient = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+            gradient.addColorStop(0, '#FF6B6B');
+            gradient.addColorStop(0.5, '#4ECDC4');
+            gradient.addColorStop(1, '#45B7D1');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+
+            ctx.fillStyle = '#FFE66D';
+            ctx.beginPath();
+            ctx.arc(CIRCLE_X, CIRCLE_Y, CIRCLE_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+
+            const img = new Image();
+            img.onload = () => {
+                this.currentImage = img;
+                if (this.onImageLoaded) {
+                    this.onImageLoaded(img);
+                }
+                resolve(img);
+            };
+            img.src = canvas.toDataURL();
+        });
+    }
+
     // Cleanup all resources
     destroy() {
         this.cleanupCamera();

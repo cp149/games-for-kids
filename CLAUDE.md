@@ -569,7 +569,7 @@ When agents work on this project, they must:
 **Write code in English, communicate in Chinese, serve users in multiple languages!**
 
 **代码用英文，交流用中文，游戏支持多语言！**
-
+**对代码进行优秀的管理，单个js文件不超过350行**
 ---
 
 **This is a critical guideline. All agents and developers must follow these standards.**

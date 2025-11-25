@@ -11,8 +11,11 @@
 <body>
     <div id="game-container"></div>
 
-    <!-- Load config first, then classes in order -->
+    <!-- Load config first, then managers, then classes in order -->
     <script src="js/config.js"></script>
+    <script src="js/managers/UIManager.js"></script>
+    <script src="js/managers/MusicManager.js"></script>
+    <script src="js/managers/TimerManager.js"></script>
     <script src="js/classes/PuzzlePiece.js"></script>
     <script src="js/classes/PuzzleBoard.js"></script>
     <script src="js/classes/ImageLoader.js"></script>
@@ -53,16 +56,16 @@
             // Bind visibility change handler for potential cleanup
             game.handleVisibilityChange = () => {
                 if (document.hidden) {
-                    if (game.timerInterval) {
+                    if (game.timerManager.isRunning()) {
                         game.stopTimer(true);  // Save elapsed time
-                        game.timerWasPaused = true;
+                        game.timerManager.wasPaused = true;
                     }
-                } else if (!document.hidden && game.timerWasPaused) {
+                } else if (!document.hidden && game.timerManager.wasPaused) {
                     // Resume timer if puzzle is not complete
                     if (game.puzzleBoard && game.puzzleBoard.piecesPlaced < game.puzzleBoard.pieces.length) {
                         game.startTimer(true);  // Resume from saved time
                     }
-                    game.timerWasPaused = false;
+                    game.timerManager.wasPaused = false;
                 }
             };
             document.addEventListener('visibilitychange', game.handleVisibilityChange);
