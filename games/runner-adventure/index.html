@@ -1408,20 +1408,21 @@
             const scrollSpeed = 50;
 
             // Create THREE copies to ensure full coverage during transitions
+            // Using game-bg2 (3.png) - seam is in middle for seamless tiling
             const bg1 = k.add([
-                k.sprite("game-bg3"),
+                k.sprite("game-bg2"),
                 k.pos(0, 0),
                 k.scale(bgScale),
                 k.z(-10)
             ]);
             const bg2 = k.add([
-                k.sprite("game-bg3"),
+                k.sprite("game-bg2"),
                 k.pos(bgWidth, 0),
                 k.scale(bgScale),
                 k.z(-10)
             ]);
             const bg3 = k.add([
-                k.sprite("game-bg3"),
+                k.sprite("game-bg2"),
                 k.pos(bgWidth * 2, 0),
                 k.scale(bgScale),
                 k.z(-10)
@@ -2788,6 +2789,16 @@
 
         // ===== GAME OVER SCENE =====
         k.scene("gameover", (finalScore) => {
+            // Background - using 2.png (menu-bg)
+            const bgScale = Math.max(k.width() / 1024, k.height() / 1024);
+            k.add([
+                k.sprite("menu-bg"),
+                k.pos(k.width() / 2, k.height() / 2),
+                k.anchor("center"),
+                k.scale(bgScale),
+                k.z(-10)
+            ]);
+
             // Semi-transparent overlay
             k.add([
                 k.rect(k.width(), k.height()),
