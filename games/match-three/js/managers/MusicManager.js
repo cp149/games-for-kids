@@ -14,6 +14,9 @@ class MusicManager {
         // Sound effects via Web Audio API
         this.soundManager = new SoundManager();
 
+        // SFX strategy map - replaces switch statement
+        this.sfxStrategies = null;
+
         this.init();
     }
 
@@ -61,6 +64,16 @@ class MusicManager {
             }
         };
         this.bgMusic.addEventListener('error', this.handleAudioError);
+
+        // Initialize SFX strategy map
+        this.sfxStrategies = {
+            'SWAP': () => this.soundManager.playSwap(),
+            'MATCH': () => this.soundManager.playMatch(),
+            'CASCADE': () => this.soundManager.playCascade(),
+            'VICTORY': () => this.soundManager.playVictory(),
+            'INVALID': () => this.soundManager.playInvalid(),
+            'SELECT': () => this.soundManager.playSelect()
+        };
     }
 
     /**
@@ -123,6 +136,8 @@ class MusicManager {
 
     /**
      * Play sound effect using Web Audio API
+     * Uses strategy pattern for cleaner code
+     * @param {string} name - SFX name (SWAP, MATCH, CASCADE, VICTORY, INVALID, SELECT)
      */
     playSFX(name) {
         if (!this.sfxEnabled) return;
@@ -130,25 +145,10 @@ class MusicManager {
         // Initialize on first use
         this.soundManager.init();
 
-        switch (name) {
-            case 'SWAP':
-                this.soundManager.playSwap();
-                break;
-            case 'MATCH':
-                this.soundManager.playMatch();
-                break;
-            case 'CASCADE':
-                this.soundManager.playCascade();
-                break;
-            case 'VICTORY':
-                this.soundManager.playVictory();
-                break;
-            case 'INVALID':
-                this.soundManager.playInvalid();
-                break;
-            case 'SELECT':
-                this.soundManager.playSelect();
-                break;
+        // Use strategy map instead of switch
+        const strategy = this.sfxStrategies[name];
+        if (strategy) {
+            strategy();
         }
     }
 

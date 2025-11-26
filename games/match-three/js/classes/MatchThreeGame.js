@@ -4,9 +4,8 @@
  * Keeps class under 300 lines by delegating to managers
  *
  * Supports dependency injection for testability:
- * - doc: Document object (default: window.document)
- * - config: Configuration object (default: CONFIG)
- * - timeController: Time controller for async operations
+ * - context: GameContext instance (recommended)
+ * - Or individual options: doc, config, timeController
  * - BoardClass, UIManagerClass, etc.: Manager constructors
  * - autoInit: Whether to auto-initialize (default: true)
  */
@@ -15,9 +14,10 @@ class MatchThreeGame {
     /**
      * @param {string} containerId - ID of container element
      * @param {Object} [options] - Optional dependencies for testing
-     * @param {Document} [options.doc] - Document object
-     * @param {Object} [options.config] - Configuration object
-     * @param {Object} [options.timeController] - Time controller
+     * @param {GameContext} [options.context] - GameContext instance (preferred)
+     * @param {Document} [options.doc] - Document object (legacy, use context)
+     * @param {Object} [options.config] - Configuration object (legacy, use context)
+     * @param {Object} [options.timeController] - Time controller (legacy, use context)
      * @param {Function} [options.BoardClass] - Board constructor
      * @param {Function} [options.UIManagerClass] - UIManager constructor
      * @param {Function} [options.MusicManagerClass] - MusicManager constructor
@@ -25,10 +25,18 @@ class MatchThreeGame {
      * @param {boolean} [options.autoInit] - Auto-initialize game (default: true)
      */
     constructor(containerId, options = {}) {
-        // Dependency injection with defaults
-        this._doc = options.doc || (typeof document !== 'undefined' ? document : null);
-        this._config = options.config || CONFIG;
-        this._timeController = options.timeController || null;
+        // Support both GameContext and individual options (backward compatible)
+        // Create or use provided context for consistent dependency passing
+        this._context = options.context || new GameContext({
+            doc: options.doc,
+            config: options.config,
+            timeController: options.timeController
+        });
+
+        // Extract dependencies from context for local use
+        this._doc = this._context.doc;
+        this._config = this._context.config;
+        this._timeController = this._context.timeController;
 
         // Injectable classes
         const BoardClass = options.BoardClass || Board;
@@ -41,8 +49,8 @@ class MatchThreeGame {
 
         this.container = this._doc.getElementById(containerId);
 
-        // Initialize managers
-        this.uiManager = new UIManagerClass(this.container, { doc: this._doc, config: this._config });
+        // Initialize managers with context
+        this.uiManager = new UIManagerClass(this.container, { context: this._context });
         this.musicManager = new MusicManagerClass({ config: this._config });
         this.scoreManager = new ScoreManagerClass({ config: this._config });
 
@@ -152,13 +160,9 @@ class MatchThreeGame {
         // Reset score
         this.scoreManager.reset();
 
-        // Create new board with injected dependencies
+        // Create new board with context
         const gameArea = this.uiManager.getElement('gameArea');
-        this.board = new this._BoardClass(gameArea, {
-            doc: this._doc,
-            config: this._config,
-            timeController: this._timeController
-        });
+        this.board = new this._BoardClass(gameArea, { context: this._context });
 
         // Setup board event listeners
         this.setupBoardListeners();

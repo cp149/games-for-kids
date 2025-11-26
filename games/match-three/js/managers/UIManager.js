@@ -3,8 +3,8 @@
  * Manages header, score panel, game area, and coordinates with other managers
  *
  * Supports dependency injection for testability:
- * - doc: Document object (default: window.document)
- * - config: Configuration object (default: CONFIG)
+ * - context: GameContext instance (recommended)
+ * - Or individual options: doc, config
  * - EffectsManagerClass: EffectsManager constructor
  * - ModalManagerClass: ModalManager constructor
  */
@@ -13,15 +13,18 @@ class UIManager {
     /**
      * @param {HTMLElement} container - Container element
      * @param {Object} [options] - Optional dependencies for testing
-     * @param {Document} [options.doc] - Document object
-     * @param {Object} [options.config] - Configuration object
+     * @param {GameContext} [options.context] - GameContext instance (preferred)
+     * @param {Document} [options.doc] - Document object (legacy, use context)
+     * @param {Object} [options.config] - Configuration object (legacy, use context)
      * @param {Function} [options.EffectsManagerClass] - EffectsManager constructor
      * @param {Function} [options.ModalManagerClass] - ModalManager constructor
      */
     constructor(container, options = {}) {
         this.container = container;
-        this._doc = options.doc || (typeof document !== 'undefined' ? document : null);
-        this._config = options.config || CONFIG;
+        // Support both GameContext and individual options (backward compatible)
+        const ctx = options.context || null;
+        this._doc = ctx?.doc || options.doc || (typeof document !== 'undefined' ? document : null);
+        this._config = ctx?.config || options.config || CONFIG;
 
         // Injectable sub-manager classes
         this._EffectsManagerClass = options.EffectsManagerClass || EffectsManager;
