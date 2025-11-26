@@ -7,6 +7,19 @@ class EffectsManager {
     constructor(container) {
         this.container = container;
         this.timers = new Set(); // Track all timers for cleanup
+        this._boardElement = null; // Cached board element for performance
+    }
+
+    /**
+     * Get cached board element (lazy loading)
+     * Avoids repeated getElementById calls in high-frequency scenarios
+     * @returns {HTMLElement|null}
+     */
+    getBoardElement() {
+        if (!this._boardElement || !this._boardElement.parentNode) {
+            this._boardElement = document.getElementById('game-board');
+        }
+        return this._boardElement;
     }
 
     /**
@@ -35,8 +48,8 @@ class EffectsManager {
         floating.className = 'floating-score';
         floating.textContent = `+${points}`;
 
-        // Position relative to game board
-        const board = document.getElementById('game-board');
+        // Position relative to game board (use cached element)
+        const board = this.getBoardElement();
         if (board) {
             floating.style.left = `${x}px`;
             floating.style.top = `${y}px`;
@@ -85,7 +98,7 @@ class EffectsManager {
      * @param {number} count - Number of stars
      */
     showStarBurst(x, y, count = 5) {
-        const board = document.getElementById('game-board');
+        const board = this.getBoardElement();
         if (!board) return;
 
         const offset = CONFIG.GAME.EFFECTS.STAR_BURST_OFFSET;
@@ -94,8 +107,8 @@ class EffectsManager {
 
         for (let i = 0; i < count; i++) {
             this.safeSetTimeout(() => {
-                // Check if board still exists
-                if (!document.getElementById('game-board')) return;
+                // Check if board still exists (use cached element)
+                if (!this.getBoardElement()) return;
 
                 const star = document.createElement('div');
                 star.className = 'star-burst';
@@ -209,5 +222,6 @@ class EffectsManager {
         }
 
         this.container = null;
+        this._boardElement = null; // Clear cached board element
     }
 }

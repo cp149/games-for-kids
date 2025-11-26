@@ -1,0 +1,27 @@
+{
+  "name": "Match Three - Fun Puzzle Game",
+  "short_name": "Match Three",
+  "description": "A colorful match-3 puzzle game for children aged 6-10",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#87CEEB",
+  "theme_color": "#FF6B6B",
+  "categories": ["games", "entertainment", "kids"],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

@@ -75,16 +75,135 @@ class Board {
 
     /**
      * Setup board event listeners
+     * Supports both click (desktop) and swipe gestures (mobile)
      */
     setupEventListeners() {
+        // Touch state for swipe gestures
+        this.touchState = { startGem: null, startX: 0, startY: 0 };
+        this.touchHandled = false; // Prevent click after touch
+
+        // Click handler for desktop (mouse only)
         const clickHandler = this.handleGemClick.bind(this);
         this.element.addEventListener('click', clickHandler);
         this.handlers.set('click', clickHandler);
 
-        // Touch support
-        const touchHandler = this.handleTouch.bind(this);
-        this.element.addEventListener('touchstart', touchHandler, { passive: true });
-        this.handlers.set('touchstart', touchHandler);
+        // Touch handlers for mobile
+        const touchStartHandler = this.handleTouchStart.bind(this);
+        const touchEndHandler = this.handleTouchEnd.bind(this);
+        const touchMoveHandler = this.handleTouchMove.bind(this);
+
+        // Use passive for touchstart for better scroll performance
+        this.element.addEventListener('touchstart', touchStartHandler, { passive: true });
+        this.element.addEventListener('touchend', touchEndHandler, { passive: false });
+        this.element.addEventListener('touchmove', touchMoveHandler, { passive: false });
+
+        this.handlers.set('touchstart', touchStartHandler);
+        this.handlers.set('touchend', touchEndHandler);
+        this.handlers.set('touchmove', touchMoveHandler);
+    }
+
+    /**
+     * Get gem from touch/mouse coordinates
+     * @param {number} clientX - Client X coordinate
+     * @param {number} clientY - Client Y coordinate
+     * @returns {Gem|null}
+     */
+    getGemFromPoint(clientX, clientY) {
+        const rect = this.element.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const cellSize = this.getCellSize();
+
+        const col = Math.floor(x / cellSize);
+        const row = Math.floor(y / cellSize);
+
+        if (row >= 0 && row < this.size && col >= 0 && col < this.size) {
+            return this.grid[row]?.[col] || null;
+        }
+        return null;
+    }
+
+    /**
+     * Handle touch start - record starting position
+     */
+    handleTouchStart(event) {
+        if (this.isProcessing || !event.touches.length) return;
+
+        const touch = event.touches[0];
+        const gem = this.getGemFromPoint(touch.clientX, touch.clientY);
+
+        this.touchState = {
+            startGem: gem,
+            startX: touch.clientX,
+            startY: touch.clientY
+        };
+    }
+
+    /**
+     * Handle touch move - prevent scrolling during swipe
+     */
+    handleTouchMove(event) {
+        if (!this.touchState.startGem) return;
+
+        // Prevent page scroll while swiping on board
+        const touch = event.touches[0];
+        const deltaX = Math.abs(touch.clientX - this.touchState.startX);
+        const deltaY = Math.abs(touch.clientY - this.touchState.startY);
+
+        // If user is clearly swiping (moved more than threshold), prevent scroll
+        if (deltaX > 10 || deltaY > 10) {
+            event.preventDefault();
+        }
+    }
+
+    /**
+     * Handle touch end - detect swipe direction and swap gems
+     * Only handles SWIPE gestures; taps fall through to click handler
+     */
+    handleTouchEnd(event) {
+        if (this.isProcessing || !this.touchState.startGem) return;
+
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - this.touchState.startX;
+        const deltaY = touch.clientY - this.touchState.startY;
+
+        const minSwipeDistance = 20; // Minimum distance for swipe detection
+        const startGem = this.touchState.startGem;
+
+        // Reset touch state
+        this.touchState = { startGem: null, startX: 0, startY: 0 };
+
+        // Only process if this is a SWIPE gesture (moved enough distance)
+        const isSwipe = Math.abs(deltaX) >= minSwipeDistance || Math.abs(deltaY) >= minSwipeDistance;
+
+        if (!isSwipe) {
+            // Not a swipe - let click handler process the tap
+            return;
+        }
+
+        // This is a swipe - prevent click from also firing
+        this.touchHandled = true;
+
+        // Determine swipe direction
+        let targetRow = startGem.row;
+        let targetCol = startGem.col;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // Horizontal swipe
+            targetCol += deltaX > 0 ? 1 : -1;
+        } else {
+            // Vertical swipe
+            targetRow += deltaY > 0 ? 1 : -1;
+        }
+
+        // Check if we have a valid adjacent target
+        if (targetRow >= 0 && targetRow < this.size &&
+            targetCol >= 0 && targetCol < this.size) {
+            const targetGem = this.grid[targetRow]?.[targetCol];
+            if (targetGem) {
+                this.swapGems(startGem, targetGem);
+            }
+        }
     }
 
     /**
@@ -169,9 +288,16 @@ class Board {
     }
 
     /**
-     * Handle gem click
+     * Handle gem click (desktop/mouse only)
+     * Skipped when touch events are used to prevent double-handling
      */
     handleGemClick(event) {
+        // Skip if touch event already handled this interaction
+        if (this.touchHandled) {
+            this.touchHandled = false;
+            return;
+        }
+
         if (this.isProcessing) return;
 
         const gemElement = event.target.closest('.gem');
@@ -205,14 +331,6 @@ class Board {
                 this.selectGem(gem);
             }
         }
-    }
-
-    /**
-     * Handle touch events
-     */
-    handleTouch(event) {
-        // Prevent default to avoid double-firing with click
-        // Let click handler manage the logic
     }
 
     /**
@@ -560,36 +678,43 @@ class Board {
     /**
      * Resize board and update all gem sizes
      * Optimized: Uses CSS variables for batch style updates (single reflow)
+     * Uses requestAnimationFrame to prevent layout thrashing
      */
     resize() {
-        const cellSize = this.getCellSize();
-        const boardSize = cellSize * this.size;
+        // Use rAF to batch DOM updates and prevent layout thrashing
+        requestAnimationFrame(() => {
+            // Guard against destroyed board
+            if (!this.element || !this.grid) return;
 
-        // Update board size
-        this.element.style.width = `${boardSize}px`;
-        this.element.style.height = `${boardSize}px`;
+            const cellSize = this.getCellSize();
+            const boardSize = cellSize * this.size;
 
-        // Calculate gem dimensions
-        const gemSize = cellSize - this.config.BOARD.GEM_PADDING;
-        const fontSize = Math.floor(cellSize * this.config.GEM.EMOJI_SIZE_RATIO);
-        const borderRadius = Math.floor(cellSize * this.config.GEM.BORDER_RADIUS_RATIO);
+            // Update board size
+            this.element.style.width = `${boardSize}px`;
+            this.element.style.height = `${boardSize}px`;
 
-        // Batch update via CSS variables (single reflow instead of 64)
-        const root = this.doc.documentElement;
-        root.style.setProperty('--cell-size', `${cellSize}px`);
-        root.style.setProperty('--gem-size', `${gemSize}px`);
-        root.style.setProperty('--gem-font-size', `${fontSize}px`);
-        root.style.setProperty('--gem-border-radius', `${borderRadius}px`);
+            // Calculate gem dimensions
+            const gemSize = cellSize - this.config.BOARD.GEM_PADDING;
+            const fontSize = Math.floor(cellSize * this.config.GEM.EMOJI_SIZE_RATIO);
+            const borderRadius = Math.floor(cellSize * this.config.GEM.BORDER_RADIUS_RATIO);
 
-        // Only update positions (transforms don't trigger reflow)
-        for (let row = 0; row < this.size; row++) {
-            for (let col = 0; col < this.size; col++) {
-                const gem = this.grid[row][col];
-                if (gem && gem.element) {
-                    gem.updatePosition(false);
+            // Batch update via CSS variables (single reflow instead of 64)
+            const root = this.doc.documentElement;
+            root.style.setProperty('--cell-size', `${cellSize}px`);
+            root.style.setProperty('--gem-size', `${gemSize}px`);
+            root.style.setProperty('--gem-font-size', `${fontSize}px`);
+            root.style.setProperty('--gem-border-radius', `${borderRadius}px`);
+
+            // Only update positions (transforms don't trigger reflow)
+            for (let row = 0; row < this.size; row++) {
+                for (let col = 0; col < this.size; col++) {
+                    const gem = this.grid[row]?.[col];
+                    if (gem?.element) {
+                        gem.updatePosition(false);
+                    }
                 }
             }
-        }
+        });
     }
 
     /**
