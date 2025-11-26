@@ -3056,72 +3056,99 @@
                 }
             });
 
-            // Title background card with border
+            // Title background card - modern glassmorphism style
+            // Outer glow
             k.add([
-                k.rect(560, 120, { radius: 25 }),
-                k.pos(k.width() / 2, k.height() / 2 - 200),
-                k.anchor("center"),
-                k.color(255, 200, 220),
-                k.opacity(0.4),
-                k.z(0)
-            ]);
-
-            k.add([
-                k.rect(550, 110, { radius: 25 }),
-                k.pos(k.width() / 2, k.height() / 2 - 200),
-                k.anchor("center"),
-                k.color(255, 255, 255),
-                k.opacity(0.95),
-                k.z(1)
-            ]);
-
-            // Rainbow glow layers for title
-            const glowColors = [
-                [255, 100, 100, 0.2],   // Red
-                [255, 200, 100, 0.2],   // Orange
-                [255, 255, 100, 0.2],   // Yellow
-                [100, 255, 200, 0.2],   // Cyan
-                [150, 150, 255, 0.2]    // Purple
-            ];
-
-            glowColors.forEach((color, i) => {
-                const offset = (i - 2) * 3;
-                k.add([
-                    k.text("Runner Adventure", { size: 60 }),
-                    k.pos(k.width() / 2 + offset, k.height() / 2 - 200 + offset),
-                    k.anchor("center"),
-                    k.color(color[0], color[1], color[2]),
-                    k.opacity(color[3]),
-                    k.z(1 + i * 0.1)
-                ]);
-            });
-
-            // Title shadow
-            k.add([
-                k.text("Runner Adventure", { size: 60 }),
-                k.pos(k.width() / 2 + 3, k.height() / 2 - 197),
-                k.anchor("center"),
-                k.color(100, 100, 100),
-                k.opacity(0.4),
-                k.z(2)
-            ]);
-
-            // Main title with animated color
-            const mainTitle = k.add([
-                k.text("Runner Adventure", { size: 60 }),
+                k.rect(580, 140, { radius: 30 }),
                 k.pos(k.width() / 2, k.height() / 2 - 200),
                 k.anchor("center"),
                 k.color(255, 100, 150),
+                k.opacity(0.15),
+                k.z(-2)
+            ]);
+
+            // Shadow layer
+            k.add([
+                k.rect(560, 125, { radius: 28 }),
+                k.pos(k.width() / 2 + 4, k.height() / 2 - 196),
+                k.anchor("center"),
+                k.color(0, 0, 0),
+                k.opacity(0.2),
+                k.z(-1)
+            ]);
+
+            // Gradient background (simulate with layers)
+            k.add([
+                k.rect(560, 120, { radius: 28 }),
+                k.pos(k.width() / 2, k.height() / 2 - 200),
+                k.anchor("center"),
+                k.color(102, 126, 234),  // Purple-blue gradient start
+                k.opacity(0.95),
+                k.z(0)
+            ]);
+
+            // Gradient overlay top
+            k.add([
+                k.rect(560, 60, { radius: [28, 28, 0, 0] }),
+                k.pos(k.width() / 2, k.height() / 2 - 230),
+                k.anchor("center"),
+                k.color(118, 75, 162),  // Purple gradient
+                k.opacity(0.6),
+                k.z(0.5)
+            ]);
+
+            // Inner highlight (top edge)
+            k.add([
+                k.rect(540, 3, { radius: 2 }),
+                k.pos(k.width() / 2, k.height() / 2 - 255),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.opacity(0.4),
+                k.z(1)
+            ]);
+
+            // Corner decorations
+            const cornerPositions = [
+                { x: -265, y: -45 },
+                { x: 265, y: -45 },
+                { x: -265, y: 45 },
+                { x: 265, y: 45 }
+            ];
+            cornerPositions.forEach((corner, i) => {
+                k.add([
+                    k.circle(8),
+                    k.pos(k.width() / 2 + corner.x, k.height() / 2 - 200 + corner.y),
+                    k.anchor("center"),
+                    k.color(255, 255, 255),
+                    k.opacity(0.3),
+                    k.z(1)
+                ]);
+            });
+
+            // Title text shadow (for depth)
+            k.add([
+                k.text("Runner Adventure", { size: 52 }),
+                k.pos(k.width() / 2 + 3, k.height() / 2 - 197),
+                k.anchor("center"),
+                k.color(0, 0, 0),
+                k.opacity(0.3),
+                k.z(2)
+            ]);
+
+            // Main title - clean white with subtle glow
+            const mainTitle = k.add([
+                k.text("Runner Adventure", { size: 52 }),
+                k.pos(k.width() / 2, k.height() / 2 - 200),
+                k.anchor("center"),
+                k.color(255, 255, 255),
                 k.z(3)
             ]);
 
-            // Color cycling animation
+            // Subtle pulsing glow effect
             mainTitle.onUpdate(() => {
-                const t = k.time() * 0.5;
-                const r = 255;
-                const g = 100 + Math.sin(t) * 50;
-                const b = 150 + Math.sin(t + 1) * 50;
-                mainTitle.color = k.rgb(r, g, b);
+                const t = k.time() * 2;
+                const glow = 255 - Math.sin(t) * 20;
+                mainTitle.color = k.rgb(255, glow, glow);
             });
 
             // Decorative emoji on title with animation
@@ -3153,195 +3180,206 @@
                 rightEmoji.pos.x = k.width() / 2 + 320 + Math.sin(t + 1) * 5;
             });
 
-            // Instructions background card with border
+            // Instructions card - modern glass style with teal theme
+            // Outer glow
             k.add([
-                k.rect(630, 250, { radius: 20 }),
+                k.rect(540, 220, { radius: 24 }),
                 k.pos(k.width() / 2, k.height() / 2 - 20),
                 k.anchor("center"),
-                k.color(100, 200, 255),
-                k.opacity(0.3),
-                k.z(0)
+                k.color(17, 153, 142),  // Teal glow
+                k.opacity(0.2),
+                k.z(-2)
             ]);
 
+            // Shadow
             k.add([
-                k.rect(620, 240, { radius: 20 }),
+                k.rect(520, 205, { radius: 22 }),
+                k.pos(k.width() / 2 + 4, k.height() / 2 - 16),
+                k.anchor("center"),
+                k.color(0, 0, 0),
+                k.opacity(0.15),
+                k.z(-1)
+            ]);
+
+            // Main card background - semi-transparent white
+            k.add([
+                k.rect(520, 200, { radius: 22 }),
                 k.pos(k.width() / 2, k.height() / 2 - 20),
                 k.anchor("center"),
                 k.color(255, 255, 255),
-                k.opacity(0.92),
+                k.opacity(0.95),
+                k.z(0)
+            ]);
+
+            // Top accent bar
+            k.add([
+                k.rect(520, 50, { radius: [22, 22, 0, 0] }),
+                k.pos(k.width() / 2, k.height() / 2 - 95),
+                k.anchor("center"),
+                k.color(17, 153, 142),  // Teal
+                k.opacity(0.9),
+                k.z(0.5)
+            ]);
+
+            // Top highlight line
+            k.add([
+                k.rect(500, 2, { radius: 1 }),
+                k.pos(k.width() / 2, k.height() / 2 - 118),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.opacity(0.5),
                 k.z(1)
             ]);
 
-            // Camera option
+            // Camera section title - white on teal
             k.add([
-                k.text("🎮 Camera Control (Optional)", { size: 24 }),
-                k.pos(k.width() / 2, k.height() / 2 - 90),
+                k.text("🎮 How to Play", { size: 22 }),
+                k.pos(k.width() / 2, k.height() / 2 - 95),
                 k.anchor("center"),
-                k.color(80, 80, 180),
+                k.color(255, 255, 255),
                 k.z(2)
             ]);
 
+            // Step texts with icons
             const step1Text = k.add([
-                k.text("1. Click 📷 Start Camera", { size: 20 }),
+                k.text("📷  Camera Control (Optional)", { size: 18 }),
                 k.pos(k.width() / 2, k.height() / 2 - 55),
                 k.anchor("center"),
-                k.color(100, 100, 100),
+                k.color(80, 80, 100),
                 k.z(2),
                 "step1-text"
             ]);
 
             const step2Text = k.add([
-                k.text("2. Choose Your Pose", { size: 20 }),
+                k.text("🎯  Choose Your Pose to Jump", { size: 18 }),
                 k.pos(k.width() / 2, k.height() / 2 - 25),
                 k.anchor("center"),
-                k.color(100, 100, 100),
+                k.color(80, 80, 100),
                 k.z(2),
                 "step2-text"
             ]);
 
-            // OR separator with decoration
+            // Divider line
             k.add([
-                k.text("✦", { size: 24 }),
-                k.pos(k.width() / 2 - 100, k.height() / 2 + 15),
+                k.rect(400, 2, { radius: 1 }),
+                k.pos(k.width() / 2, k.height() / 2 + 10),
                 k.anchor("center"),
-                k.color(255, 180, 100),
-                k.z(2)
-            ]);
-
-            k.add([
-                k.text("OR", { size: 22 }),
-                k.pos(k.width() / 2, k.height() / 2 + 15),
-                k.anchor("center"),
-                k.color(130, 130, 130),
-                k.z(2)
-            ]);
-
-            k.add([
-                k.text("✦", { size: 24 }),
-                k.pos(k.width() / 2 + 100, k.height() / 2 + 15),
-                k.anchor("center"),
-                k.color(255, 180, 100),
-                k.z(2)
-            ]);
-
-            k.add([
-                k.text("⌨️ Press SPACE to Play", { size: 26 }),
-                k.pos(k.width() / 2, k.height() / 2 + 55),
-                k.anchor("center"),
-                k.color(255, 130, 30),
-                k.z(2)
-            ]);
-
-            // Multi-layer glow for button
-            const buttonGlowLayers = [
-                { size: 350, opacity: 0.08, color: [150, 255, 150] },
-                { size: 320, opacity: 0.12, color: [100, 255, 100] },
-                { size: 290, opacity: 0.18, color: [100, 240, 100] }
-            ];
-
-            buttonGlowLayers.forEach((layer, i) => {
-                const glow = k.add([
-                    k.circle(layer.size / 2),
-                    k.pos(k.width() / 2, k.height() / 2 + 140),
-                    k.anchor("center"),
-                    k.color(layer.color[0], layer.color[1], layer.color[2]),
-                    k.opacity(layer.opacity),
-                    k.z(-1),
-                    "button-glow"
-                ]);
-
-                glow.onUpdate(() => {
-                    const t = k.time() * 1.5 + i * 0.3;
-                    glow.opacity = layer.opacity + Math.sin(t) * 0.05;
-                });
-            });
-
-            // Button shadow/border
-            k.add([
-                k.rect(290, 85, { radius: 43 }),
-                k.pos(k.width() / 2, k.height() / 2 + 140),
-                k.anchor("center"),
-                k.color(50, 150, 50),
+                k.color(200, 200, 200),
                 k.opacity(0.6),
+                k.z(2)
+            ]);
+
+            // Keyboard instruction - highlighted
+            k.add([
+                k.rect(280, 45, { radius: 12 }),
+                k.pos(k.width() / 2, k.height() / 2 + 50),
+                k.anchor("center"),
+                k.color(255, 200, 100),
+                k.opacity(0.3),
+                k.z(1.5)
+            ]);
+
+            k.add([
+                k.text("⌨️ Press SPACE to Jump", { size: 20 }),
+                k.pos(k.width() / 2, k.height() / 2 + 50),
+                k.anchor("center"),
+                k.color(180, 100, 20),
+                k.z(2)
+            ]);
+
+            // Modern START button - clean gradient style
+            // Subtle outer glow
+            k.add([
+                k.rect(300, 80, { radius: 40 }),
+                k.pos(k.width() / 2, k.height() / 2 + 150),
+                k.anchor("center"),
+                k.color(56, 239, 125),  // Green glow
+                k.opacity(0.2),
+                k.z(-2)
+            ]);
+
+            // Button shadow
+            k.add([
+                k.rect(280, 70, { radius: 35 }),
+                k.pos(k.width() / 2 + 3, k.height() / 2 + 154),
+                k.anchor("center"),
+                k.color(0, 0, 0),
+                k.opacity(0.25),
+                k.z(-1)
+            ]);
+
+            // Button base (darker green for 3D effect)
+            k.add([
+                k.rect(280, 70, { radius: 35 }),
+                k.pos(k.width() / 2, k.height() / 2 + 153),
+                k.anchor("center"),
+                k.color(30, 130, 76),  // Dark green
+                k.opacity(1),
                 k.z(0)
             ]);
 
+            // Main button
             const startBtn = k.add([
-                k.rect(280, 75, { radius: 38 }),
-                k.pos(k.width() / 2, k.height() / 2 + 140),
+                k.rect(280, 65, { radius: 33 }),
+                k.pos(k.width() / 2, k.height() / 2 + 150),
                 k.anchor("center"),
-                k.color(100, 220, 100),
+                k.color(46, 204, 113),  // Emerald green
                 k.area(),
                 k.z(1),
                 k.scale(1),
                 "button"
             ]);
 
-            // Enhanced pulsing effect for button
+            // Button top highlight
+            k.add([
+                k.rect(260, 25, { radius: [30, 30, 0, 0] }),
+                k.pos(k.width() / 2, k.height() / 2 + 130),
+                k.anchor("center"),
+                k.color(88, 214, 141),  // Lighter green highlight
+                k.opacity(0.5),
+                k.z(1.5)
+            ]);
+
+            // Inner highlight line
+            k.add([
+                k.rect(240, 2, { radius: 1 }),
+                k.pos(k.width() / 2, k.height() / 2 + 122),
+                k.anchor("center"),
+                k.color(255, 255, 255),
+                k.opacity(0.4),
+                k.z(2)
+            ]);
+
+            // Subtle pulsing effect for button
             startBtn.onUpdate(() => {
-                const t = k.time() * 1.5;
-                const pulse = 1 + Math.sin(t) * 0.05;
+                const t = k.time() * 2;
+                const pulse = 1 + Math.sin(t) * 0.02;
                 if (!startBtn.isHovering()) {
                     startBtn.scale = k.vec2(pulse);
                 }
-                // Color pulsing
-                const colorPulse = 220 + Math.sin(t * 2) * 20;
-                startBtn.color = k.rgb(100, colorPulse, 100);
             });
 
-            // Enhanced sparkles near button - more and bigger
+            // Minimal sparkles - just two
             const sparklePositions = [
-                { x: k.width() / 2 - 180, y: k.height() / 2 + 120, emoji: "✨" },
-                { x: k.width() / 2 + 180, y: k.height() / 2 + 120, emoji: "✨" },
-                { x: k.width() / 2 - 170, y: k.height() / 2 + 160, emoji: "💫" },
-                { x: k.width() / 2 + 170, y: k.height() / 2 + 160, emoji: "💫" },
-                { x: k.width() / 2 - 200, y: k.height() / 2 + 140, emoji: "⭐" },
-                { x: k.width() / 2 + 200, y: k.height() / 2 + 140, emoji: "⭐" }
+                { x: k.width() / 2 - 160, y: k.height() / 2 + 150 },
+                { x: k.width() / 2 + 160, y: k.height() / 2 + 150 }
             ];
 
             sparklePositions.forEach((pos, i) => {
                 const sparkle = k.add([
-                    k.text(pos.emoji, { size: 32 }),
+                    k.text("✨", { size: 24 }),
                     k.pos(pos.x, pos.y),
                     k.anchor("center"),
-                    k.opacity(0.8),
-                    k.rotate(0),
-                    k.scale(1),
+                    k.opacity(0.7),
                     k.z(2),
                     "sparkle"
                 ]);
 
-                // Enhanced animation
                 sparkle.onUpdate(() => {
-                    const t = k.time() * 2 + i * 0.5;
-                    sparkle.opacity = 0.5 + Math.sin(t) * 0.5;
-                    sparkle.angle = Math.sin(t * 0.8) * 20;
-                    sparkle.scale = k.vec2(1 + Math.sin(t * 1.5) * 0.2);
+                    const t = k.time() * 2 + i * Math.PI;
+                    sparkle.opacity = 0.4 + Math.sin(t) * 0.4;
                 });
             });
-
-            // Radial light rays around button
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                const ray = k.add([
-                    k.rect(4, 60, { radius: 2 }),
-                    k.pos(k.width() / 2, k.height() / 2 + 140),
-                    k.anchor("center"),
-                    k.rotate(angle * 180 / Math.PI),
-                    k.color(255, 255, 150),
-                    k.opacity(0.3),
-                    k.z(-1),
-                    "ray"
-                ]);
-
-                ray.onUpdate(() => {
-                    const t = k.time() * 2 + i * 0.2;
-                    ray.opacity = 0.2 + Math.sin(t) * 0.2;
-                    const distance = 80 + Math.sin(t) * 15;
-                    ray.pos.x = k.width() / 2 + Math.cos(angle) * distance;
-                    ray.pos.y = k.height() / 2 + 140 + Math.sin(angle) * distance;
-                });
-            }
 
             // Listen for camera start
             const handleCameraStarted = () => {
@@ -3362,49 +3400,23 @@
                 window.removeEventListener('poseSelected', handlePoseSelected);
             });
 
+            // Button text
             k.add([
-                k.text("🚀 START GAME 🚀", { size: 30 }),
-                k.pos(k.width() / 2, k.height() / 2 + 140),
+                k.text("🚀 START GAME", { size: 26 }),
+                k.pos(k.width() / 2, k.height() / 2 + 150),
                 k.anchor("center"),
                 k.color(255, 255, 255),
-                k.z(2)
+                k.z(3)
             ]);
 
-            // Button hover effect - enhanced
+            // Button hover effect - clean
             startBtn.onHover(() => {
-                startBtn.color = k.rgb(150, 255, 150);
-                startBtn.scale = k.vec2(1.15);
-
-                // Create burst effect on hover
-                for (let i = 0; i < 8; i++) {
-                    const angle = (i / 8) * Math.PI * 2;
-                    const particle = k.add([
-                        k.circle(5),
-                        k.pos(k.width() / 2, k.height() / 2 + 140),
-                        k.anchor("center"),
-                        k.color(255, 255, 150),
-                        k.opacity(0.8),
-                        k.z(3),
-                        "hover-particle"
-                    ]);
-
-                    const speed = 150 + Math.random() * 50;
-                    const lifetime = 0.8;
-
-                    particle.onUpdate(() => {
-                        particle.pos.x += Math.cos(angle) * speed * k.dt();
-                        particle.pos.y += Math.sin(angle) * speed * k.dt();
-                        particle.opacity -= k.dt() / lifetime;
-
-                        if (particle.opacity <= 0) {
-                            k.destroy(particle);
-                        }
-                    });
-                }
+                startBtn.color = k.rgb(88, 214, 141);  // Lighter green
+                startBtn.scale = k.vec2(1.05);
             });
 
             startBtn.onHoverEnd(() => {
-                startBtn.color = k.rgb(100, 220, 100);
+                startBtn.color = k.rgb(46, 204, 113);  // Emerald green
                 startBtn.scale = k.vec2(1);
             });
 
