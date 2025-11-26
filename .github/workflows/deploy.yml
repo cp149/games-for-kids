@@ -1,0 +1,64 @@
+# GitHub Pages deployment workflow
+# Deploys only public content, excluding docs and tools directories
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:  # Allow manual trigger
+
+# Sets permissions of the GITHUB_TOKEN
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Prepare deployment
+        run: |
+          # Create deployment directory
+          mkdir -p _site
+
+          # Copy all files except excluded directories
+          rsync -av --progress . _site \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.claude' \
+            --exclude 'docs' \
+            --exclude 'tools' \
+            --exclude 'tests' \
+            --exclude 'node_modules' \
+            --exclude '*.md' \
+            --exclude 'CLAUDE.md' \
+            --exclude 'package*.json' \
+            --exclude '.gitignore' \
+            --exclude '_site'
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -3,276 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fun and educational browser games for children ages 3-12">
+    <meta name="theme-color" content="#667eea">
+
+    <!-- Content Security Policy for enhanced security -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                   style-src 'self';
+                   img-src 'self' data:;
+                   script-src 'self';">
+
     <title>Kids Game Collection</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 0;
-        }
-
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 40px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            color: white;
-            font-weight: 700;
-        }
-
-        .language-btn {
-            background: white;
-            border: none;
-            color: #667eea;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .language-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 50px;
-            color: white;
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            margin-bottom: 15px;
-            font-weight: 800;
-            letter-spacing: -1px;
-        }
-
-        .subtitle {
-            font-size: 1.3rem;
-            opacity: 0.95;
-            font-weight: 500;
-        }
-
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .game-card {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .game-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.25);
-        }
-
-        .game-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        .game-icon {
-            font-size: 4rem;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-        }
-
-        .game-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(255, 255, 255, 0.95);
-            color: #667eea;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .game-body {
-            padding: 25px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .game-title {
-            font-size: 1.5rem;
-            color: #333;
-            margin-bottom: 12px;
-            font-weight: 700;
-        }
-
-        .game-description {
-            color: #666;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            margin-bottom: 20px;
-            flex: 1;
-        }
-
-        .game-meta {
-            display: flex;
-            justify-content: space-around;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .meta-icon {
-            font-size: 1.3rem;
-        }
-
-        .meta-text {
-            font-size: 0.85rem;
-            color: #888;
-            font-weight: 600;
-        }
-
-        .coming-soon {
-            opacity: 0.6;
-            pointer-events: none;
-            position: relative;
-        }
-
-        .coming-soon::after {
-            content: 'Coming Soon';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(102, 126, 234, 0.95);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        footer {
-            text-align: center;
-            color: white;
-            padding: 40px 20px;
-            opacity: 0.9;
-            font-size: 0.95rem;
-        }
-
-        footer a {
-            color: white;
-            text-decoration: underline;
-            font-weight: 600;
-        }
-
-        footer p {
-            margin-bottom: 10px;
-        }
-
-        /* Tablet optimizations */
-        @media (min-width: 768px) and (max-width: 1024px) {
-            .games-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
-            }
-
-            h1 {
-                font-size: 3rem;
-            }
-
-            .container {
-                padding: 30px 30px;
-            }
-        }
-
-        /* Mobile */
-        @media (max-width: 767px) {
-            .top-bar {
-                padding: 15px 20px;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            h1 {
-                font-size: 2.2rem;
-            }
-
-            .subtitle {
-                font-size: 1.1rem;
-            }
-
-            .games-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .game-header {
-                padding: 35px 20px;
-            }
-
-            .game-icon {
-                font-size: 3.5rem;
-            }
-
-            .container {
-                padding: 30px 15px;
-            }
-        }
-
-        /* Large screens */
-        @media (min-width: 1400px) {
-            .games-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-    </style>
+    <!-- External stylesheet -->
+    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
     <div class="top-bar">
         <div class="logo">🎮 Kids Games</div>
-        <select class="language-btn" id="languageSelect">
+        <select class="language-btn" id="languageSelect" aria-label="Select language">
             <option value="en">🇺🇸 English</option>
             <option value="zh">🇨🇳 中文</option>
             <option value="ja">🇯🇵 日本語</option>
@@ -288,7 +37,7 @@
         <div class="games-grid">
             <!-- Game 1: Memory Match -->
             <a href="games/memory-match/index.html" class="game-card">
-                <div class="game-header">
+                <div class="game-header memory">
                     <span class="game-badge" data-i18n="new_badge">NEW</span>
                     <div class="game-icon">🐾</div>
                 </div>
@@ -314,7 +63,7 @@
 
             <!-- Game 2: Runner Adventure -->
             <a href="games/runner-adventure/index.html" class="game-card">
-                <div class="game-header">
+                <div class="game-header runner">
                     <span class="game-badge" data-i18n="hot_badge">HOT</span>
                     <div class="game-icon">🏃</div>
                 </div>
@@ -340,7 +89,7 @@
 
             <!-- Game 3: Drawing Studio -->
             <a href="games/drawing-studio/index.html" class="game-card">
-                <div class="game-header">
+                <div class="game-header drawing">
                     <span class="game-badge" data-i18n="new_badge">NEW</span>
                     <div class="game-icon">🎨</div>
                 </div>
@@ -366,7 +115,7 @@
 
             <!-- Game 4: Puzzle Master -->
             <a href="games/puzzle-master/index.html" class="game-card">
-                <div class="game-header">
+                <div class="game-header puzzle">
                     <span class="game-badge" data-i18n="new_badge">NEW</span>
                     <div class="game-icon">🧩</div>
                 </div>
@@ -389,141 +138,50 @@
                     </div>
                 </div>
             </a>
+
+            <!-- Game 5: Match Three -->
+            <a href="games/match-three/index.html" class="game-card">
+                <div class="game-header match-three">
+                    <span class="game-badge" data-i18n="new_badge">NEW</span>
+                    <div class="game-icon">🍎</div>
+                </div>
+                <div class="game-body">
+                    <h2 class="game-title" data-i18n="game5_title">Match Three</h2>
+                    <p class="game-description" data-i18n="game5_desc">Swap colorful fruits to match 3 or more! Classic puzzle fun for all ages.</p>
+                    <div class="game-meta">
+                        <div class="meta-item">
+                            <span class="meta-icon">⏱️</span>
+                            <span class="meta-text" data-i18n="duration5">5-10 min</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">👶</span>
+                            <span class="meta-text" data-i18n="age5">6-10</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">⭐</span>
+                            <span class="meta-text" data-i18n="difficulty5">Medium</span>
+                        </div>
+                    </div>
+                </div>
+            </a>
         </div>
 
         <footer>
-            <p data-i18n="footer_text">Made with ❤️ for kids around the world</p>
+            <p data-i18n="footer_text">Made with love for kids around the world</p>
             <p>
-                <span data-i18n="footer_count">3 games available, more coming soon!</span>
+                <span data-i18n="footer_count">5 games available, more coming soon!</span>
             </p>
-            <p style="margin-top: 15px; font-size: 0.85rem;">
+            <p class="footer-credits">
                 <span data-i18n="footer_credits">Images by</span>
-                <a href="https://gemini.google/overview/image-generation/" target="_blank">Gemini</a>
+                <a href="https://gemini.google/overview/image-generation/" target="_blank" rel="noopener">Gemini</a>
                 <span> • </span>
                 <span data-i18n="footer_music">Music by</span>
-                <a href="https://app.jenmusic.ai/" target="_blank">JenMusic</a>
+                <a href="https://app.jenmusic.ai/" target="_blank" rel="noopener">JenMusic</a>
             </p>
         </footer>
     </div>
 
-    <script>
-        // Simple i18n system
-        const translations = {
-            en: {
-                main_title: "Kids Game Collection",
-                subtitle: "Fun and Educational Games for Children",
-                game1_title: "Animal Memory Match",
-                game1_desc: "Match cute animal pairs and train your memory! Perfect for ages 3-8.",
-                game2_title: "Runner Adventure",
-                game2_desc: "Jump and run through exciting levels! Control with body movements.",
-                game3_title: "Drawing Studio",
-                game3_desc: "Create colorful drawings with magical tools and effects!",
-                game4_title: "Puzzle Challenge",
-                game4_desc: "Solve colorful puzzles and develop problem-solving skills!",
-                duration1: "5 min",
-                duration2: "Endless",
-                duration3: "Unlimited",
-                duration4: "15 min",
-                age1: "3-8",
-                age2: "5-10",
-                age3: "3-12",
-                age4: "6-12",
-                difficulty1: "Easy",
-                difficulty2: "Medium",
-                difficulty3: "Easy",
-                difficulty4: "Hard",
-                new_badge: "NEW",
-                hot_badge: "HOT",
-                footer_text: "Made with ❤️ for kids around the world",
-                footer_count: "3 games available, more coming soon!",
-                footer_credits: "Images by",
-                footer_music: "Music by"
-            },
-            zh: {
-                main_title: "儿童游戏合集",
-                subtitle: "有趣又有教育意义的儿童游戏",
-                game1_title: "动物记忆配对",
-                game1_desc: "配对可爱的动物，训练记忆力！适合3-8岁儿童。",
-                game2_title: "跑酷冒险",
-                game2_desc: "跳跃奔跑，穿越刺激的关卡！用身体动作控制。",
-                game3_title: "画画工作室",
-                game3_desc: "用魔法工具和特效创作彩色画作！",
-                game4_title: "拼图挑战",
-                game4_desc: "解决彩色拼图，培养解决问题的能力！",
-                duration1: "5分钟",
-                duration2: "无限",
-                duration3: "无限",
-                duration4: "15分钟",
-                age1: "3-8岁",
-                age2: "5-10岁",
-                age3: "3-12岁",
-                age4: "6-12岁",
-                difficulty1: "简单",
-                difficulty2: "中等",
-                difficulty3: "简单",
-                difficulty4: "困难",
-                new_badge: "新",
-                hot_badge: "热门",
-                footer_text: "用❤️为全世界的孩子们制作",
-                footer_count: "3个游戏可玩，更多即将推出！",
-                footer_credits: "图片来自",
-                footer_music: "音乐来自"
-            },
-            ja: {
-                main_title: "子供向けゲームコレクション",
-                subtitle: "楽しくて教育的な子供向けゲーム",
-                game1_title: "動物メモリーマッチ",
-                game1_desc: "かわいい動物のペアを合わせて記憶力を鍛えよう！3〜8歳に最適。",
-                game2_title: "ランナーアドベンチャー",
-                game2_desc: "ジャンプして走って、エキサイティングなレベルをクリア！体の動きで操作。",
-                game3_title: "お絵かきスタジオ",
-                game3_desc: "魔法のツールとエフェクトでカラフルな絵を描こう！",
-                game4_title: "パズルチャレンジ",
-                game4_desc: "カラフルなパズルを解いて、問題解決能力を養おう！",
-                duration1: "5分",
-                duration2: "無限",
-                duration3: "無限",
-                duration4: "15分",
-                age1: "3-8歳",
-                age2: "5-10歳",
-                age3: "3-12歳",
-                age4: "6-12歳",
-                difficulty1: "簡単",
-                difficulty2: "普通",
-                difficulty3: "簡単",
-                difficulty4: "難しい",
-                new_badge: "新作",
-                hot_badge: "人気",
-                footer_text: "世界中の子供たちのために❤️を込めて作りました",
-                footer_count: "3ゲームプレイ可能、もっと近日公開！",
-                footer_credits: "画像:",
-                footer_music: "音楽:"
-            }
-        };
-
-        let currentLang = 'en';
-
-        function initLanguage() {
-            currentLang = 'en';
-            document.getElementById('languageSelect').value = 'en';
-            updateLanguage();
-        }
-
-        function updateLanguage() {
-            document.querySelectorAll('[data-i18n]').forEach(element => {
-                const key = element.getAttribute('data-i18n');
-                if (translations[currentLang][key]) {
-                    element.textContent = translations[currentLang][key];
-                }
-            });
-        }
-
-        document.getElementById('languageSelect').addEventListener('change', (e) => {
-            currentLang = e.target.value;
-            updateLanguage();
-        });
-
-        initLanguage();
-    </script>
+    <!-- External script -->
+    <script src="js/i18n.js"></script>
 </body>
 </html>
