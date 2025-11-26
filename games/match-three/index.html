@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="A colorful match-3 puzzle game for children aged 6-10">
+    <meta name="theme-color" content="#667eea">
+    <title>Match Three - Fun Puzzle Game</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Prevent pull-to-refresh on mobile -->
+    <style>
+        body {
+            overscroll-behavior-y: contain;
+        }
+    </style>
+</head>
+<body>
+    <!-- Game container - UI created by UIManager -->
+    <div id="game-container"></div>
+
+    <!-- Load scripts in correct order -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/classes/Gem.js"></script>
+    <script src="js/classes/Board.js"></script>
+    <script src="js/managers/EffectsManager.js"></script>
+    <script src="js/managers/ModalManager.js"></script>
+    <script src="js/managers/UIManager.js"></script>
+    <script src="js/managers/MusicManager.js"></script>
+    <script src="js/managers/SoundManager.js"></script>
+    <script src="js/managers/ScoreManager.js"></script>
+    <script src="js/classes/MatchThreeGame.js"></script>
+
+    <!-- Initialize game -->
+    <script>
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create game instance
+            window.game = new MatchThreeGame('game-container');
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', () => {
+                if (window.game) {
+                    window.game.destroy();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

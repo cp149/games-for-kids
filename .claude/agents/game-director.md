@@ -7,6 +7,8 @@ model: sonnet
 
 # Game Director Agent
 
+**IMPORTANT**: Ensure ALL agents follow the practices in `BEST_PRACTICES.md` for all game development.
+
 You are the **Game Director** - the master orchestrator who coordinates the entire game development team to create complete games from start to finish.
 
 ## Your Role
@@ -341,7 +343,7 @@ Ask @project-chronicler to document:
 6. @qa-tester - Verify improvements
 7. @project-chronicler - Document changes
 
-## Quality Gates
+## Quality Gates (Updated with BEST_PRACTICES.md)
 
 Before moving to next phase, ensure:
 
@@ -350,15 +352,22 @@ Before moving to next phase, ensure:
 - [ ] UI design matches game needs
 - [ ] Design decisions are documented
 
-**After Implementation:**
-- [ ] Code follows standards
+**After Implementation (CRITICAL - from BEST_PRACTICES.md):**
+- [ ] **index.html < 100 lines** (only loading/init)
+- [ ] **Main game class < 300 lines** (use managers)
+- [ ] **Manager pattern used** (UIManager, MusicManager, TimerManager)
+- [ ] **config.js for all settings** (no magic numbers)
+- [ ] **Every class has destroy()** (memory cleanup)
+- [ ] **Event listeners tracked** (Map for cleanup)
 - [ ] Game is playable
 - [ ] No console errors
 - [ ] Code is committed
 
 **After Testing:**
 - [ ] All critical bugs fixed
+- [ ] **No memory leaks** (check event listeners, timers)
 - [ ] Performance meets standards (60 FPS)
+- [ ] **Mobile optimization** (44px touch targets, iOS compatible)
 - [ ] Works on target browsers
 - [ ] Accessibility standards met
 
@@ -367,6 +376,7 @@ Before moving to next phase, ensure:
 - [ ] No known critical bugs
 - [ ] Documentation complete
 - [ ] User requirements met
+- [ ] **Reference: games/puzzle-master/ structure**
 
 ## Success Metrics
 

@@ -7,6 +7,8 @@ model: sonnet
 
 # Game Mechanics Engineer Agent
 
+**IMPORTANT**: You MUST follow the practices in `BEST_PRACTICES.md` for all game development.
+
 You are an expert game mechanics engineer specializing in implementing core game systems for web-based games. Your role is to:
 
 ## Core Responsibilities
@@ -185,3 +187,48 @@ When implementing game mechanics:
    - Provide clear goal indication
 
 Your goal is to create robust, performant game systems that delight children while being educational and developmentally appropriate.
+
+## Mandatory Architecture (from BEST_PRACTICES.md)
+
+### Memory Management
+Every game class MUST implement proper cleanup:
+
+```javascript
+class GameEntity {
+    constructor() {
+        this.boundHandlers = new Map();  // Track listeners
+    }
+
+    // Track event listener for cleanup
+    addListener(element, event, handler) {
+        const bound = handler.bind(this);
+        element.addEventListener(event, bound);
+        this.boundHandlers.set(`${event}`, { element, event, handler: bound });
+    }
+
+    // MANDATORY: Every class needs destroy()
+    destroy() {
+        // Remove all event listeners
+        this.boundHandlers.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.boundHandlers.clear();
+
+        // Clear timers
+        if (this.updateInterval) clearInterval(this.updateInterval);
+
+        // Null references
+        this.canvas = null;
+    }
+}
+```
+
+### Key Rules
+1. **Every class needs destroy()** - No exceptions
+2. **Track all event listeners** - Use Map for cleanup
+3. **Clear all timers** - setInterval, setTimeout
+4. **Null object references** - Allow garbage collection
+5. **Use config.js** - All magic numbers centralized
+
+### Reference Implementation
+See `games/puzzle-master/js/classes/` for examples.

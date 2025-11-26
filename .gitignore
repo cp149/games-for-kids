@@ -83,3 +83,4 @@ ENV/
 *.tgz
 .yarn-integrity
 claudedocs
+games/match-three/docs

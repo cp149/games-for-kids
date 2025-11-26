@@ -1,0 +1,165 @@
+/**
+ * MusicManager - Handles background music and sound effects
+ * Uses Web Audio API for sound effects (via SoundManager)
+ */
+
+class MusicManager {
+    constructor() {
+        this.bgMusic = null;
+        this.sfxEnabled = true;
+        this.musicEnabled = true;
+        this.currentMusicIndex = 0;
+        this.handleMusicEnded = null;
+
+        // Sound effects via Web Audio API
+        this.soundManager = new SoundManager();
+
+        this.init();
+    }
+
+    /**
+     * Initialize music manager
+     */
+    init() {
+        // Create background music element
+        this.bgMusic = new Audio();
+        this.bgMusic.loop = false;
+        this.bgMusic.volume = CONFIG.GAME.AUDIO.MUSIC_VOLUME;
+
+        // Setup music ended handler
+        this.handleMusicEnded = () => {
+            const musicFiles = CONFIG.GAME.AUDIO.MUSIC_FILES;
+            this.currentMusicIndex = (this.currentMusicIndex + 1) % musicFiles.length;
+            this.bgMusic.src = musicFiles[this.currentMusicIndex];
+            if (this.musicEnabled) {
+                this.bgMusic.play().catch(() => {});
+            }
+        };
+        this.bgMusic.addEventListener('ended', this.handleMusicEnded);
+    }
+
+    /**
+     * Start background music
+     */
+    startMusic() {
+        if (!this.musicEnabled) return;
+
+        const musicFiles = CONFIG.GAME.AUDIO.MUSIC_FILES;
+        if (musicFiles.length === 0) return;
+
+        this.bgMusic.src = musicFiles[this.currentMusicIndex];
+        this.bgMusic.play().catch(() => {});
+
+        // Initialize sound manager on first user interaction
+        this.soundManager.init();
+    }
+
+    /**
+     * Stop background music
+     */
+    stopMusic() {
+        if (this.bgMusic) {
+            this.bgMusic.pause();
+            this.bgMusic.currentTime = 0;
+        }
+    }
+
+    /**
+     * Toggle background music
+     */
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+
+        if (this.musicEnabled) {
+            this.startMusic();
+        } else {
+            this.stopMusic();
+        }
+
+        return this.musicEnabled;
+    }
+
+    /**
+     * Play sound effect using Web Audio API
+     */
+    playSFX(name) {
+        if (!this.sfxEnabled) return;
+
+        // Initialize on first use
+        this.soundManager.init();
+
+        switch (name) {
+            case 'SWAP':
+                this.soundManager.playSwap();
+                break;
+            case 'MATCH':
+                this.soundManager.playMatch();
+                break;
+            case 'CASCADE':
+                this.soundManager.playCascade();
+                break;
+            case 'VICTORY':
+                this.soundManager.playVictory();
+                break;
+            case 'INVALID':
+                this.soundManager.playInvalid();
+                break;
+            case 'SELECT':
+                this.soundManager.playSelect();
+                break;
+        }
+    }
+
+    /**
+     * Toggle sound effects
+     */
+    toggleSFX() {
+        this.sfxEnabled = !this.sfxEnabled;
+        this.soundManager.enabled = this.sfxEnabled;
+        return this.sfxEnabled;
+    }
+
+    /**
+     * Set music volume
+     */
+    setMusicVolume(volume) {
+        if (this.bgMusic) {
+            this.bgMusic.volume = Math.max(0, Math.min(1, volume));
+        }
+    }
+
+    /**
+     * Check if music is playing
+     */
+    isMusicPlaying() {
+        return this.musicEnabled && this.bgMusic && !this.bgMusic.paused;
+    }
+
+    /**
+     * Clean up resources
+     */
+    destroy() {
+        // Remove event listener BEFORE stopping (to prevent ended event)
+        if (this.bgMusic && this.handleMusicEnded) {
+            this.bgMusic.removeEventListener('ended', this.handleMusicEnded);
+            this.handleMusicEnded = null;
+        }
+
+        // Stop and release audio resources
+        if (this.bgMusic) {
+            this.bgMusic.pause();
+            this.bgMusic.src = '';
+            this.bgMusic.load(); // Reset audio element
+            this.bgMusic = null;
+        }
+
+        // Destroy sound manager
+        if (this.soundManager) {
+            this.soundManager.destroy();
+            this.soundManager = null;
+        }
+
+        this.musicEnabled = false;
+        this.sfxEnabled = false;
+    }
+}
