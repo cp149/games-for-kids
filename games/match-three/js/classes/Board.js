@@ -1,12 +1,34 @@
 /**
  * Board - Game board logic
  * Handles grid, gem placement, matching, and gravity
+ *
+ * Supports dependency injection for testability:
+ * - doc: Document object (default: window.document)
+ * - config: Configuration object (default: CONFIG)
+ * - timeController: Time control for async operations
+ * - GemClass: Gem constructor (default: Gem)
+ * - autoInit: Whether to auto-initialize (default: true)
  */
 
 class Board {
-    constructor(container) {
+    /**
+     * @param {HTMLElement} container - Container element for the board
+     * @param {Object} [options] - Optional dependencies for testing
+     * @param {Document} [options.doc] - Document object
+     * @param {Object} [options.config] - Configuration object
+     * @param {Object} [options.timeController] - Time controller with wait() method
+     * @param {Function} [options.GemClass] - Gem class constructor
+     * @param {boolean} [options.autoInit] - Auto-initialize board (default: true)
+     */
+    constructor(container, options = {}) {
+        // Dependency injection with defaults
+        this.doc = options.doc || (typeof document !== 'undefined' ? document : null);
+        this.config = options.config || CONFIG;
+        this.timeController = options.timeController || null;
+        this.GemClass = options.GemClass || Gem;
+
         this.container = container;
-        this.size = CONFIG.GAME.GRID_SIZE;
+        this.size = this.config.GAME.GRID_SIZE;
         this.grid = []; // 2D array of gems
         this.element = null;
         this.selectedGem = null;
@@ -18,15 +40,18 @@ class Board {
         // Timer tracking for cleanup
         this.timers = new Set();
 
-        this.createBoard();
-        this.fillBoard();
+        // Auto-initialize unless disabled (for testing)
+        if (options.autoInit !== false) {
+            this.createBoard();
+            this.fillBoard();
+        }
     }
 
     /**
      * Create the board DOM element
      */
     createBoard() {
-        const board = document.createElement('div');
+        const board = this.doc.createElement('div');
         board.className = 'game-board';
         board.id = 'game-board';
 
@@ -37,7 +62,7 @@ class Board {
         board.style.height = `${boardSize}px`;
         board.style.position = 'relative';
         board.style.margin = '0 auto';
-        board.style.borderRadius = `${CONFIG.BOARD.BORDER_RADIUS}px`;
+        board.style.borderRadius = `${this.config.BOARD.BORDER_RADIUS}px`;
         board.style.overflow = 'hidden';
 
         this.element = board;
@@ -121,7 +146,7 @@ class Board {
 
         // Get available types
         const available = [];
-        for (let type = 0; type < CONFIG.GAME.GEM_TYPES; type++) {
+        for (let type = 0; type < this.config.GAME.GEM_TYPES; type++) {
             if (!forbidden.has(type)) {
                 available.push(type);
             }
@@ -133,9 +158,10 @@ class Board {
 
     /**
      * Create a gem at specific position
+     * Uses injected GemClass for testability
      */
     createGem(type, row, col) {
-        const gem = new Gem(type, row, col);
+        const gem = new this.GemClass(type, row, col, { config: this.config, doc: this.doc });
         this.grid[row][col] = gem;
         this.element.appendChild(gem.getElement());
         return gem;
@@ -228,7 +254,7 @@ class Board {
         gem2.moveTo(original1Row, original1Col, true);
 
         // Wait for animation
-        await this.wait(CONFIG.GAME.TIMING.SWAP_DURATION);
+        await this.wait(this.config.GAME.TIMING.SWAP_DURATION);
 
         // Check for matches (optimized: only check around swapped positions)
         const matches = this.findMatches([
@@ -245,7 +271,7 @@ class Board {
             gem1.moveTo(original1Row, original1Col, true);
             gem2.moveTo(original2Row, original2Col, true);
 
-            await this.wait(CONFIG.GAME.TIMING.SWAP_DURATION);
+            await this.wait(this.config.GAME.TIMING.SWAP_DURATION);
             this.isProcessing = false;
 
             // Emit invalid swap event
@@ -419,7 +445,7 @@ class Board {
         });
 
         // Wait for match animation
-        await this.wait(CONFIG.GAME.TIMING.MATCH_DURATION);
+        await this.wait(this.config.GAME.TIMING.MATCH_DURATION);
 
         // Remove matched gems from grid
         matches.forEach(gem => {
@@ -434,7 +460,7 @@ class Board {
         await this.fillEmptySpaces();
 
         // Check for cascade matches
-        await this.wait(CONFIG.GAME.TIMING.CASCADE_DELAY);
+        await this.wait(this.config.GAME.TIMING.CASCADE_DELAY);
         const cascadeMatches = this.findMatches();
 
         if (cascadeMatches.length > 0) {
@@ -471,7 +497,7 @@ class Board {
         }
 
         if (moved) {
-            await this.wait(CONFIG.GAME.TIMING.FALL_DURATION);
+            await this.wait(this.config.GAME.TIMING.FALL_DURATION);
         }
     }
 
@@ -479,13 +505,13 @@ class Board {
      * Fill empty spaces with new gems
      */
     async fillEmptySpaces() {
-        const fadeDelay = CONFIG.BOARD.GEM_FADE_DELAY;
-        const fadeDuration = CONFIG.BOARD.GEM_FADE_DURATION;
+        const fadeDelay = this.config.BOARD.GEM_FADE_DELAY;
+        const fadeDuration = this.config.BOARD.GEM_FADE_DURATION;
 
         for (let col = 0; col < this.size; col++) {
             for (let row = 0; row < this.size; row++) {
                 if (this.grid[row][col] === null) {
-                    const type = Math.floor(Math.random() * CONFIG.GAME.GEM_TYPES);
+                    const type = Math.floor(Math.random() * this.config.GAME.GEM_TYPES);
                     const gem = this.createGem(type, row, col);
                     gem.element.style.opacity = '0';
 
@@ -524,7 +550,7 @@ class Board {
         // Refill
         this.fillBoard();
 
-        await this.wait(CONFIG.BOARD.SHUFFLE_DELAY);
+        await this.wait(this.config.BOARD.SHUFFLE_DELAY);
         this.isProcessing = false;
 
         this.emitEvent('shuffled');
@@ -632,17 +658,21 @@ class Board {
 
     /**
      * Wait helper with timer tracking for cleanup
-     * Resolves with false if component was destroyed during wait
+     * Uses timeController if provided (for testing), otherwise real setTimeout
      * @param {number} ms - Milliseconds to wait
      * @returns {Promise<boolean>} True if component still exists, false if destroyed
      */
     wait(ms) {
+        // Use injected time controller if available (for testing)
+        if (this.timeController && typeof this.timeController.wait === 'function') {
+            return this.timeController.wait(ms).then(() => this.isActive());
+        }
+
+        // Default: real setTimeout with timer tracking
         return new Promise(resolve => {
             const timerId = setTimeout(() => {
                 this.timers.delete(timerId);
-                // Check if component still exists
-                const isAlive = this.element && this.element.parentNode;
-                resolve(isAlive);
+                resolve(this.isActive());
             }, ms);
             this.timers.add(timerId);
         });
@@ -669,12 +699,12 @@ class Board {
         this.element.style.height = `${boardSize}px`;
 
         // Calculate gem dimensions
-        const gemSize = cellSize - CONFIG.BOARD.GEM_PADDING;
-        const fontSize = Math.floor(cellSize * CONFIG.GEM.EMOJI_SIZE_RATIO);
-        const borderRadius = Math.floor(cellSize * CONFIG.GEM.BORDER_RADIUS_RATIO);
+        const gemSize = cellSize - this.config.BOARD.GEM_PADDING;
+        const fontSize = Math.floor(cellSize * this.config.GEM.EMOJI_SIZE_RATIO);
+        const borderRadius = Math.floor(cellSize * this.config.GEM.BORDER_RADIUS_RATIO);
 
         // Batch update via CSS variables (single reflow instead of 64)
-        const root = document.documentElement;
+        const root = this.doc.documentElement;
         root.style.setProperty('--cell-size', `${cellSize}px`);
         root.style.setProperty('--gem-size', `${gemSize}px`);
         root.style.setProperty('--gem-font-size', `${fontSize}px`);
@@ -734,5 +764,86 @@ class Board {
         this.element = null;
         this.container = null;
         this.isProcessing = false;
+    }
+
+    // ==================== Test Hooks ====================
+    // These methods are for testing purposes only
+
+    /**
+     * Get a snapshot of the current board state (for testing assertions)
+     * @returns {Object} Board state snapshot
+     */
+    _getSnapshot() {
+        return {
+            grid: this.grid ? this.grid.map(row =>
+                row.map(gem => gem ? { type: gem.type, row: gem.row, col: gem.col } : null)
+            ) : null,
+            size: this.size,
+            isProcessing: this.isProcessing,
+            selectedGem: this.selectedGem ? {
+                type: this.selectedGem.type,
+                row: this.selectedGem.row,
+                col: this.selectedGem.col
+            } : null
+        };
+    }
+
+    /**
+     * Get grid as simple type array (for testing)
+     * @returns {Array<Array<number|null>>}
+     */
+    _getGridTypes() {
+        if (!this.grid) return null;
+        return this.grid.map(row => row.map(gem => gem?.type ?? null));
+    }
+
+    /**
+     * Set grid state from type array (for testing)
+     * @param {Array<Array<number|null>>} typeGrid
+     */
+    _setGridTypes(typeGrid) {
+        // Clear existing gems
+        if (this.grid) {
+            for (let row = 0; row < this.size; row++) {
+                for (let col = 0; col < this.size; col++) {
+                    const gem = this.grid[row]?.[col];
+                    if (gem) gem.destroy();
+                }
+            }
+        }
+
+        // Create new grid
+        this.initializeGrid();
+        for (let row = 0; row < this.size; row++) {
+            for (let col = 0; col < this.size; col++) {
+                const type = typeGrid[row]?.[col];
+                if (type !== null && type !== undefined) {
+                    this.createGem(type, row, col);
+                }
+            }
+        }
+    }
+
+    /**
+     * Simulate a gem click at position (for testing)
+     * @param {number} row
+     * @param {number} col
+     */
+    _clickGem(row, col) {
+        const gem = this.grid[row]?.[col];
+        if (gem) {
+            // Simulate the click handler logic
+            if (!this.selectedGem) {
+                this.selectGem(gem);
+            } else if (gem === this.selectedGem) {
+                this.deselectGem();
+            } else if (gem.isAdjacentTo(this.selectedGem)) {
+                return this.swapGems(this.selectedGem, gem);
+            } else {
+                this.deselectGem();
+                this.selectGem(gem);
+            }
+        }
+        return Promise.resolve();
     }
 }

@@ -2,16 +2,49 @@
  * MatchThreeGame - Main game controller
  * Coordinates board, UI, music, and score managers
  * Keeps class under 300 lines by delegating to managers
+ *
+ * Supports dependency injection for testability:
+ * - doc: Document object (default: window.document)
+ * - config: Configuration object (default: CONFIG)
+ * - timeController: Time controller for async operations
+ * - BoardClass, UIManagerClass, etc.: Manager constructors
+ * - autoInit: Whether to auto-initialize (default: true)
  */
 
 class MatchThreeGame {
-    constructor(containerId) {
-        this.container = document.getElementById(containerId);
+    /**
+     * @param {string} containerId - ID of container element
+     * @param {Object} [options] - Optional dependencies for testing
+     * @param {Document} [options.doc] - Document object
+     * @param {Object} [options.config] - Configuration object
+     * @param {Object} [options.timeController] - Time controller
+     * @param {Function} [options.BoardClass] - Board constructor
+     * @param {Function} [options.UIManagerClass] - UIManager constructor
+     * @param {Function} [options.MusicManagerClass] - MusicManager constructor
+     * @param {Function} [options.ScoreManagerClass] - ScoreManager constructor
+     * @param {boolean} [options.autoInit] - Auto-initialize game (default: true)
+     */
+    constructor(containerId, options = {}) {
+        // Dependency injection with defaults
+        this._doc = options.doc || (typeof document !== 'undefined' ? document : null);
+        this._config = options.config || CONFIG;
+        this._timeController = options.timeController || null;
+
+        // Injectable classes
+        const BoardClass = options.BoardClass || Board;
+        const UIManagerClass = options.UIManagerClass || UIManager;
+        const MusicManagerClass = options.MusicManagerClass || MusicManager;
+        const ScoreManagerClass = options.ScoreManagerClass || ScoreManager;
+
+        // Store classes for later use
+        this._BoardClass = BoardClass;
+
+        this.container = this._doc.getElementById(containerId);
 
         // Initialize managers
-        this.uiManager = new UIManager(this.container);
-        this.musicManager = new MusicManager();
-        this.scoreManager = new ScoreManager();
+        this.uiManager = new UIManagerClass(this.container, { doc: this._doc, config: this._config });
+        this.musicManager = new MusicManagerClass({ config: this._config });
+        this.scoreManager = new ScoreManagerClass({ config: this._config });
 
         // Game components
         this.board = null;
@@ -19,7 +52,10 @@ class MatchThreeGame {
         // Track event handlers for cleanup
         this.handlers = new Map();
 
-        this.init();
+        // Auto-initialize unless disabled (for testing)
+        if (options.autoInit !== false) {
+            this.init();
+        }
     }
 
     /**
@@ -42,12 +78,12 @@ class MatchThreeGame {
         // Start music on first user interaction (browser autoplay policy)
         this.startMusicOnce = () => {
             this.musicManager.startMusic();
-            document.removeEventListener('click', this.startMusicOnce);
-            document.removeEventListener('touchstart', this.startMusicOnce);
+            this._doc.removeEventListener('click', this.startMusicOnce);
+            this._doc.removeEventListener('touchstart', this.startMusicOnce);
             this.startMusicOnce = null;
         };
-        document.addEventListener('click', this.startMusicOnce);
-        document.addEventListener('touchstart', this.startMusicOnce);
+        this._doc.addEventListener('click', this.startMusicOnce);
+        this._doc.addEventListener('touchstart', this.startMusicOnce);
     }
 
     /**
@@ -59,10 +95,10 @@ class MatchThreeGame {
         this.addHandler(this.uiManager.getElement('newGameBtn'), 'click', this.handleNewGame.bind(this));
         this.addHandler(this.uiManager.getElement('shuffleBtn'), 'click', this.handleShuffle.bind(this));
 
-        const nextLevelBtn = document.getElementById('next-level-btn');
+        const nextLevelBtn = this._doc.getElementById('next-level-btn');
         if (nextLevelBtn) this.addHandler(nextLevelBtn, 'click', this.handleNextLevel.bind(this));
 
-        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const closeSettingsBtn = this._doc.getElementById('close-settings-btn');
         if (closeSettingsBtn) this.addHandler(closeSettingsBtn, 'click', () => this.uiManager.hideSettings());
     }
 
@@ -70,13 +106,13 @@ class MatchThreeGame {
      * Setup settings modal listeners
      */
     setupSettingsListeners() {
-        const sfxCheckbox = document.getElementById('sound-effects');
+        const sfxCheckbox = this._doc.getElementById('sound-effects');
         if (sfxCheckbox) {
             sfxCheckbox.checked = this.musicManager.sfxEnabled;
             this.addHandler(sfxCheckbox, 'change', () => this.musicManager.toggleSFX());
         }
 
-        const difficultySelect = document.getElementById('difficulty-select');
+        const difficultySelect = this._doc.getElementById('difficulty-select');
         if (difficultySelect) {
             difficultySelect.value = this.scoreManager.getDifficulty();
             this.addHandler(difficultySelect, 'change', (e) => {
@@ -113,9 +149,13 @@ class MatchThreeGame {
         // Reset score
         this.scoreManager.reset();
 
-        // Create new board
+        // Create new board with injected dependencies
         const gameArea = this.uiManager.getElement('gameArea');
-        this.board = new Board(gameArea);
+        this.board = new this._BoardClass(gameArea, {
+            doc: this._doc,
+            config: this._config,
+            timeController: this._timeController
+        });
 
         // Setup board event listeners
         this.setupBoardListeners();
@@ -173,7 +213,7 @@ class MatchThreeGame {
         if (e.detail.matches && e.detail.matches.length > 0) {
             const firstGem = e.detail.matches[0];
             const cellSize = firstGem.getCellSize();
-            const padding = CONFIG.BOARD.GEM_PADDING / 2;
+            const padding = this._config.BOARD.GEM_PADDING / 2;
             const x = firstGem.col * cellSize + cellSize / 2 + padding;
             const y = firstGem.row * cellSize + padding;
 
@@ -270,7 +310,7 @@ class MatchThreeGame {
 
             const stats = this.scoreManager.getStats();
             this.uiManager.showVictory(stats.score, stats.stars);
-        }, CONFIG.GAME.TIMING.VICTORY_DELAY);
+        }, this._config.GAME.TIMING.VICTORY_DELAY);
     }
 
     /**
@@ -303,9 +343,9 @@ class MatchThreeGame {
      */
     destroy() {
         // Clean up one-time music listeners (if not yet triggered)
-        if (this.startMusicOnce) {
-            document.removeEventListener('click', this.startMusicOnce);
-            document.removeEventListener('touchstart', this.startMusicOnce);
+        if (this.startMusicOnce && this._doc) {
+            this._doc.removeEventListener('click', this.startMusicOnce);
+            this._doc.removeEventListener('touchstart', this.startMusicOnce);
             this.startMusicOnce = null;
         }
 
@@ -340,5 +380,33 @@ class MatchThreeGame {
         }
 
         this.container = null;
+        this._doc = null;
+        this._config = null;
+        this._timeController = null;
+    }
+
+    // ==================== Test Hooks ====================
+
+    /**
+     * Get game state snapshot (for testing)
+     * @returns {Object}
+     */
+    _getSnapshot() {
+        return {
+            board: this.board ? this.board._getSnapshot() : null,
+            score: this.scoreManager ? this.scoreManager.getScore() : 0,
+            level: this.scoreManager ? this.scoreManager.getLevel() : 1,
+            isProcessing: this.board ? this.board.isProcessing : false
+        };
+    }
+
+    /**
+     * Directly set board state (for testing)
+     * @param {Array<Array<number|null>>} typeGrid
+     */
+    _setBoardState(typeGrid) {
+        if (this.board) {
+            this.board._setGridTypes(typeGrid);
+        }
     }
 }

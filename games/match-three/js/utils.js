@@ -1,6 +1,9 @@
 /**
  * Utils - Shared utility functions
  * Common functions used across multiple classes
+ *
+ * Supports dependency injection for testability:
+ * - Pass viewport dimensions and config as parameters to getCellSize
  */
 
 const Utils = {
@@ -16,15 +19,22 @@ const Utils = {
 
     /**
      * Calculate cell size based on viewport - dynamic sizing for best fit
-     * @param {number} gridSize - Number of cells in grid (default: CONFIG.GAME.GRID_SIZE)
+     * @param {number} [gridSize] - Number of cells in grid (default: CONFIG.GAME.GRID_SIZE)
+     * @param {Object} [options] - Optional dependencies for testing
+     * @param {number} [options.viewportWidth] - Viewport width (default: window.innerWidth)
+     * @param {number} [options.viewportHeight] - Viewport height (default: window.innerHeight)
+     * @param {Object} [options.config] - Configuration object (default: CONFIG)
      * @returns {number} Cell size in pixels (always positive)
      */
-    getCellSize(gridSize = CONFIG.GAME.GRID_SIZE) {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+    getCellSize(gridSize, options = {}) {
+        // Get config and viewport with defaults
+        const config = options.config || CONFIG;
+        const width = options.viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 800);
+        const height = options.viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 600);
+        const defaultGridSize = gridSize ?? config.GAME.GRID_SIZE;
 
         // Validate inputs
-        const safeGridSize = gridSize > 0 ? gridSize : CONFIG.GAME.GRID_SIZE;
+        const safeGridSize = defaultGridSize > 0 ? defaultGridSize : config.GAME.GRID_SIZE;
 
         // Handle very small screens
         if (width < this.MIN_SCREEN_SIZE || height < this.MIN_SCREEN_SIZE) {
@@ -34,10 +44,10 @@ const Utils = {
 
         // Calculate available space for the board
         // Account for header, score panel, controls, and margins
-        const verticalSpace = Math.max(0, height - CONFIG.UI.HEADER_HEIGHT
-            - CONFIG.UI.SCORE_PANEL_HEIGHT - CONFIG.UI.CONTROLS_HEIGHT
-            - CONFIG.BOARD.BOARD_MARGIN * 2);
-        const horizontalSpace = Math.max(0, width - CONFIG.BOARD.BOARD_MARGIN * 2);
+        const verticalSpace = Math.max(0, height - config.UI.HEADER_HEIGHT
+            - config.UI.SCORE_PANEL_HEIGHT - config.UI.CONTROLS_HEIGHT
+            - config.BOARD.BOARD_MARGIN * 2);
+        const horizontalSpace = Math.max(0, width - config.BOARD.BOARD_MARGIN * 2);
 
         // Handle edge case where no space available
         if (verticalSpace <= 0 || horizontalSpace <= 0) {
@@ -58,19 +68,19 @@ const Utils = {
 
         // Clamp to min/max based on breakpoints
         let minSize, maxSize;
-        if (width <= CONFIG.UI.BREAKPOINTS.MOBILE) {
-            minSize = CONFIG.BOARD.CELL_SIZE_MOBILE - 8;
-            maxSize = CONFIG.BOARD.CELL_SIZE_MOBILE + 8;
-        } else if (width <= CONFIG.UI.BREAKPOINTS.TABLET) {
-            minSize = CONFIG.BOARD.CELL_SIZE_TABLET - 8;
-            maxSize = CONFIG.BOARD.CELL_SIZE_TABLET + 16;
-        } else if (width <= CONFIG.UI.BREAKPOINTS.LARGE) {
-            minSize = CONFIG.BOARD.CELL_SIZE_DESKTOP - 8;
-            maxSize = CONFIG.BOARD.CELL_SIZE_DESKTOP + 20;
+        if (width <= config.UI.BREAKPOINTS.MOBILE) {
+            minSize = config.BOARD.CELL_SIZE_MOBILE - 8;
+            maxSize = config.BOARD.CELL_SIZE_MOBILE + 8;
+        } else if (width <= config.UI.BREAKPOINTS.TABLET) {
+            minSize = config.BOARD.CELL_SIZE_TABLET - 8;
+            maxSize = config.BOARD.CELL_SIZE_TABLET + 16;
+        } else if (width <= config.UI.BREAKPOINTS.LARGE) {
+            minSize = config.BOARD.CELL_SIZE_DESKTOP - 8;
+            maxSize = config.BOARD.CELL_SIZE_DESKTOP + 20;
         } else {
             // Large screens - allow bigger cells
-            minSize = CONFIG.BOARD.CELL_SIZE_LARGE - 10;
-            maxSize = CONFIG.BOARD.CELL_SIZE_LARGE + 20;
+            minSize = config.BOARD.CELL_SIZE_LARGE - 10;
+            maxSize = config.BOARD.CELL_SIZE_LARGE + 20;
         }
 
         // Ensure minSize is at least the absolute minimum
@@ -80,7 +90,7 @@ const Utils = {
         idealCellSize = Math.max(minSize, Math.min(maxSize, idealCellSize));
 
         // Ensure board doesn't exceed max size
-        const maxBoardSize = CONFIG.BOARD.MAX_BOARD_SIZE;
+        const maxBoardSize = config.BOARD.MAX_BOARD_SIZE;
         if (idealCellSize * safeGridSize > maxBoardSize) {
             idealCellSize = Math.floor(maxBoardSize / safeGridSize);
         }

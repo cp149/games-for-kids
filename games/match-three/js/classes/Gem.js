@@ -1,10 +1,28 @@
 /**
  * Gem - Individual game piece
  * Represents a single gem with type, position, and visual state
+ *
+ * Supports dependency injection for testability:
+ * - config: Configuration object (default: CONFIG)
+ * - doc: Document object (default: window.document)
+ * - autoInit: Whether to auto-create DOM (default: true)
  */
 
 class Gem {
-    constructor(type, row, col) {
+    /**
+     * @param {number} type - Gem type (0-5)
+     * @param {number} row - Row position
+     * @param {number} col - Column position
+     * @param {Object} [options] - Optional dependencies for testing
+     * @param {Object} [options.config] - Configuration object
+     * @param {Document} [options.doc] - Document object
+     * @param {boolean} [options.autoInit] - Auto-create DOM element (default: true)
+     */
+    constructor(type, row, col, options = {}) {
+        // Dependency injection with defaults
+        this._config = options.config || CONFIG;
+        this._doc = options.doc || (typeof document !== 'undefined' ? document : null);
+
         this.type = type; // 0-5 for different gem types
         this.row = row;
         this.col = col;
@@ -20,9 +38,12 @@ class Gem {
         this._cachedCellSize = null;
 
         // Get fruit configuration
-        this.config = CONFIG.GEM.FRUITS[type];
+        this.fruitConfig = this._config.GEM.FRUITS[type];
 
-        this.createDOMElement();
+        // Auto-create DOM unless disabled (for testing)
+        if (options.autoInit !== false) {
+            this.createDOMElement();
+        }
     }
 
     /**
@@ -30,7 +51,7 @@ class Gem {
      * Optimized: Uses CSS variables for sizing (no inline width/height/fontSize/borderRadius)
      */
     createDOMElement() {
-        const gem = document.createElement('div');
+        const gem = this._doc.createElement('div');
         gem.className = 'gem';
         gem.dataset.type = this.type;
         gem.dataset.row = this.row;
@@ -38,14 +59,14 @@ class Gem {
 
         // Only set gem-specific styles (color varies per type)
         // Size/fontSize/borderRadius are handled by CSS variables
-        gem.style.backgroundColor = this.config.color;
-        gem.style.border = `${CONFIG.GEM.BORDER_WIDTH}px solid ${CONFIG.GEM.BORDER_COLOR}`;
+        gem.style.backgroundColor = this.fruitConfig.color;
+        gem.style.border = `${this._config.GEM.BORDER_WIDTH}px solid ${this._config.GEM.BORDER_COLOR}`;
 
         // Set glow color CSS variable for animations
-        gem.style.setProperty('--gem-glow-color', this.config.color);
+        gem.style.setProperty('--gem-glow-color', this.fruitConfig.color);
 
         // Add fruit emoji
-        gem.textContent = this.config.emoji;
+        gem.textContent = this.fruitConfig.emoji;
 
         this.element = gem;
         this.updatePosition();
@@ -58,12 +79,12 @@ class Gem {
         if (!this.element) return;
 
         const cellSize = this.getCellSize();
-        const padding = CONFIG.BOARD.GEM_PADDING / 2;
+        const padding = this._config.BOARD.GEM_PADDING / 2;
         const x = this.col * cellSize + padding;
         const y = this.row * cellSize + padding;
 
         if (animate) {
-            this.element.style.transition = `transform ${CONFIG.GAME.TIMING.FALL_DURATION}ms ${CONFIG.BOARD.FALL_EASING}`;
+            this.element.style.transition = `transform ${this._config.GAME.TIMING.FALL_DURATION}ms ${this._config.BOARD.FALL_EASING}`;
         } else {
             this.element.style.transition = 'none';
         }
@@ -106,7 +127,7 @@ class Gem {
         }
 
         // Calculate and cache
-        const padding = CONFIG.BOARD.GEM_PADDING / 2;
+        const padding = this._config.BOARD.GEM_PADDING / 2;
         const x = this.col * cellSize + padding;
         const y = this.row * cellSize + padding;
 
@@ -135,12 +156,12 @@ class Gem {
         if (selected) {
             this.element.classList.add('selected');
             // Build complete transform with scale (don't append)
-            this.element.style.transform = `${this.getBaseTransform()} scale(${CONFIG.GEM.SELECTED_SCALE})`;
-            this.element.style.boxShadow = `0 0 20px ${CONFIG.GEM.GLOW_COLOR}`;
+            this.element.style.transform = `${this.getBaseTransform()} scale(${this._config.GEM.SELECTED_SCALE})`;
+            this.element.style.boxShadow = `0 0 20px ${this._config.GEM.GLOW_COLOR}`;
         } else {
             this.element.classList.remove('selected');
             this.updatePosition(false);
-            this.element.style.boxShadow = CONFIG.GEM.SHADOW;
+            this.element.style.boxShadow = this._config.GEM.SHADOW;
         }
     }
 
@@ -153,8 +174,8 @@ class Gem {
 
         this.element.classList.add('matched');
         // Scale up then fade out - build complete transform (don't append)
-        this.element.style.transition = `all ${CONFIG.GAME.TIMING.MATCH_DURATION}ms ${CONFIG.BOARD.MATCH_EASING}`;
-        this.element.style.transform = `${this.getBaseTransform()} scale(${CONFIG.GEM.MATCH_SCALE})`;
+        this.element.style.transition = `all ${this._config.GAME.TIMING.MATCH_DURATION}ms ${this._config.BOARD.MATCH_EASING}`;
+        this.element.style.transform = `${this.getBaseTransform()} scale(${this._config.GEM.MATCH_SCALE})`;
         this.element.style.opacity = '0';
     }
 
@@ -216,7 +237,9 @@ class Gem {
 
         // Clear all references
         this.element = null;
-        this.config = null;
+        this.fruitConfig = null;
+        this._config = null;
+        this._doc = null;
         this.type = null;
         this.row = null;
         this.col = null;
@@ -229,5 +252,33 @@ class Gem {
         this._cachedRow = null;
         this._cachedCol = null;
         this._cachedCellSize = null;
+    }
+
+    // ==================== Test Hooks ====================
+
+    /**
+     * Get gem state snapshot (for testing)
+     * @returns {Object}
+     */
+    _getSnapshot() {
+        return {
+            type: this.type,
+            row: this.row,
+            col: this.col,
+            isMatched: this.isMatched,
+            isSelected: this.isSelected,
+            isFalling: this.isFalling
+        };
+    }
+
+    /**
+     * Create a minimal gem for testing (no DOM)
+     * @param {number} type
+     * @param {number} row
+     * @param {number} col
+     * @returns {Gem}
+     */
+    static createForTest(type, row, col) {
+        return new Gem(type, row, col, { autoInit: false });
     }
 }
