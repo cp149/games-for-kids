@@ -26,16 +26,54 @@ class MusicManager {
         this.bgMusic.loop = false;
         this.bgMusic.volume = CONFIG.GAME.AUDIO.MUSIC_VOLUME;
 
+        // Track audio loading state
+        this.audioLoadError = false;
+        this.audioErrorCount = 0;
+
         // Setup music ended handler
         this.handleMusicEnded = () => {
             const musicFiles = CONFIG.GAME.AUDIO.MUSIC_FILES;
             this.currentMusicIndex = (this.currentMusicIndex + 1) % musicFiles.length;
             this.bgMusic.src = musicFiles[this.currentMusicIndex];
             if (this.musicEnabled) {
-                this.bgMusic.play().catch(() => {});
+                this.playWithErrorHandling();
             }
         };
         this.bgMusic.addEventListener('ended', this.handleMusicEnded);
+
+        // Setup error handler for audio loading failures
+        this.handleAudioError = (event) => {
+            this.audioErrorCount++;
+            this.audioLoadError = true;
+            console.warn(`Audio loading failed: ${this.bgMusic.src}`, event);
+
+            // Try next track if available (max 3 retries)
+            if (this.audioErrorCount < 3) {
+                const musicFiles = CONFIG.GAME.AUDIO.MUSIC_FILES;
+                if (musicFiles.length > 1) {
+                    this.currentMusicIndex = (this.currentMusicIndex + 1) % musicFiles.length;
+                    this.bgMusic.src = musicFiles[this.currentMusicIndex];
+                    this.playWithErrorHandling();
+                }
+            } else {
+                console.warn('Audio playback disabled after multiple failures');
+                this.musicEnabled = false;
+            }
+        };
+        this.bgMusic.addEventListener('error', this.handleAudioError);
+    }
+
+    /**
+     * Play audio with error handling
+     * @private
+     */
+    playWithErrorHandling() {
+        this.bgMusic.play().catch(err => {
+            // Ignore AbortError (normal when switching tracks quickly)
+            if (err.name !== 'AbortError') {
+                console.warn('Audio play failed:', err.message);
+            }
+        });
     }
 
     /**
@@ -47,8 +85,12 @@ class MusicManager {
         const musicFiles = CONFIG.GAME.AUDIO.MUSIC_FILES;
         if (musicFiles.length === 0) return;
 
+        // Reset error count on manual start
+        this.audioErrorCount = 0;
+        this.audioLoadError = false;
+
         this.bgMusic.src = musicFiles[this.currentMusicIndex];
-        this.bgMusic.play().catch(() => {});
+        this.playWithErrorHandling();
 
         // Initialize sound manager on first user interaction
         this.soundManager.init();
@@ -139,10 +181,16 @@ class MusicManager {
      * Clean up resources
      */
     destroy() {
-        // Remove event listener BEFORE stopping (to prevent ended event)
-        if (this.bgMusic && this.handleMusicEnded) {
-            this.bgMusic.removeEventListener('ended', this.handleMusicEnded);
-            this.handleMusicEnded = null;
+        // Remove event listeners BEFORE stopping (to prevent ended event)
+        if (this.bgMusic) {
+            if (this.handleMusicEnded) {
+                this.bgMusic.removeEventListener('ended', this.handleMusicEnded);
+                this.handleMusicEnded = null;
+            }
+            if (this.handleAudioError) {
+                this.bgMusic.removeEventListener('error', this.handleAudioError);
+                this.handleAudioError = null;
+            }
         }
 
         // Stop and release audio resources
@@ -161,5 +209,7 @@ class MusicManager {
 
         this.musicEnabled = false;
         this.sfxEnabled = false;
+        this.audioLoadError = false;
+        this.audioErrorCount = 0;
     }
 }

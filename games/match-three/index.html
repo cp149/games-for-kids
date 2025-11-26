@@ -9,7 +9,7 @@
     <!-- Content Security Policy for enhanced security -->
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self';
-                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                   style-src 'self' https://fonts.googleapis.com;
                    font-src 'self' https://fonts.gstatic.com;
                    img-src 'self' data:;
                    media-src 'self';
@@ -17,15 +17,8 @@
 
     <title>Match Three - Fun Puzzle Game</title>
 
-    <!-- Styles -->
+    <!-- Styles (includes overscroll-behavior for mobile) -->
     <link rel="stylesheet" href="css/styles.css">
-
-    <!-- Prevent pull-to-refresh on mobile -->
-    <style>
-        body {
-            overscroll-behavior-y: contain;
-        }
-    </style>
 </head>
 <body>
     <!-- Game container - UI created by UIManager -->

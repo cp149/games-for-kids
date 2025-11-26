@@ -245,44 +245,59 @@ class Board {
         const original2Row = gem2.row;
         const original2Col = gem2.col;
 
-        // Swap in grid
-        this.grid[original1Row][original1Col] = gem2;
-        this.grid[original2Row][original2Col] = gem1;
+        try {
+            // Swap in grid
+            this.grid[original1Row][original1Col] = gem2;
+            this.grid[original2Row][original2Col] = gem1;
 
-        // Animate swap
-        gem1.moveTo(original2Row, original2Col, true);
-        gem2.moveTo(original1Row, original1Col, true);
+            // Animate swap
+            gem1.moveTo(original2Row, original2Col, true);
+            gem2.moveTo(original1Row, original1Col, true);
 
-        // Wait for animation
-        await this.wait(this.config.GAME.TIMING.SWAP_DURATION);
-
-        // Check for matches (optimized: only check around swapped positions)
-        const matches = this.findMatches([
-            { row: original2Row, col: original2Col }, // gem1's new position
-            { row: original1Row, col: original1Col }  // gem2's new position
-        ]);
-
-        if (matches.length === 0) {
-            // Invalid move - swap back to original positions
-            this.grid[original1Row][original1Col] = gem1;
-            this.grid[original2Row][original2Col] = gem2;
-
-            // Animate back to original positions
-            gem1.moveTo(original1Row, original1Col, true);
-            gem2.moveTo(original2Row, original2Col, true);
-
+            // Wait for animation
             await this.wait(this.config.GAME.TIMING.SWAP_DURATION);
-            this.isProcessing = false;
 
-            // Emit invalid swap event
-            this.emitEvent('invalidSwap');
-        } else {
-            // Valid move - process matches
-            await this.processMatches(matches);
-            this.isProcessing = false;
+            // Check for matches (optimized: only check around swapped positions)
+            const matches = this.findMatches([
+                { row: original2Row, col: original2Col }, // gem1's new position
+                { row: original1Row, col: original1Col }  // gem2's new position
+            ]);
 
-            // Emit valid swap event
-            this.emitEvent('validSwap', { matches: matches.length });
+            if (matches.length === 0) {
+                // Invalid move - swap back to original positions
+                this.grid[original1Row][original1Col] = gem1;
+                this.grid[original2Row][original2Col] = gem2;
+
+                // Animate back to original positions
+                gem1.moveTo(original1Row, original1Col, true);
+                gem2.moveTo(original2Row, original2Col, true);
+
+                await this.wait(this.config.GAME.TIMING.SWAP_DURATION);
+
+                // Emit invalid swap event
+                this.emitEvent('invalidSwap');
+            } else {
+                // Valid move - process matches
+                await this.processMatches(matches);
+
+                // Emit valid swap event
+                this.emitEvent('validSwap', { matches: matches.length });
+            }
+        } catch (error) {
+            console.error('Error during gem swap:', error);
+            // Attempt recovery - restore original positions
+            try {
+                this.grid[original1Row][original1Col] = gem1;
+                this.grid[original2Row][original2Col] = gem2;
+                gem1.moveTo(original1Row, original1Col, false);
+                gem2.moveTo(original2Row, original2Col, false);
+            } catch (recoveryError) {
+                console.error('Recovery failed:', recoveryError);
+            }
+            this.emitEvent('error', { type: 'swap', error: error.message });
+        } finally {
+            // Always reset processing state
+            this.isProcessing = false;
         }
     }
 
@@ -431,45 +446,68 @@ class Board {
 
     /**
      * Process matched gems and trigger cascade
+     * Includes error recovery to prevent game lockup
      */
-    async processMatches(matches) {
-        if (matches.length === 0) return 0;
-
-        // Mark and remove matches
-        matches.forEach(gem => gem.markAsMatched());
-
-        // Emit match event with count
-        this.emitEvent('gemsMatched', {
-            count: matches.length,
-            matches: matches
-        });
-
-        // Wait for match animation
-        await this.wait(this.config.GAME.TIMING.MATCH_DURATION);
-
-        // Remove matched gems from grid
-        matches.forEach(gem => {
-            this.grid[gem.row][gem.col] = null;
-            gem.remove();
-        });
-
-        // Apply gravity
-        await this.applyGravity();
-
-        // Fill empty spaces
-        await this.fillEmptySpaces();
-
-        // Check for cascade matches
-        await this.wait(this.config.GAME.TIMING.CASCADE_DELAY);
-        const cascadeMatches = this.findMatches();
-
-        if (cascadeMatches.length > 0) {
-            // Emit cascade event
-            this.emitEvent('cascade', { count: cascadeMatches.length });
-            return matches.length + await this.processMatches(cascadeMatches);
+    async processMatches(matches, depth = 0) {
+        // Prevent infinite recursion
+        const MAX_CASCADE_DEPTH = 20;
+        if (depth > MAX_CASCADE_DEPTH) {
+            console.warn('Max cascade depth reached, stopping cascade');
+            return 0;
         }
 
-        return matches.length;
+        if (matches.length === 0) return 0;
+
+        try {
+            // Mark and remove matches
+            matches.forEach(gem => {
+                if (gem && typeof gem.markAsMatched === 'function') {
+                    gem.markAsMatched();
+                }
+            });
+
+            // Emit match event with count
+            this.emitEvent('gemsMatched', {
+                count: matches.length,
+                matches: matches
+            });
+
+            // Wait for match animation
+            await this.wait(this.config.GAME.TIMING.MATCH_DURATION);
+
+            // Remove matched gems from grid
+            matches.forEach(gem => {
+                if (gem && gem.row !== null && gem.col !== null) {
+                    if (this.grid[gem.row]) {
+                        this.grid[gem.row][gem.col] = null;
+                    }
+                    gem.remove();
+                }
+            });
+
+            // Apply gravity
+            await this.applyGravity();
+
+            // Fill empty spaces
+            await this.fillEmptySpaces();
+
+            // Check for cascade matches
+            await this.wait(this.config.GAME.TIMING.CASCADE_DELAY);
+            const cascadeMatches = this.findMatches();
+
+            if (cascadeMatches.length > 0) {
+                // Emit cascade event
+                this.emitEvent('cascade', { count: cascadeMatches.length });
+                return matches.length + await this.processMatches(cascadeMatches, depth + 1);
+            }
+
+            return matches.length;
+        } catch (error) {
+            console.error('Error during match processing:', error);
+            this.emitEvent('error', { type: 'processMatches', error: error.message });
+            // Return current count to allow game to continue
+            return matches.length;
+        }
     }
 
     /**

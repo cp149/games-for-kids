@@ -30,6 +30,8 @@ body {
     justify-content: center;
     align-items: center;
     color: #2C3E50;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: contain;
 }
 
 /* Game container */

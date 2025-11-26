@@ -73,7 +73,10 @@ class MatchThreeGame {
     setupEventListeners() {
         this.setupUIListeners();
         this.setupSettingsListeners();
-        this.addHandler(window, 'resize', this.handleResize.bind(this));
+
+        // Debounce resize handler to prevent excessive calls
+        this._debouncedResize = Utils.debounce(this.handleResize.bind(this), 150);
+        this.addHandler(window, 'resize', this._debouncedResize);
 
         // Start music on first user interaction (browser autoplay policy)
         this.startMusicOnce = () => {
@@ -270,10 +273,17 @@ class MatchThreeGame {
      * Handle new game button
      */
     handleNewGame() {
-        if (confirm('Start a new game? Current progress will be lost.')) {
-            this.scoreManager.currentLevel = 1;
-            this.startNewGame();
-        }
+        const texts = this._config.UI.TEXTS;
+        this.uiManager.showConfirmDialog({
+            title: texts.CONFIRM_NEW_GAME_TITLE,
+            message: texts.CONFIRM_NEW_GAME_MESSAGE,
+            confirmText: texts.CONFIRM_YES,
+            cancelText: texts.CONFIRM_CANCEL,
+            onConfirm: () => {
+                this.scoreManager.currentLevel = 1;
+                this.startNewGame();
+            }
+        });
     }
 
     /**
@@ -342,6 +352,12 @@ class MatchThreeGame {
      * Clean up resources
      */
     destroy() {
+        // Cancel debounced resize to prevent pending callbacks
+        if (this._debouncedResize && this._debouncedResize.cancel) {
+            this._debouncedResize.cancel();
+            this._debouncedResize = null;
+        }
+
         // Clean up one-time music listeners (if not yet triggered)
         if (this.startMusicOnce && this._doc) {
             this._doc.removeEventListener('click', this.startMusicOnce);

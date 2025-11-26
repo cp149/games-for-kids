@@ -1,12 +1,25 @@
 /**
  * ModalManager - Handles modal dialogs
- * Manages victory and settings modals
+ * Manages victory, settings, and confirm modals
+ *
+ * Supports dependency injection for testability:
+ * - doc: Document object (default: window.document)
+ * - config: Configuration object (default: CONFIG)
  */
 
 class ModalManager {
-    constructor(container) {
+    /**
+     * @param {HTMLElement} container - Container element
+     * @param {Object} [options] - Optional dependencies
+     * @param {Document} [options.doc] - Document object
+     * @param {Object} [options.config] - Configuration object
+     */
+    constructor(container, options = {}) {
         this.container = container;
+        this._doc = options.doc || (typeof document !== 'undefined' ? document : null);
+        this._config = options.config || CONFIG;
         this.elements = {};
+        this._confirmCallback = null;
     }
 
     /**
@@ -15,13 +28,14 @@ class ModalManager {
     createModals() {
         this.createVictoryModal();
         this.createSettingsModal();
+        this.createConfirmModal();
     }
 
     /**
      * Create victory modal
      */
     createVictoryModal() {
-        const modal = document.createElement('div');
+        const modal = this._doc.createElement('div');
         modal.className = 'modal';
         modal.id = 'victory-modal';
         modal.innerHTML = `
@@ -41,7 +55,7 @@ class ModalManager {
      * Create settings modal
      */
     createSettingsModal() {
-        const modal = document.createElement('div');
+        const modal = this._doc.createElement('div');
         modal.className = 'modal';
         modal.id = 'settings-modal';
         modal.innerHTML = `
@@ -69,6 +83,102 @@ class ModalManager {
 
         this.container.appendChild(modal);
         this.elements.settingsModal = modal;
+    }
+
+    /**
+     * Create confirm modal for custom dialogs
+     */
+    createConfirmModal() {
+        const modal = this._doc.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'confirm-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'confirm-title');
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h2 id="confirm-title">Confirm</h2>
+                <p id="confirm-message"></p>
+                <div class="modal-buttons">
+                    <button id="confirm-cancel-btn" class="game-btn">Cancel</button>
+                    <button id="confirm-ok-btn" class="game-btn primary">OK</button>
+                </div>
+            </div>
+        `;
+
+        // Setup event listeners
+        const okBtn = modal.querySelector('#confirm-ok-btn');
+        const cancelBtn = modal.querySelector('#confirm-cancel-btn');
+
+        okBtn.addEventListener('click', () => {
+            this.hideConfirm();
+            if (this._confirmCallback) {
+                this._confirmCallback(true);
+                this._confirmCallback = null;
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            this.hideConfirm();
+            if (this._confirmCallback) {
+                this._confirmCallback(false);
+                this._confirmCallback = null;
+            }
+        });
+
+        this.container.appendChild(modal);
+        this.elements.confirmModal = modal;
+    }
+
+    /**
+     * Show confirm dialog
+     * @param {Object} options - Dialog options
+     * @param {string} options.title - Dialog title
+     * @param {string} options.message - Dialog message
+     * @param {string} [options.confirmText] - Confirm button text
+     * @param {string} [options.cancelText] - Cancel button text
+     * @param {Function} [options.onConfirm] - Callback when confirmed
+     * @param {Function} [options.onCancel] - Callback when cancelled
+     */
+    showConfirm({ title, message, confirmText, cancelText, onConfirm, onCancel }) {
+        const modal = this.elements.confirmModal;
+        if (!modal) return;
+
+        const texts = this._config.UI.TEXTS;
+
+        // Update content
+        const titleEl = modal.querySelector('#confirm-title');
+        const messageEl = modal.querySelector('#confirm-message');
+        const okBtn = modal.querySelector('#confirm-ok-btn');
+        const cancelBtn = modal.querySelector('#confirm-cancel-btn');
+
+        if (titleEl) titleEl.textContent = title || texts.CONFIRM_NEW_GAME_TITLE;
+        if (messageEl) messageEl.textContent = message || '';
+        if (okBtn) okBtn.textContent = confirmText || texts.CONFIRM_YES;
+        if (cancelBtn) cancelBtn.textContent = cancelText || texts.CONFIRM_CANCEL;
+
+        // Store callback
+        this._confirmCallback = (confirmed) => {
+            if (confirmed && onConfirm) {
+                onConfirm();
+            } else if (!confirmed && onCancel) {
+                onCancel();
+            }
+        };
+
+        modal.classList.add('show');
+
+        // Focus confirm button for accessibility
+        if (okBtn) okBtn.focus();
+    }
+
+    /**
+     * Hide confirm dialog
+     */
+    hideConfirm() {
+        if (this.elements.confirmModal) {
+            this.elements.confirmModal.classList.remove('show');
+        }
     }
 
     /**

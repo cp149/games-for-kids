@@ -135,6 +135,36 @@ const Utils = {
      */
     clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
+    },
+
+    /**
+     * Create a debounced version of a function
+     * @param {Function} func - Function to debounce
+     * @param {number} wait - Delay in milliseconds (default: 150)
+     * @returns {Function} Debounced function with cancel method
+     */
+    debounce(func, wait = 150) {
+        let timeoutId = null;
+
+        const debounced = function(...args) {
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+            }
+            timeoutId = setTimeout(() => {
+                timeoutId = null;
+                func.apply(this, args);
+            }, wait);
+        };
+
+        // Allow cancellation of pending execution
+        debounced.cancel = function() {
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+        };
+
+        return debounced;
     }
 };
 

@@ -124,6 +124,19 @@ const CONFIG = {
 
     // UI settings
     UI: {
+        // UI text strings (i18n ready)
+        TEXTS: {
+            GAME_TITLE: 'Match Three',
+            BUTTON_SHUFFLE: 'Shuffle',
+            BUTTON_NEW_GAME: 'New Game',
+            BUTTON_SETTINGS: 'Settings',
+            BUTTON_MUSIC: 'Toggle Music',
+            CONFIRM_NEW_GAME_TITLE: 'New Game',
+            CONFIRM_NEW_GAME_MESSAGE: 'Start a new game? Current progress will be lost.',
+            CONFIRM_YES: 'Start New Game',
+            CONFIRM_CANCEL: 'Cancel'
+        },
+
         // Color palette (hex values)
         COLORS: {
             BACKGROUND: '#F7F7F7',      // Light gray background
