@@ -185,3 +185,8 @@ class ScoreManager {
         // Nothing to clean up for score manager
     }
 }
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ScoreManager;
+}

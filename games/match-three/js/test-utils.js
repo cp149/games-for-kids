@@ -227,7 +227,15 @@ class FakeElement {
         this.tagName = tagName.toUpperCase();
         this.className = '';
         this.classList = new FakeClassList();
-        this.style = {};
+        // Create style object with setProperty method
+        this.style = {
+            setProperty: function(name, value) {
+                this[name] = value;
+            },
+            getPropertyValue: function(name) {
+                return this[name] || '';
+            }
+        };
         this.dataset = {};
         this.textContent = '';
         this.innerHTML = '';
@@ -347,6 +355,19 @@ function createTestConfig(overrides = {}) {
         GAME: {
             GRID_SIZE: 8,
             GEM_TYPES: 6,
+            DEFAULT_DIFFICULTY: 'normal',
+            DIFFICULTY: {
+                easy: { targetScore: 300 },
+                normal: { targetScore: 500 },
+                hard: { targetScore: 800 }
+            },
+            SCORE: {
+                MATCH_3: 100,
+                MATCH_4: 200,
+                MATCH_5: 400,
+                MATCH_6_PLUS: 600,
+                COMBO_BONUS: 50
+            },
             TIMING: {
                 SWAP_DURATION: 200,
                 MATCH_DURATION: 300,

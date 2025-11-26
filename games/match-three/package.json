@@ -1,0 +1,21 @@
+{
+  "name": "match-three-game",
+  "version": "1.0.0",
+  "description": "Match-three puzzle game for children aged 6-10",
+  "main": "index.html",
+  "scripts": {
+    "test": "node --test tests/board-logic.test.js",
+    "test:watch": "node --test --watch tests/board-logic.test.js",
+    "test:perf": "node tests/performance.test.js",
+    "test:all": "npm test && npm run test:perf",
+    "lint": "echo 'ESLint not configured yet'",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": ["game", "match-three", "puzzle", "children"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -282,3 +282,8 @@ class Gem {
         return new Gem(type, row, col, { autoInit: false });
     }
 }
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Gem;
+}
