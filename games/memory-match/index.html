@@ -83,6 +83,32 @@
             border-image: linear-gradient(90deg, #FF6B9D, #4A90E2, #FFD166) 1;
         }
 
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-home {
+            background: rgba(74, 144, 226, 0.1);
+            color: var(--primary-blue);
+            text-decoration: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-lg);
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--primary-blue);
+        }
+
+        .btn-home:hover {
+            background: rgba(74, 144, 226, 0.2);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
         .game-title {
             font-size: clamp(24px, 5vw, var(--text-xl));
             font-weight: 700;
@@ -713,10 +739,13 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <h1 class="game-title">
-            <span>🎮</span>
-            <span data-i18n="game_title">Animal Memory Match</span>
-        </h1>
+        <div class="header-left">
+            <a href="../../index.html" class="btn-home" title="Back to Home">🏠</a>
+            <h1 class="game-title">
+                <span>🎮</span>
+                <span data-i18n="game_title">Animal Memory Match</span>
+            </h1>
+        </div>
         <div class="header-controls">
             <div class="language-selector">
                 <button class="language-button" id="languageButton" aria-label="Select Language">

@@ -37,12 +37,18 @@ const translations = {
         duration5: "5-10 min",
         age5: "6-10",
         difficulty5: "Medium",
+        // Game 6: Music Factory
+        game6_title: "Music Factory",
+        game6_desc: "Create your own music by arranging sound blocks on a timeline!",
+        duration6: "Unlimited",
+        age6: "6-12",
+        difficulty6: "Easy",
         // Badges
         new_badge: "NEW",
         hot_badge: "HOT",
         // Footer
         footer_text: "Made with love for kids around the world",
-        footer_count: "5 games available, more coming soon!",
+        footer_count: "6 games available, more coming soon!",
         footer_credits: "Images by",
         footer_music: "Music by"
     },
@@ -79,12 +85,18 @@ const translations = {
         duration5: "5-10分钟",
         age5: "6-10岁",
         difficulty5: "中等",
+        // Game 6: Music Factory
+        game6_title: "音乐工厂",
+        game6_desc: "在时间轴上排列音乐块，创作属于你自己的音乐！",
+        duration6: "无限",
+        age6: "6-12岁",
+        difficulty6: "简单",
         // Badges
         new_badge: "新",
         hot_badge: "热门",
         // Footer
         footer_text: "用爱为全世界的孩子们制作",
-        footer_count: "5个游戏可玩，更多即将推出！",
+        footer_count: "6个游戏可玩，更多即将推出！",
         footer_credits: "图片来自",
         footer_music: "音乐来自"
     },
@@ -121,12 +133,18 @@ const translations = {
         duration5: "5-10分",
         age5: "6-10歳",
         difficulty5: "普通",
+        // Game 6: Music Factory
+        game6_title: "ミュージックファクトリー",
+        game6_desc: "タイムライン上にサウンドブロックを配置して、自分だけの音楽を作ろう！",
+        duration6: "無限",
+        age6: "6-12歳",
+        difficulty6: "簡単",
         // Badges
         new_badge: "新作",
         hot_badge: "人気",
         // Footer
         footer_text: "世界中の子供たちのために愛を込めて作りました",
-        footer_count: "5ゲームプレイ可能、もっと近日公開！",
+        footer_count: "6ゲームプレイ可能、もっと近日公開！",
         footer_credits: "画像:",
         footer_music: "音楽:"
     }

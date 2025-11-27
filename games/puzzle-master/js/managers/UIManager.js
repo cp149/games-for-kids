@@ -13,7 +13,10 @@ class UIManager {
         this.container.innerHTML = `
             <div class="puzzle-game">
                 <header class="game-header">
-                    <h1>🧩 Puzzle Master</h1>
+                    <div class="header-left">
+                        <a href="../../index.html" class="btn-home" title="Back to Home">🏠</a>
+                        <h1>🧩 Puzzle Master</h1>
+                    </div>
                     <div class="game-stats">
                         <span class="timer">⏱️ <span id="timer">00:00</span></span>
                         <span class="moves">🔄 <span id="moves">0</span> moves</span>

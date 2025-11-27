@@ -71,7 +71,10 @@ class UIManager {
         header.setAttribute('role', 'banner');
         const texts = this._config.UI.TEXTS;
         header.innerHTML = `
-            <h1>${texts.GAME_TITLE}</h1>
+            <div class="header-left">
+                <a href="../../index.html" class="btn-home" title="Back to Home">🏠</a>
+                <h1>${texts.GAME_TITLE}</h1>
+            </div>
             <div class="header-controls" role="toolbar" aria-label="Game controls">
                 <button id="shuffle-btn" class="header-btn" title="${texts.BUTTON_SHUFFLE}" aria-label="Shuffle board">🔀</button>
                 <button id="new-game-btn" class="header-btn" title="${texts.BUTTON_NEW_GAME}" aria-label="Start new game">🎮</button>

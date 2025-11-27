@@ -119,6 +119,7 @@ h1 {
 .game-header.drawing { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }
 .game-header.puzzle { background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%); }
 .game-header.match-three { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.game-header.music { background: linear-gradient(135deg, #FA8BFF 0%, #2BD2FF 50%, #2BFF88 100%); }
 
 .game-icon {
     font-size: 4rem;
