@@ -215,6 +215,19 @@ export class TimelineUI {
   }
 
   /**
+   * Pause playhead animation (keep visible at current position)
+   */
+  pausePlayheadAnimation() {
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+
+    // Keep playhead visible at current position when pausing
+    // Don't hide it
+  }
+
+  /**
    * Stop playhead animation and hide playhead
    */
   stopPlayheadAnimation() {

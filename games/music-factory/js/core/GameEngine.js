@@ -33,6 +33,9 @@ export class GameEngine {
     this.isReady = false;
     this.playbackInterval = null;
 
+    // Callbacks for UI updates
+    this.onPlaybackEnd = config.onPlaybackEnd || null;
+
     // Track if visualizer was provided (don't auto-create if injected)
     this._visualizerProvided = !!config.visualizer;
   }
@@ -167,15 +170,19 @@ export class GameEngine {
       this.clock.clearTimeout(this.playbackInterval);
     }
 
-    const duration = this.timeline.getTotalDuration();
+    const totalDuration = this.timeline.getTotalDuration();
 
     // Only schedule loop if there's actual content
-    if (duration > 0) {
-      const durationMs = this.audioEngine.beatsToSeconds(duration) * 1000;
+    if (totalDuration > 0) {
+      // CRITICAL: Calculate remaining duration from current playback position
+      // Similar fix to safety timeout bug - must account for already-elapsed time
+      const currentBeat = this.audioEngine.getCurrentBeat();
+      const remainingBeats = Math.max(0, totalDuration - currentBeat);
+      const remainingMs = this.audioEngine.beatsToSeconds(remainingBeats) * 1000;
 
       this.playbackInterval = this.clock.setTimeout(() => {
         this.play();
-      }, durationMs);
+      }, remainingMs);
     }
   }
 
@@ -187,15 +194,24 @@ export class GameEngine {
       this.clock.clearTimeout(this.playbackInterval);
     }
 
-    const duration = this.timeline.getTotalDuration();
+    const totalDuration = this.timeline.getTotalDuration();
 
     // Only schedule stop if there's actual content
-    if (duration > 0) {
-      const durationMs = this.audioEngine.beatsToSeconds(duration) * 1000;
+    if (totalDuration > 0) {
+      // CRITICAL: Calculate remaining duration from current playback position
+      // Same fix as scheduleLoop and safety timeout - account for elapsed time
+      const currentBeat = this.audioEngine.getCurrentBeat();
+      const remainingBeats = Math.max(0, totalDuration - currentBeat);
+      const remainingMs = this.audioEngine.beatsToSeconds(remainingBeats) * 1000;
 
       this.playbackInterval = this.clock.setTimeout(() => {
         this.stop();
-      }, durationMs);
+
+        // Notify UI that playback ended naturally
+        if (this.onPlaybackEnd) {
+          this.onPlaybackEnd();
+        }
+      }, remainingMs);
     }
   }
 

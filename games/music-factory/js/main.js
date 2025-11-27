@@ -24,8 +24,10 @@ class MusicFactoryApp {
     this.showLoading();
 
     try {
-      // Create game engine
-      this.gameEngine = new GameEngine();
+      // Create game engine with playback end callback
+      this.gameEngine = new GameEngine({
+        onPlaybackEnd: () => this.handlePlaybackEnd()
+      });
 
       // Initialize drag drop handler
       this.dragDropHandler = new DragDropHandler(this.gameEngine, {
@@ -117,10 +119,15 @@ class MusicFactoryApp {
       // Currently playing -> pause
       this.gameEngine.pause();
       this.updatePlayButton('play');
+
+      // Pause playhead animation (keep visible at current position)
+      if (this.timelineUI) {
+        this.timelineUI.pausePlayheadAnimation();
+      }
     } else if (this.gameEngine.audioEngine.isPaused()) {
       // Paused -> resume from paused position
       // Note: gameEngine.resume() handles AudioContext resume internally
-      this.gameEngine.resume();
+      await this.gameEngine.resume();
       this.updatePlayButton('pause');
 
       if (this.timelineUI) {
@@ -144,6 +151,18 @@ class MusicFactoryApp {
    */
   handleStop() {
     this.gameEngine.stop();
+    this.updatePlayButton('play');
+
+    // Stop playhead animation and hide playhead
+    if (this.timelineUI) {
+      this.timelineUI.stopPlayheadAnimation();
+    }
+  }
+
+  /**
+   * Handle automatic playback end (called when music finishes naturally)
+   */
+  handlePlaybackEnd() {
     this.updatePlayButton('play');
 
     // Stop playhead animation and hide playhead

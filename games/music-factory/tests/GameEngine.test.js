@@ -402,6 +402,183 @@ describe('GameEngine', () => {
       expect(consoleSpy).toHaveBeenCalledWith('No blocks on timeline');
       consoleSpy.mockRestore();
     });
+
+    it('should calculate correct timeout when resuming from middle of timeline (scheduleStop)', async () => {
+      const mockBlock = {
+        id: 'test-block',
+        duration: 16, // 16 beats total duration
+        category: 'drums',
+        isLoaded: true,
+        audioBuffer: { duration: 8.0 },
+        clone: vi.fn().mockReturnValue({
+          id: 'test-block',
+          duration: 16,
+          category: 'drums',
+          isLoaded: true,
+          audioBuffer: { duration: 8.0 },
+          getAudioSegment: (ctx) => ({ duration: 8.0 })
+        })
+      };
+
+      gameEngine.addBlockToTimeline('drums', mockBlock, 0);
+      gameEngine.setLooping(false); // Ensure not looping
+      gameEngine.play();
+
+      // Simulate pause at beat 8 (halfway through 16 beats)
+      audioEngine.isPlaying = true;
+      audioEngine.startedAt = audioEngine.audioContext.currentTime;
+      audioEngine.audioContext.advanceTime(4.0); // Advance 4 seconds = 8 beats @ 120 BPM
+      gameEngine.pause();
+
+      // Resume from beat 8
+      await gameEngine.resume();
+
+      // scheduleStop should timeout after remaining 8 beats (4 seconds), not full 16 beats
+      // Pending timer count should be 1 (the scheduleStop timeout)
+      expect(clock.getPendingTimerCount()).toBe(1);
+
+      // Advance time to just before expected timeout (3.9s)
+      clock.tick(3900);
+      expect(audioEngine.isPlaying).toBe(true);
+
+      // Advance to trigger timeout (4s total)
+      clock.tick(100);
+      expect(audioEngine.isPlaying).toBe(false);
+    });
+
+    it('should calculate correct timeout when resuming from middle of timeline (scheduleLoop)', async () => {
+      const mockBlock = {
+        id: 'test-block',
+        duration: 16, // 16 beats total duration
+        category: 'drums',
+        isLoaded: true,
+        audioBuffer: { duration: 8.0 },
+        clone: vi.fn().mockReturnValue({
+          id: 'test-block',
+          duration: 16,
+          category: 'drums',
+          isLoaded: true,
+          audioBuffer: { duration: 8.0 },
+          getAudioSegment: (ctx) => ({ duration: 8.0 })
+        })
+      };
+
+      gameEngine.addBlockToTimeline('drums', mockBlock, 0);
+      gameEngine.setLooping(true); // Enable looping
+      gameEngine.play();
+
+      // Simulate pause at beat 8 (halfway through 16 beats)
+      audioEngine.isPlaying = true;
+      audioEngine.startedAt = audioEngine.audioContext.currentTime;
+      audioEngine.audioContext.advanceTime(4.0); // Advance 4 seconds = 8 beats @ 120 BPM
+      gameEngine.pause();
+
+      // Resume from beat 8
+      await gameEngine.resume();
+
+      // scheduleLoop should timeout after remaining 8 beats (4 seconds), not full 16 beats
+      expect(clock.getPendingTimerCount()).toBe(1);
+
+      // Advance time to just before expected timeout (3.9s)
+      clock.tick(3900);
+
+      // Loop shouldn't have triggered yet
+      const playCallsBefore = mockVisualizer.start.mock.calls.length;
+
+      // Advance to trigger loop timeout (4s total)
+      clock.tick(100);
+
+      // Loop should have called play() again (visualizer.start called once more)
+      const playCallsAfter = mockVisualizer.start.mock.calls.length;
+      expect(playCallsAfter).toBe(playCallsBefore + 1);
+    });
+  });
+
+  describe('onPlaybackEnd callback', () => {
+    it('should call onPlaybackEnd callback when playback ends naturally', () => {
+      const onPlaybackEndCallback = vi.fn();
+      const engineWithCallback = new GameEngine({
+        audioEngine,
+        blockLibrary: mockBlockLibrary,
+        timeline,
+        visualizer: mockVisualizer,
+        clock,
+        onPlaybackEnd: onPlaybackEndCallback
+      });
+
+      // Initialize
+      engineWithCallback.isReady = true;
+
+      const mockBlock = {
+        id: 'test-block',
+        duration: 4,
+        category: 'drums',
+        isLoaded: true,
+        audioBuffer: { duration: 2.0 },
+        clone: vi.fn().mockReturnValue({
+          id: 'test-block',
+          duration: 4,
+          category: 'drums',
+          isLoaded: true,
+          audioBuffer: { duration: 2.0 },
+          getAudioSegment: (ctx) => ({ duration: 2.0 })
+        })
+      };
+
+      engineWithCallback.addBlockToTimeline('drums', mockBlock, 0);
+      engineWithCallback.setLooping(false);
+      engineWithCallback.play();
+
+      // Callback should not be called yet
+      expect(onPlaybackEndCallback).not.toHaveBeenCalled();
+
+      // Advance time to trigger scheduleStop timeout (4 beats = 2 seconds @ 120 BPM)
+      clock.tick(2000);
+
+      // Callback should now be called
+      expect(onPlaybackEndCallback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onPlaybackEnd when looping', () => {
+      const onPlaybackEndCallback = vi.fn();
+      const engineWithCallback = new GameEngine({
+        audioEngine,
+        blockLibrary: mockBlockLibrary,
+        timeline,
+        visualizer: mockVisualizer,
+        clock,
+        onPlaybackEnd: onPlaybackEndCallback
+      });
+
+      // Initialize
+      engineWithCallback.isReady = true;
+
+      const mockBlock = {
+        id: 'test-block',
+        duration: 4,
+        category: 'drums',
+        isLoaded: true,
+        audioBuffer: { duration: 2.0 },
+        clone: vi.fn().mockReturnValue({
+          id: 'test-block',
+          duration: 4,
+          category: 'drums',
+          isLoaded: true,
+          audioBuffer: { duration: 2.0 },
+          getAudioSegment: (ctx) => ({ duration: 2.0 })
+        })
+      };
+
+      engineWithCallback.addBlockToTimeline('drums', mockBlock, 0);
+      engineWithCallback.setLooping(true); // Enable looping
+      engineWithCallback.play();
+
+      // Advance time - should loop, not end
+      clock.tick(2000);
+
+      // Callback should NOT be called because we're looping
+      expect(onPlaybackEndCallback).not.toHaveBeenCalled();
+    });
   });
 
   describe('clearTimeline', () => {
