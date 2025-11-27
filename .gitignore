@@ -84,3 +84,6 @@ ENV/
 .yarn-integrity
 claudedocs
 games/match-three/docs
+
+# Serena MCP memories (project knowledge base)
+.serena/
