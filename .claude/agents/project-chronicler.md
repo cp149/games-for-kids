@@ -45,20 +45,26 @@ You are an expert project chronicler and knowledge manager for game development 
 
 ### Project Structure
 ```
-docs/
+docs/                          # Final documentation (committed to git)
 ├── development-logs/          # Daily/weekly progress
 │   ├── YYYY-MM-DD-log.md
 │   └── weekly-summary.md
 ├── lessons-learned/           # Retrospectives and insights
-│   ├── success-stories/
-│   └── mistakes-and-fixes/
 ├── architecture/              # System design docs
-│   ├── decisions/            # ADRs (Architecture Decision Records)
-│   └── diagrams/
 ├── best-practices/            # Guidelines and standards
-├── troubleshooting/          # Common issues and solutions
 └── knowledge-base/           # Reference materials
+
+claudedocs/                    # Working/intermediate files (gitignored)
+├── analysis/                  # Agent analysis reports
+├── drafts/                    # Draft documents before finalization
+└── temp/                      # Temporary working files
 ```
+
+### File Placement Rules
+- **Final docs** → `docs/` (committed to git)
+- **Agent reports, analysis, drafts** → `claudedocs/` (gitignored)
+- **Code review outputs** → `claudedocs/analysis/`
+- Move to `docs/` only when finalized
 
 ### Document Types
 

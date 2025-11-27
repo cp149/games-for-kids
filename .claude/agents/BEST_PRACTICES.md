@@ -164,7 +164,28 @@ destroy() {
 
 ---
 
-## 5. Resource Sharing (RECOMMENDED)
+## 5. Relative Paths Only (MANDATORY)
+
+**NEVER hardcode absolute paths.** All asset references must use relative paths.
+
+```javascript
+// GOOD: Relative paths
+bgImage.src = 'assets/images/background.png';
+bgImage.src = '../../lib/images/shared-bg.png';
+
+// BAD: Absolute paths - WILL BREAK on deployment
+bgImage.src = '/home/user/project/assets/background.png';
+bgImage.src = '/assets/background.png';  // Also bad for GitHub Pages
+```
+
+### Why This Matters
+- Absolute paths break when deployed to GitHub Pages
+- Different developers have different local paths
+- CI/CD environments have different directory structures
+
+---
+
+## 6. Resource Sharing (RECOMMENDED)
 
 ### Shared Assets Location
 
@@ -319,6 +340,40 @@ Before considering a game complete:
 - [ ] 60 FPS on target devices
 - [ ] No memory leaks over time
 - [ ] Assets properly cached
+
+---
+
+## 10. Multi-Agent Quality Workflow (RECOMMENDED)
+
+Use Quality Engineer Agent for multi-round code review:
+
+1. **Round 1**: Code smell analysis (duplication, long functions)
+2. **Round 2**: Performance review (DOM queries, event listeners)
+3. **Round 3**: Mobile compatibility (touch targets, gestures, PWA)
+
+Each round provides specific file locations and fix suggestions.
+
+---
+
+## 11. Test Suite (RECOMMENDED)
+
+Make tests easy to run with a single command:
+
+```bash
+npm run test:all
+```
+
+### Test Structure
+```
+tests/
+├── [module].test.js     # Unit tests
+└── [module].perf.js     # Performance benchmarks
+```
+
+### Key Principles
+- Pure function design enables DOM-free testing
+- Performance benchmarks with strict thresholds
+- Results in seconds, not minutes
 
 ---
 
