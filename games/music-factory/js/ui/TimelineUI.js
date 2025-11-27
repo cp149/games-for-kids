@@ -10,6 +10,9 @@ export class TimelineUI {
     this.trackElements = {};
     this.playheadElement = null;
     this.animationFrame = null;
+
+    // Bind event delegation handler to preserve 'this' context
+    this.handleRemoveClick = this.handleRemoveClick.bind(this);
   }
 
   /**
@@ -19,7 +22,11 @@ export class TimelineUI {
   initialize(container) {
     this.timelineContainer = container;
     this.render();
-    this.startPlayheadAnimation();
+
+    // Setup event delegation for remove buttons (prevents memory leaks)
+    this.timelineContainer.addEventListener('click', this.handleRemoveClick);
+
+    // Don't start animation here - it will be started when play() is called
   }
 
   /**
@@ -92,9 +99,12 @@ export class TimelineUI {
    * Update timeline with current blocks
    */
   updateBlocks() {
-    // Clear all tracks
+    // Clear all tracks with proper cleanup
     Object.values(this.trackElements).forEach(el => {
-      el.innerHTML = '';
+      // Remove all child elements to help GC
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
     });
 
     // Render blocks
@@ -124,23 +134,36 @@ export class TimelineUI {
     blockElement.style.left = leftPercent + '%';
     blockElement.style.width = widthPercent + '%';
 
-    // Content
+    // Content - store track name and block id as data attributes for event delegation
     blockElement.innerHTML = `
       <div class="block-name">${placedBlock.block.name}</div>
-      <button class="block-remove" data-block-id="${placedBlock.id}">×</button>
+      <button class="block-remove" data-track="${placedBlock.trackName}" data-block-id="${placedBlock.id}">×</button>
     `;
 
-    // Remove button handler
-    const removeBtn = blockElement.querySelector('.block-remove');
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.removeBlock(placedBlock.trackName, placedBlock.id);
-    });
+    // Event delegation handles remove clicks - no individual listeners needed
+    // This prevents memory leaks when blocks are removed/recreated
 
     // Initialize drag for moving
     this.dragDropHandler.initTimelineBlock(blockElement, placedBlock);
 
     trackElement.appendChild(blockElement);
+  }
+
+  /**
+   * Handle remove button clicks via event delegation
+   */
+  handleRemoveClick(e) {
+    // Check if clicked element is a remove button
+    if (e.target.classList.contains('block-remove')) {
+      e.stopPropagation();
+
+      const trackName = e.target.dataset.track;
+      const blockId = e.target.dataset.blockId;
+
+      if (trackName && blockId) {
+        this.removeBlock(trackName, blockId);
+      }
+    }
   }
 
   /**
@@ -152,35 +175,57 @@ export class TimelineUI {
   }
 
   /**
-   * Start playhead animation
+   * Start playhead animation (only runs while playing)
    */
   startPlayheadAnimation() {
+    // Don't start if already running
+    if (this.animationFrame) return;
+
     const animate = () => {
       if (this.gameEngine.isPlaying()) {
         const currentBeat = this.gameEngine.getCurrentBeat();
-        const totalBeats = this.gameEngine.timeline.getTotalDuration();
         const maxBeats = this.gameEngine.timeline.maxBeats;
 
         const percent = (currentBeat / maxBeats) * 100;
         this.playheadElement.style.left = percent + '%';
         this.playheadElement.style.display = 'block';
-      } else {
-        this.playheadElement.style.display = 'none';
-      }
 
-      this.animationFrame = requestAnimationFrame(animate);
+        // Continue animation while playing
+        this.animationFrame = requestAnimationFrame(animate);
+      } else {
+        // Stop animation when not playing
+        this.animationFrame = null;
+
+        // Keep playhead visible at paused position, hide when fully stopped
+        const currentBeat = this.gameEngine.getCurrentBeat();
+        if (currentBeat > 0) {
+          // Paused: show at paused position
+          const maxBeats = this.gameEngine.timeline.maxBeats;
+          const percent = (currentBeat / maxBeats) * 100;
+          this.playheadElement.style.left = percent + '%';
+          this.playheadElement.style.display = 'block';
+        } else {
+          // Fully stopped: hide playhead
+          this.playheadElement.style.display = 'none';
+        }
+      }
     };
 
     animate();
   }
 
   /**
-   * Stop playhead animation
+   * Stop playhead animation and hide playhead
    */
   stopPlayheadAnimation() {
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
+    }
+
+    // Hide playhead when stopping
+    if (this.playheadElement) {
+      this.playheadElement.style.display = 'none';
     }
   }
 
@@ -189,5 +234,10 @@ export class TimelineUI {
    */
   destroy() {
     this.stopPlayheadAnimation();
+
+    // Remove event delegation listener to prevent memory leak
+    if (this.timelineContainer) {
+      this.timelineContainer.removeEventListener('click', this.handleRemoveClick);
+    }
   }
 }

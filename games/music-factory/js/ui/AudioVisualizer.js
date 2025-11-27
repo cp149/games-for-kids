@@ -13,6 +13,7 @@ export class AudioVisualizer {
     this.dataArrays = {};
     this.visualElements = {};
     this.animationId = null;
+    this.connections = {}; // Track connections for cleanup
   }
 
   /**
@@ -27,8 +28,14 @@ export class AudioVisualizer {
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.8;
 
+      // IMPORTANT: Do NOT connect analyser to masterGain
+      // Analysers are for visualization only, audio routing is:
+      // source → gainNode → masterGain → destination
+      // Analysers connect via: gainNode → analyser (for data only)
+
       this.analysers[track] = analyser;
       this.dataArrays[track] = new Uint8Array(analyser.frequencyBinCount);
+      this.connections[track] = []; // Initialize connection tracking
 
       // Find visual element for this track
       this.visualElements[track] = document.querySelector(`.track-visualizer[data-track="${track}"]`);
@@ -37,14 +44,36 @@ export class AudioVisualizer {
 
   /**
    * Connect a block's audio to its track visualizer
-   * @param {AudioNode} source - Audio source node
+   * @param {AudioNode} gainNode - The gainNode for this block
    * @param {string} trackName - Track category (drums, bass, melody, fx)
    */
-  connectToTrack(source, trackName) {
+  connectToTrack(gainNode, trackName) {
     if (this.analysers[trackName]) {
-      source.connect(this.analysers[trackName]);
-      this.analysers[trackName].connect(this.audioEngine.masterGain);
+      // Connect gainNode to analyser for visualization data
+      // This does NOT affect audio routing (gainNode already connected to masterGain)
+      gainNode.connect(this.analysers[trackName]);
+
+      // Track the connection for later cleanup
+      if (this.connections[trackName]) {
+        this.connections[trackName].push(gainNode);
+      }
     }
+  }
+
+  /**
+   * Clear all track connections (call on stop)
+   */
+  clearConnections() {
+    Object.keys(this.connections).forEach(track => {
+      this.connections[track].forEach(source => {
+        try {
+          source.disconnect(this.analysers[track]);
+        } catch (e) {
+          // Already disconnected
+        }
+      });
+      this.connections[track] = [];
+    });
   }
 
   /**
@@ -64,10 +93,37 @@ export class AudioVisualizer {
       this.animationId = null;
     }
 
+    // Clear all tracked connections
+    this.clearConnections();
+
     // Reset all visualizers
     Object.values(this.visualElements).forEach(el => {
       if (el) el.style.width = '0%';
     });
+  }
+
+  /**
+   * Completely destroy the visualizer and release all resources
+   */
+  destroy() {
+    this.stop();
+
+    // Disconnect all analysers from masterGain
+    Object.values(this.analysers).forEach(analyser => {
+      if (analyser) {
+        try {
+          analyser.disconnect();
+        } catch (e) {
+          // Already disconnected
+        }
+      }
+    });
+
+    // Clear all references
+    this.analysers = {};
+    this.dataArrays = {};
+    this.visualElements = {};
+    this.connections = {};
   }
 
   /**

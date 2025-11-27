@@ -27,6 +27,9 @@ export class MusicBlock {
 
     this.audioBuffer = null; // Loaded AudioBuffer
     this.isLoaded = false;
+
+    // Cache for sliced audio segments (performance optimization)
+    this._segmentCache = null;
   }
 
   /**
@@ -63,6 +66,7 @@ export class MusicBlock {
 
   /**
    * Get the actual audio segment (sliced if needed)
+   * Uses caching to avoid expensive re-slicing on every call
    * @param {AudioContext} audioContext - Web Audio API context
    * @returns {AudioBuffer}
    */
@@ -76,7 +80,12 @@ export class MusicBlock {
       return this.audioBuffer;
     }
 
-    // Slice the audio buffer
+    // Return cached segment if available
+    if (this._segmentCache) {
+      return this._segmentCache;
+    }
+
+    // Slice the audio buffer and cache it
     const sampleRate = this.audioBuffer.sampleRate;
     const startSample = Math.floor(this.startTime * sampleRate);
     const endSample = Math.floor(this.endTime * sampleRate);
@@ -89,15 +98,15 @@ export class MusicBlock {
       sampleRate
     );
 
-    // Copy audio data
+    // Copy audio data using efficient subarray method
     for (let channel = 0; channel < numberOfChannels; channel++) {
       const sourceData = this.audioBuffer.getChannelData(channel);
       const segmentData = segmentBuffer.getChannelData(channel);
-
-      for (let i = 0; i < segmentLength; i++) {
-        segmentData[i] = sourceData[startSample + i];
-      }
+      segmentData.set(sourceData.subarray(startSample, endSample));
     }
+
+    // Cache the sliced segment for future use
+    this._segmentCache = segmentBuffer;
 
     return segmentBuffer;
   }
@@ -119,9 +128,10 @@ export class MusicBlock {
       endTime: this.endTime
     });
 
-    // Share the loaded audio buffer
+    // Share the loaded audio buffer and segment cache
     cloned.audioBuffer = this.audioBuffer;
     cloned.isLoaded = this.isLoaded;
+    cloned._segmentCache = this._segmentCache;
 
     return cloned;
   }

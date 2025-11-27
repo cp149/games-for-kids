@@ -12,6 +12,17 @@ export class DragDropHandler {
     this.ghostElement = null;
     this.dropTargetTrack = null;
     this.dropTargetBeat = 0;
+    this.ghostTimeout = null;
+
+    // Use WeakMap to track event listeners for cleanup
+    this.attachedListeners = new WeakMap();
+
+    // Throttle state for dragover events (performance optimization)
+    this._lastDragOverTime = 0;
+    this._dragOverThrottleMs = 32; // ~30fps is sufficient for drag feedback
+
+    // Cache timeline track elements to avoid repeated querySelectorAll
+    this.cachedTrackElements = null;
   }
 
   /**
@@ -22,18 +33,30 @@ export class DragDropHandler {
   initLibraryBlock(element, block) {
     element.draggable = true;
 
-    element.addEventListener('dragstart', (e) => {
-      this.handleDragStart(e, block, element);
-    });
+    // Create named handlers for cleanup
+    const handlers = {
+      dragstart: (e) => this.handleDragStart(e, block, element),
+      dragend: (e) => this.handleDragEnd(e)
+    };
 
-    element.addEventListener('dragend', (e) => {
-      this.handleDragEnd(e);
-    });
+    element.addEventListener('dragstart', handlers.dragstart);
+    element.addEventListener('dragend', handlers.dragend);
 
-    // Click to preview
-    element.addEventListener('click', () => {
-      this.gameEngine.previewBlock(block);
-    });
+    // Store handlers for cleanup
+    this.attachedListeners.set(element, handlers);
+  }
+
+  /**
+   * Remove event listeners from library block
+   * @param {HTMLElement} element
+   */
+  removeLibraryBlock(element) {
+    const handlers = this.attachedListeners.get(element);
+    if (handlers) {
+      element.removeEventListener('dragstart', handlers.dragstart);
+      element.removeEventListener('dragend', handlers.dragend);
+      this.attachedListeners.delete(element);
+    }
   }
 
   /**
@@ -44,13 +67,30 @@ export class DragDropHandler {
   initTimelineBlock(element, placedBlock) {
     element.draggable = true;
 
-    element.addEventListener('dragstart', (e) => {
-      this.handleTimelineDragStart(e, placedBlock, element);
-    });
+    // Create named handlers for cleanup
+    const handlers = {
+      dragstart: (e) => this.handleTimelineDragStart(e, placedBlock, element),
+      dragend: (e) => this.handleDragEnd(e)
+    };
 
-    element.addEventListener('dragend', (e) => {
-      this.handleDragEnd(e);
-    });
+    element.addEventListener('dragstart', handlers.dragstart);
+    element.addEventListener('dragend', handlers.dragend);
+
+    // Store handlers for cleanup
+    this.attachedListeners.set(element, handlers);
+  }
+
+  /**
+   * Remove event listeners from timeline block
+   * @param {HTMLElement} element
+   */
+  removeTimelineBlock(element) {
+    const handlers = this.attachedListeners.get(element);
+    if (handlers) {
+      element.removeEventListener('dragstart', handlers.dragstart);
+      element.removeEventListener('dragend', handlers.dragend);
+      this.attachedListeners.delete(element);
+    }
   }
 
   /**
@@ -72,6 +112,9 @@ export class DragDropHandler {
       e.preventDefault();
       this.handleDrop(e, trackName);
     });
+
+    // Invalidate cache when new track elements are initialized
+    this.cachedTrackElements = null;
   }
 
   /**
@@ -105,17 +148,22 @@ export class DragDropHandler {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', placedBlock.id);
 
-    // Remove from timeline temporarily
-    this.gameEngine.removeBlockFromTimeline(
-      placedBlock.trackName,
-      placedBlock.id
-    );
+    // Mark block as being dragged instead of removing
+    // This prevents data loss if user refreshes/closes during drag
+    placedBlock.isDragging = true;
   }
 
   /**
-   * Handle drag over timeline
+   * Handle drag over timeline (throttled for performance)
    */
   handleDragOver(e, trackElement, trackName) {
+    // Throttle: skip processing if called too frequently
+    const now = performance.now();
+    if (now - this._lastDragOverTime < this._dragOverThrottleMs) {
+      return;
+    }
+    this._lastDragOverTime = now;
+
     const rect = trackElement.getBoundingClientRect();
     const x = e.clientX - rect.left;
 
@@ -123,9 +171,15 @@ export class DragDropHandler {
     const trackWidth = rect.width;
     const maxBeats = this.gameEngine.timeline.maxBeats;
     const beat = Math.floor((x / trackWidth) * maxBeats);
+    const snappedBeat = this.gameEngine.timeline.snapToGrid(beat);
+
+    // Skip update if beat position hasn't changed
+    if (this.dropTargetTrack === trackName && this.dropTargetBeat === snappedBeat) {
+      return;
+    }
 
     this.dropTargetTrack = trackName;
-    this.dropTargetBeat = this.gameEngine.timeline.snapToGrid(beat);
+    this.dropTargetBeat = snappedBeat;
 
     // Visual feedback
     trackElement.classList.add('drag-over');
@@ -151,7 +205,16 @@ export class DragDropHandler {
 
     if (!block) return;
 
-    // Try to add block
+    // If moving existing block, remove it from old position first
+    if (this.draggedPlacedBlock) {
+      delete this.draggedPlacedBlock.isDragging;
+      this.gameEngine.removeBlockFromTimeline(
+        this.draggedPlacedBlock.trackName,
+        this.draggedPlacedBlock.id
+      );
+    }
+
+    // Try to add block at new position
     const success = this.gameEngine.addBlockToTimeline(
       trackName,
       block,
@@ -164,7 +227,7 @@ export class DragDropHandler {
         this.callbacks.onBlockPlaced(trackName, this.dropTargetBeat);
       }
     } else {
-      // If failed and was from timeline, put it back
+      // If failed and was from timeline, restore to original position
       if (this.draggedPlacedBlock) {
         this.gameEngine.addBlockToTimeline(
           this.draggedPlacedBlock.trackName,
@@ -190,8 +253,14 @@ export class DragDropHandler {
       this.draggedElement.style.opacity = '1';
     }
 
-    // Remove drag over states
-    document.querySelectorAll('.timeline-track').forEach(el => {
+    // If drag was cancelled and block was marked as dragging, restore it
+    if (this.draggedPlacedBlock && this.draggedPlacedBlock.isDragging) {
+      delete this.draggedPlacedBlock.isDragging;
+      // Block still exists in timeline, just remove the flag
+    }
+
+    // Remove drag over states using cached elements
+    this.getTrackElements().forEach(el => {
       el.classList.remove('drag-over');
     });
 
@@ -206,9 +275,25 @@ export class DragDropHandler {
   }
 
   /**
+   * Get cached track elements (avoids repeated querySelectorAll)
+   * @returns {Array<Element>}
+   */
+  getTrackElements() {
+    if (!this.cachedTrackElements) {
+      this.cachedTrackElements = Array.from(
+        document.querySelectorAll('.timeline-track')
+      );
+    }
+    return this.cachedTrackElements;
+  }
+
+  /**
    * Create ghost preview element
    */
   createGhost(sourceElement) {
+    // Clean up any existing ghost first
+    this.removeGhost();
+
     this.ghostElement = sourceElement.cloneNode(true);
     this.ghostElement.classList.add('block-ghost');
     this.ghostElement.style.position = 'absolute';
@@ -217,6 +302,11 @@ export class DragDropHandler {
     this.ghostElement.style.display = 'none';
 
     document.body.appendChild(this.ghostElement);
+
+    // Safety timeout: auto-remove ghost after 5 seconds
+    this.ghostTimeout = setTimeout(() => {
+      this.removeGhost();
+    }, 5000);
   }
 
   /**
@@ -238,8 +328,17 @@ export class DragDropHandler {
    * Remove ghost element
    */
   removeGhost() {
+    // Clear safety timeout
+    if (this.ghostTimeout) {
+      clearTimeout(this.ghostTimeout);
+      this.ghostTimeout = null;
+    }
+
     if (this.ghostElement) {
-      this.ghostElement.remove();
+      // Ensure element is removed from DOM
+      if (this.ghostElement.parentNode) {
+        this.ghostElement.parentNode.removeChild(this.ghostElement);
+      }
       this.ghostElement = null;
     }
   }

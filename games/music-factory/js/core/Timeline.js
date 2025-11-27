@@ -1,8 +1,24 @@
+import { TimestampIDGenerator } from '../implementations/TimestampIDGenerator.js';
+
 /**
  * Timeline - Manages the music timeline and placed blocks
+ * Now supports dependency injection for testability
  */
 export class Timeline {
-  constructor() {
+  /**
+   * @param {Object} config - Configuration options
+   * @param {IIDGenerator} config.idGenerator - ID generator implementation (default: TimestampIDGenerator)
+   * @param {number} config.maxBeats - Maximum timeline length (default: 32)
+   * @param {number} config.beatGrid - Snap grid size (default: 4)
+   */
+  constructor(config = {}) {
+    // Dependency injection - allows testing with mock ID generator
+    this.idGenerator = config.idGenerator || new TimestampIDGenerator();
+
+    // Externalized configuration - allows different timeline sizes
+    this.maxBeats = config.maxBeats || 32;
+    this.beatGrid = config.beatGrid || 4;
+
     this.tracks = {
       drums: [],
       bass: [],
@@ -10,8 +26,7 @@ export class Timeline {
       fx: []
     };
 
-    this.maxBeats = 32; // Maximum timeline length
-    this.beatGrid = 4; // Snap to every 4 beats
+    this.idCounter = 0; // Unique ID counter to prevent collisions
   }
 
   /**
@@ -30,12 +45,13 @@ export class Timeline {
       return false;
     }
 
-    // Add block to track
+    // Add block to track with guaranteed unique ID
+    // Use injected ID generator for testability
     this.tracks[trackName].push({
       block: block,
       startBeat: startBeat,
       endBeat: startBeat + block.duration,
-      id: `${trackName}_${Date.now()}_${Math.random()}`
+      id: this.idGenerator.generateId(`${trackName}_${++this.idCounter}`)
     });
 
     // Sort by start beat
@@ -116,6 +132,9 @@ export class Timeline {
         });
       });
     });
+
+    // CRITICAL: Sort by startBeat to ensure correct playback order
+    allBlocks.sort((a, b) => a.startBeat - b.startBeat);
 
     return allBlocks;
   }

@@ -13,6 +13,7 @@ class MusicFactoryApp {
     this.timelineUI = null;
     this.blockUI = null;
     this.isInitialized = false;
+    this.eventListeners = []; // Track event listeners for cleanup
   }
 
   /**
@@ -76,38 +77,31 @@ class MusicFactoryApp {
   }
 
   /**
-   * Setup control buttons
+   * Setup control buttons with tracked event listeners
    */
   setupControls() {
-    // Play button
-    const playBtn = document.getElementById('play-btn');
-    playBtn.addEventListener('click', () => this.handlePlay());
+    // Helper to add and track event listeners
+    const addListener = (id, event, handler) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.addEventListener(event, handler);
+        this.eventListeners.push({ element, event, handler });
+      }
+    };
 
-    // Stop button
-    const stopBtn = document.getElementById('stop-btn');
-    stopBtn.addEventListener('click', () => this.handleStop());
+    // Control buttons
+    addListener('play-btn', 'click', () => this.handlePlay());
+    addListener('stop-btn', 'click', () => this.handleStop());
+    addListener('clear-btn', 'click', () => this.handleClear());
+    addListener('random-btn', 'click', () => this.handleRandom());
+    addListener('save-btn', 'click', () => this.handleSave());
+    addListener('load-btn', 'click', () => this.handleLoad());
 
-    // Clear button
-    const clearBtn = document.getElementById('clear-btn');
-    clearBtn.addEventListener('click', () => this.handleClear());
-
-    // Save button
-    const saveBtn = document.getElementById('save-btn');
-    saveBtn.addEventListener('click', () => this.handleSave());
-
-    // Load button
-    const loadBtn = document.getElementById('load-btn');
-    loadBtn.addEventListener('click', () => this.handleLoad());
-
-    // Loop toggle
-    const loopToggle = document.getElementById('loop-toggle');
-    loopToggle.addEventListener('change', (e) => {
+    addListener('loop-toggle', 'change', (e) => {
       this.gameEngine.setLooping(e.target.checked);
     });
 
-    // Volume slider
-    const volumeSlider = document.getElementById('volume-slider');
-    volumeSlider.addEventListener('input', (e) => {
+    addListener('volume-slider', 'input', (e) => {
       const volume = e.target.value / 100;
       this.gameEngine.setVolume(volume);
     });
@@ -116,18 +110,32 @@ class MusicFactoryApp {
   /**
    * Handle play button
    */
-  handlePlay() {
+  async handlePlay() {
     if (!this.isInitialized) return;
 
     if (this.gameEngine.isPlaying()) {
+      // Currently playing -> pause
       this.gameEngine.pause();
       this.updatePlayButton('play');
-    } else {
-      // Resume audio context if needed
-      this.gameEngine.audioEngine.resume();
+    } else if (this.gameEngine.audioEngine.isPaused()) {
+      // Paused -> resume from paused position
+      // Note: gameEngine.resume() handles AudioContext resume internally
+      this.gameEngine.resume();
+      this.updatePlayButton('pause');
 
+      if (this.timelineUI) {
+        this.timelineUI.startPlayheadAnimation();
+      }
+    } else {
+      // Stopped -> start from beginning
+      // Ensure AudioContext is resumed before playing
+      await this.gameEngine.audioEngine.resume();
       this.gameEngine.play();
       this.updatePlayButton('pause');
+
+      if (this.timelineUI) {
+        this.timelineUI.startPlayheadAnimation();
+      }
     }
   }
 
@@ -137,6 +145,11 @@ class MusicFactoryApp {
   handleStop() {
     this.gameEngine.stop();
     this.updatePlayButton('play');
+
+    // Stop playhead animation and hide playhead
+    if (this.timelineUI) {
+      this.timelineUI.stopPlayheadAnimation();
+    }
   }
 
   /**
@@ -151,14 +164,45 @@ class MusicFactoryApp {
   }
 
   /**
+   * Handle random button
+   */
+  handleRandom() {
+    // Stop playback before generating
+    if (this.gameEngine.isPlaying()) {
+      this.handleStop();
+    }
+
+    try {
+      const placedCount = this.gameEngine.randomizeComposition({
+        minBlocks: 12,
+        maxBlocks: 24
+      });
+
+      // Force UI update
+      this.timelineUI.updateBlocks();
+      this.autoSave();
+
+      const duration = this.gameEngine.timeline.getTotalDuration();
+      this.showMessage(`🎲 Created ${placedCount} blocks (${duration} beats)!`);
+    } catch (error) {
+      console.error('Random composition error:', error);
+      this.showMessage('Error creating random composition: ' + error.message);
+    }
+  }
+
+  /**
    * Handle save button
    */
   handleSave() {
     const slotName = prompt('Enter save name:', 'my-composition');
 
     if (slotName) {
-      this.gameEngine.saveComposition(slotName);
-      this.showMessage('Composition saved!');
+      try {
+        this.gameEngine.saveComposition(slotName);
+        this.showMessage('Composition saved!');
+      } catch (error) {
+        this.showMessage('Failed to save: ' + error.message);
+      }
     }
   }
 
@@ -209,10 +253,16 @@ class MusicFactoryApp {
   }
 
   /**
-   * Auto-save to localStorage
+   * Auto-save to localStorage with error handling
    */
   autoSave() {
-    this.gameEngine.saveComposition('autosave');
+    try {
+      this.gameEngine.saveComposition('autosave');
+    } catch (error) {
+      // localStorage may be full or disabled
+      console.warn('AutoSave failed:', error);
+      // Silent failure for autosave - don't interrupt user workflow
+    }
   }
 
   /**
@@ -272,19 +322,60 @@ class MusicFactoryApp {
       }, 2000);
     }
   }
+
+  /**
+   * Clean up all resources and event listeners
+   */
+  async cleanup() {
+    // Remove all tracked event listeners
+    this.eventListeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    this.eventListeners = [];
+
+    // Cleanup UI components
+    if (this.timelineUI) {
+      this.timelineUI.destroy();
+    }
+
+    // Cleanup game engine (audio, visualizer)
+    if (this.gameEngine) {
+      await this.gameEngine.cleanup();
+    }
+
+    this.isInitialized = false;
+  }
 }
 
 // Start the app
 const app = new MusicFactoryApp();
 
-// Wait for user interaction to initialize (Web Audio API requirement)
-document.addEventListener('DOMContentLoaded', () => {
-  const startBtn = document.getElementById('start-btn');
+// Expose app to window for debugging
+window.musicFactoryApp = app;
 
-  if (startBtn) {
-    startBtn.addEventListener('click', async () => {
-      startBtn.style.display = 'none';
-      await app.initialize();
-    });
-  }
+// Auto-initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  app.initialize();
 });
+
+// Cleanup on page unload to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  app.cleanup();
+});
+
+// Expose test function for debugging
+window.testRandom = function() {
+  console.log('Testing random composition...');
+  if (window.musicFactoryApp && window.musicFactoryApp.gameEngine) {
+    const count = window.musicFactoryApp.gameEngine.randomizeComposition({
+      minBlocks: 10,
+      maxBlocks: 20
+    });
+    console.log(`Placed ${count} blocks`);
+    window.musicFactoryApp.timelineUI.updateBlocks();
+    return count;
+  } else {
+    console.error('App not initialized');
+    return 0;
+  }
+};

@@ -3,26 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Music Factory - Create Your Own Music</title>
-  <meta name="description" content="Music Factory - A fun music creation game for kids. Build songs by dragging and dropping musical blocks!">
+  <title>Music Factory</title>
+  <meta name="description" content="Music Factory - Create your own music by dragging and dropping blocks!">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <!-- Start Screen -->
-  <div id="start-screen">
-    <h1>🎵 Music Factory</h1>
-    <p>Build Your Own Music, One Block at a Time!</p>
-    <button id="start-btn" class="btn btn-primary">Start Creating</button>
-  </div>
-
   <!-- Loading Screen -->
   <div id="loading">
     <div class="loading-spinner"></div>
-    <p style="margin-top: 1rem;">Loading audio files...</p>
+    <p style="margin-top: 1rem;">Loading...</p>
   </div>
 
   <!-- Main App -->
-  <div id="app" style="display: none;">
+  <div id="app">
     <!-- Header -->
     <header class="header">
       <h1>🎵 Music Factory</h1>
@@ -30,6 +23,7 @@
         <button id="play-btn" class="btn btn-primary">▶ Play</button>
         <button id="stop-btn" class="btn btn-secondary">⏹ Stop</button>
         <button id="clear-btn" class="btn btn-danger">🗑 Clear</button>
+        <button id="random-btn" class="btn btn-accent">🎲 Random</button>
         <button id="save-btn" class="btn btn-secondary">💾 Save</button>
         <button id="load-btn" class="btn btn-secondary">📂 Load</button>
       </div>
@@ -101,13 +95,5 @@
 
   <!-- Scripts -->
   <script type="module" src="js/main.js"></script>
-
-  <script>
-    // Show app once started
-    document.getElementById('start-btn').addEventListener('click', () => {
-      document.getElementById('start-screen').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-    });
-  </script>
 </body>
 </html>

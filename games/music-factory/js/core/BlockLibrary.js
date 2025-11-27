@@ -1,6 +1,32 @@
 import { MusicBlock } from '../audio/MusicBlock.js';
 
 /**
+ * Mood emoji constants for separated tracks
+ */
+const TRACK_MOODS = {
+  drums: {
+    a: ['🎉', '🔥', '💫', '⚡', '🎵', '🥁', '💥', '🎸', '🌟'],
+    b: ['😊', '🎶', '✨', '🔥', '💪', '🎯', '🚀', '💎', '🌈'],
+    long: ['🥁', '🎵', '🔥', '💫', '⚡', '🎉', '✨', '🌟', '💥']
+  },
+  bass: {
+    a: ['🌊', '💎', '🎸', '😌', '🎉', '💙', '🌈', '🔮', '🎵'],
+    b: ['😊', '🎶', '✨', '🌟', '💫', '🔥', '🚀', '💪', '🌙'],
+    long: ['🎸', '🌊', '💎', '💙', '🌈', '😌', '🎉', '🔮', '✨']
+  },
+  melody: {
+    a: ['🎼', '🎹', '🎵', '🎶', '🎤', '🎷', '🎺', '🎻', '🪕'],
+    b: ['😊', '🌟', '✨', '💫', '🌈', '🎉', '🎊', '💖', '🦋'],
+    long: ['🎵', '🎼', '🎹', '🎶', '🎷', '🎤', '🎺', '🎻', '✨']
+  }
+};
+
+/**
+ * Default fallback mood emoji
+ */
+const DEFAULT_MOOD = '🎵';
+
+/**
  * BlockLibrary - Manages all available music blocks
  */
 export class BlockLibrary {
@@ -18,456 +44,329 @@ export class BlockLibrary {
    * Initialize the block library with predefined blocks
    */
   initialize() {
-    // Drums blocks
+    // Drums blocks - all 4 beats (2 sec) or 2 beats (1 sec)
     this.addBlock({
       id: 'drums_1',
-      name: 'Basic Beat',
+      name: 'Beat A',
       category: 'drums',
       audioPath: 'assets/sounds/drums/back2.mp3',
-      duration: 8,
+      duration: 4,
       mood: '🎉',
-      color: '#FF6B6B'
-    });
-
-    this.addBlock({
-      id: 'drums_long_1',
-      name: 'Long Beat 1',
-      category: 'drums',
-      audioPath: 'assets/sounds/drums/back2.mp3',
-      duration: 16,
-      mood: '🎵',
-      color: '#FF6B6B'
-    });
-
-    this.addBlock({
-      id: 'drums_long_2',
-      name: 'Long Beat 2',
-      category: 'drums',
-      audioPath: 'assets/sounds/drums/back2.mp3',
-      duration: 12,
-      mood: '🔥',
       color: '#FF6B6B',
       startTime: 0,
-      endTime: 12
+      endTime: 2
     });
 
     this.addBlock({
       id: 'drums_2',
-      name: 'Rhythm Loop',
+      name: 'Beat B',
       category: 'drums',
       audioPath: 'assets/sounds/drums/back2.mp3',
       duration: 4,
-      mood: '😊',
+      mood: '🎵',
       color: '#FF6B6B',
-      startTime: 0,
+      startTime: 2,
       endTime: 4
     });
 
     this.addBlock({
       id: 'drums_3',
-      name: 'Beat Part 2',
+      name: 'Beat C',
       category: 'drums',
       audioPath: 'assets/sounds/drums/back2.mp3',
       duration: 4,
-      mood: '🎵',
+      mood: '🔥',
       color: '#FF6B6B',
       startTime: 4,
-      endTime: 8
+      endTime: 6
     });
 
     this.addBlock({
       id: 'drums_4',
-      name: 'Short Beat',
+      name: 'Short A',
       category: 'drums',
       audioPath: 'assets/sounds/drums/back2.mp3',
       duration: 2,
       mood: '💫',
       color: '#FF6B6B',
       startTime: 0,
-      endTime: 2
+      endTime: 1
     });
 
     this.addBlock({
       id: 'drums_5',
-      name: 'Quick Hit',
+      name: 'Short B',
       category: 'drums',
       audioPath: 'assets/sounds/drums/back2.mp3',
       duration: 2,
       mood: '⚡',
       color: '#FF6B6B',
-      startTime: 2,
-      endTime: 4
+      startTime: 1,
+      endTime: 2
     });
 
-    // New separated drums (tracks 01-09)
+    // New separated drums (tracks 01-09) - 4 beats each
     for (let i = 1; i <= 9; i++) {
       const trackNum = String(i).padStart(2, '0');
+      const idx = i - 1;
       this.addBlock({
         id: `drums_track${trackNum}_a`,
-        name: `Track ${i} Drums A`,
+        name: `T${i} Drums A`,
         category: 'drums',
         audioPath: `assets/sounds/drums/track${trackNum}.mp3`,
-        duration: 8,
-        mood: ['🎉', '🔥', '💫', '⚡', '🎵', '🥁', '💥', '🎸', '🌟'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.drums.a[idx] || DEFAULT_MOOD,
         color: '#FF6B6B',
         startTime: 0,
-        endTime: 8
+        endTime: 2
       });
       this.addBlock({
         id: `drums_track${trackNum}_b`,
-        name: `Track ${i} Drums B`,
+        name: `T${i} Drums B`,
         category: 'drums',
         audioPath: `assets/sounds/drums/track${trackNum}.mp3`,
-        duration: 8,
-        mood: ['😊', '🎶', '✨', '🔥', '💪', '🎯', '🚀', '💎', '🌈'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.drums.b[idx] || DEFAULT_MOOD,
         color: '#FF6B6B',
-        startTime: 16,
-        endTime: 24
+        startTime: 2,
+        endTime: 4
       });
       this.addBlock({
-        id: `drums_track${trackNum}_long`,
-        name: `Track ${i} Drums Long`,
+        id: `drums_track${trackNum}_c`,
+        name: `T${i} Drums C`,
         category: 'drums',
         audioPath: `assets/sounds/drums/track${trackNum}.mp3`,
-        duration: 16,
-        mood: ['🥁', '🎵', '🔥', '💫', '⚡', '🎉', '✨', '🌟', '💥'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.drums.long[idx] || DEFAULT_MOOD,
         color: '#FF6B6B',
-        startTime: 0,
-        endTime: 16
+        startTime: 4,
+        endTime: 6
       });
     }
 
-    // Bass blocks
+    // Bass blocks - all 4 beats (2 sec) or 2 beats (1 sec)
     this.addBlock({
       id: 'bass_1',
-      name: 'Groovy Bass',
+      name: 'Bass A',
       category: 'bass',
       audioPath: 'assets/sounds/bass/back1.mp3',
-      duration: 8,
+      duration: 4,
       mood: '😊',
-      color: '#4ECDC4'
-    });
-
-    this.addBlock({
-      id: 'bass_long_1',
-      name: 'Long Groove',
-      category: 'bass',
-      audioPath: 'assets/sounds/bass/back1.mp3',
-      duration: 16,
-      mood: '🌊',
-      color: '#4ECDC4'
-    });
-
-    this.addBlock({
-      id: 'bass_long_2',
-      name: 'Deep Long',
-      category: 'bass',
-      audioPath: 'assets/sounds/bass/back3.mp3',
-      duration: 16,
-      mood: '💎',
-      color: '#4ECDC4'
+      color: '#4ECDC4',
+      startTime: 0,
+      endTime: 2
     });
 
     this.addBlock({
       id: 'bass_2',
-      name: 'Deep Bass',
+      name: 'Bass B',
       category: 'bass',
-      audioPath: 'assets/sounds/bass/back3.mp3',
-      duration: 8,
-      mood: '😌',
-      color: '#4ECDC4'
+      audioPath: 'assets/sounds/bass/back1.mp3',
+      duration: 4,
+      mood: '🌊',
+      color: '#4ECDC4',
+      startTime: 2,
+      endTime: 4
     });
 
     this.addBlock({
       id: 'bass_3',
-      name: 'Short Bass',
+      name: 'Deep A',
       category: 'bass',
-      audioPath: 'assets/sounds/bass/back1.mp3',
+      audioPath: 'assets/sounds/bass/back3.mp3',
       duration: 4,
-      mood: '🎉',
+      mood: '💎',
       color: '#4ECDC4',
       startTime: 0,
-      endTime: 4
+      endTime: 2
     });
 
     this.addBlock({
       id: 'bass_4',
-      name: 'Bass Part 2',
-      category: 'bass',
-      audioPath: 'assets/sounds/bass/back1.mp3',
-      duration: 4,
-      mood: '🎸',
-      color: '#4ECDC4',
-      startTime: 4,
-      endTime: 8
-    });
-
-    this.addBlock({
-      id: 'bass_5',
-      name: 'Deep Part 1',
+      name: 'Deep B',
       category: 'bass',
       audioPath: 'assets/sounds/bass/back3.mp3',
       duration: 4,
-      mood: '🌊',
+      mood: '😌',
       color: '#4ECDC4',
-      startTime: 0,
+      startTime: 2,
       endTime: 4
     });
 
-    this.addBlock({
-      id: 'bass_6',
-      name: 'Deep Part 2',
-      category: 'bass',
-      audioPath: 'assets/sounds/bass/back3.mp3',
-      duration: 4,
-      mood: '💙',
-      color: '#4ECDC4',
-      startTime: 4,
-      endTime: 8
-    });
-
-    // New separated bass (tracks 01-09)
+    // New separated bass (tracks 01-09) - 4 beats each
     for (let i = 1; i <= 9; i++) {
       const trackNum = String(i).padStart(2, '0');
+      const idx = i - 1;
       this.addBlock({
         id: `bass_track${trackNum}_a`,
-        name: `Track ${i} Bass A`,
+        name: `T${i} Bass A`,
         category: 'bass',
         audioPath: `assets/sounds/bass/track${trackNum}.mp3`,
-        duration: 8,
-        mood: ['🌊', '💎', '🎸', '😌', '🎉', '💙', '🌈', '🔮', '🎵'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.bass.a[idx] || DEFAULT_MOOD,
         color: '#4ECDC4',
         startTime: 0,
-        endTime: 8
+        endTime: 2
       });
       this.addBlock({
         id: `bass_track${trackNum}_b`,
-        name: `Track ${i} Bass B`,
+        name: `T${i} Bass B`,
         category: 'bass',
         audioPath: `assets/sounds/bass/track${trackNum}.mp3`,
-        duration: 8,
-        mood: ['😊', '🎶', '✨', '🌟', '💫', '🔥', '🚀', '💪', '🌙'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.bass.b[idx] || DEFAULT_MOOD,
         color: '#4ECDC4',
-        startTime: 16,
-        endTime: 24
+        startTime: 2,
+        endTime: 4
       });
       this.addBlock({
-        id: `bass_track${trackNum}_long`,
-        name: `Track ${i} Bass Long`,
+        id: `bass_track${trackNum}_c`,
+        name: `T${i} Bass C`,
         category: 'bass',
         audioPath: `assets/sounds/bass/track${trackNum}.mp3`,
-        duration: 16,
-        mood: ['🎸', '🌊', '💎', '💙', '🌈', '😌', '🎉', '🔮', '✨'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.bass.long[idx] || DEFAULT_MOOD,
         color: '#4ECDC4',
-        startTime: 0,
-        endTime: 16
+        startTime: 4,
+        endTime: 6
       });
     }
 
-    // Melody blocks
+    // Melody blocks - all 4 beats (2 sec)
     this.addBlock({
       id: 'melody_1',
-      name: 'Catchy Tune',
-      category: 'melody',
-      audioPath: 'assets/sounds/melody/catchy-music.mp3',
-      duration: 8,
-      mood: '😊',
-      color: '#FFE66D'
-    });
-
-    this.addBlock({
-      id: 'melody_long_1',
-      name: 'Catchy Full',
-      category: 'melody',
-      audioPath: 'assets/sounds/melody/catchy-music.mp3',
-      duration: 16,
-      mood: '🎼',
-      color: '#FFE66D'
-    });
-
-    this.addBlock({
-      id: 'melody_long_2',
-      name: 'Quirky Full',
-      category: 'melody',
-      audioPath: 'assets/sounds/melody/quirky-music.mp3',
-      duration: 16,
-      mood: '🎪',
-      color: '#FFE66D'
-    });
-
-    this.addBlock({
-      id: 'melody_long_3',
-      name: 'Fast Full',
-      category: 'melody',
-      audioPath: 'assets/sounds/melody/fast-music.mp3',
-      duration: 16,
-      mood: '🚀',
-      color: '#FFE66D'
-    });
-
-    this.addBlock({
-      id: 'melody_2',
-      name: 'Quirky Melody',
-      category: 'melody',
-      audioPath: 'assets/sounds/melody/quirky-music.mp3',
-      duration: 8,
-      mood: '🎃',
-      color: '#FFE66D'
-    });
-
-    this.addBlock({
-      id: 'melody_3',
-      name: 'Fast Melody',
-      category: 'melody',
-      audioPath: 'assets/sounds/melody/fast-music.mp3',
-      duration: 8,
-      mood: '🎉',
-      color: '#FFE66D'
-    });
-
-    this.addBlock({
-      id: 'melody_4',
-      name: 'Happy Tune',
+      name: 'Catchy A',
       category: 'melody',
       audioPath: 'assets/sounds/melody/catchy-music.mp3',
       duration: 4,
       mood: '😊',
       color: '#FFE66D',
       startTime: 0,
-      endTime: 4
+      endTime: 2
     });
 
     this.addBlock({
-      id: 'melody_5',
-      name: 'Catchy Part 2',
+      id: 'melody_2',
+      name: 'Catchy B',
       category: 'melody',
       audioPath: 'assets/sounds/melody/catchy-music.mp3',
       duration: 4,
       mood: '🎶',
       color: '#FFE66D',
-      startTime: 4,
-      endTime: 8
+      startTime: 2,
+      endTime: 4
     });
 
     this.addBlock({
-      id: 'melody_6',
-      name: 'Quirky Part 1',
+      id: 'melody_3',
+      name: 'Quirky A',
       category: 'melody',
       audioPath: 'assets/sounds/melody/quirky-music.mp3',
       duration: 4,
       mood: '🎭',
       color: '#FFE66D',
       startTime: 0,
-      endTime: 4
+      endTime: 2
     });
 
     this.addBlock({
-      id: 'melody_7',
-      name: 'Quirky Part 2',
+      id: 'melody_4',
+      name: 'Quirky B',
       category: 'melody',
       audioPath: 'assets/sounds/melody/quirky-music.mp3',
       duration: 4,
       mood: '🤹',
       color: '#FFE66D',
-      startTime: 4,
-      endTime: 8
+      startTime: 2,
+      endTime: 4
     });
 
     this.addBlock({
-      id: 'melody_8',
-      name: 'Fast Part 1',
+      id: 'melody_5',
+      name: 'Fast A',
       category: 'melody',
       audioPath: 'assets/sounds/melody/fast-music.mp3',
       duration: 4,
       mood: '🚀',
       color: '#FFE66D',
       startTime: 0,
-      endTime: 4
+      endTime: 2
     });
 
     this.addBlock({
-      id: 'melody_9',
-      name: 'Fast Part 2',
+      id: 'melody_6',
+      name: 'Fast B',
       category: 'melody',
       audioPath: 'assets/sounds/melody/fast-music.mp3',
       duration: 4,
       mood: '⚡',
       color: '#FFE66D',
-      startTime: 4,
-      endTime: 8
+      startTime: 2,
+      endTime: 4
     });
 
-    // New separated melody (tracks 01-09)
+    // New separated melody (tracks 01-09) - 4 beats each
     for (let i = 1; i <= 9; i++) {
       const trackNum = String(i).padStart(2, '0');
+      const idx = i - 1;
       this.addBlock({
         id: `melody_track${trackNum}_a`,
-        name: `Track ${i} Melody A`,
+        name: `T${i} Melody A`,
         category: 'melody',
         audioPath: `assets/sounds/melody/track${trackNum}.mp3`,
-        duration: 8,
-        mood: ['🎼', '🎹', '🎵', '🎶', '🎤', '🎷', '🎺', '🎻', '🪕'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.melody.a[idx] || DEFAULT_MOOD,
         color: '#FFE66D',
         startTime: 0,
-        endTime: 8
+        endTime: 2
       });
       this.addBlock({
         id: `melody_track${trackNum}_b`,
-        name: `Track ${i} Melody B`,
+        name: `T${i} Melody B`,
         category: 'melody',
         audioPath: `assets/sounds/melody/track${trackNum}.mp3`,
-        duration: 8,
-        mood: ['😊', '🌟', '✨', '💫', '🌈', '🎉', '🎊', '💖', '🦋'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.melody.b[idx] || DEFAULT_MOOD,
         color: '#FFE66D',
-        startTime: 16,
-        endTime: 24
+        startTime: 2,
+        endTime: 4
       });
       this.addBlock({
-        id: `melody_track${trackNum}_long`,
-        name: `Track ${i} Melody Long`,
+        id: `melody_track${trackNum}_c`,
+        name: `T${i} Melody C`,
         category: 'melody',
         audioPath: `assets/sounds/melody/track${trackNum}.mp3`,
-        duration: 16,
-        mood: ['🎵', '🎼', '🎹', '🎶', '🎷', '🎤', '🎺', '🎻', '✨'][i-1],
+        duration: 4,
+        mood: TRACK_MOODS.melody.long[idx] || DEFAULT_MOOD,
         color: '#FFE66D',
-        startTime: 0,
-        endTime: 16
+        startTime: 4,
+        endTime: 6
       });
     }
 
-    // FX blocks
-    this.addBlock({
-      id: 'fx_long_1',
-      name: 'Long FX',
-      category: 'fx',
-      audioPath: 'assets/sounds/fx/funny1.mp3',
-      duration: 8,
-      mood: '🌟',
-      color: '#FF6BCB'
-    });
-
+    // FX blocks - all 2 beats (1 sec)
     this.addBlock({
       id: 'fx_1',
       name: 'Sparkle',
       category: 'fx',
       audioPath: 'assets/sounds/fx/funny1.mp3',
-      duration: 4,
+      duration: 2,
       mood: '✨',
       color: '#FF6BCB',
       startTime: 0,
-      endTime: 2
+      endTime: 1
     });
 
     this.addBlock({
       id: 'fx_2',
-      name: 'Magic Sound',
+      name: 'Magic',
       category: 'fx',
       audioPath: 'assets/sounds/melody/quirky-music.mp3',
-      duration: 4,
+      duration: 2,
       mood: '🎃',
       color: '#FF6BCB',
       startTime: 0,
-      endTime: 2
+      endTime: 1
     });
 
     this.addBlock({
@@ -475,47 +374,47 @@ export class BlockLibrary {
       name: 'Swoosh',
       category: 'fx',
       audioPath: 'assets/sounds/fx/funny1.mp3',
-      duration: 4,
+      duration: 2,
       mood: '🎉',
       color: '#FF6BCB',
-      startTime: 2,
-      endTime: 4
+      startTime: 1,
+      endTime: 2
     });
 
     this.addBlock({
       id: 'fx_4',
-      name: 'Quirky FX 1',
+      name: 'Quirky',
       category: 'fx',
       audioPath: 'assets/sounds/melody/quirky-music.mp3',
       duration: 2,
       mood: '🎪',
       color: '#FF6BCB',
-      startTime: 2,
-      endTime: 4
+      startTime: 1,
+      endTime: 2
     });
 
     this.addBlock({
       id: 'fx_5',
-      name: 'Quirky FX 2',
+      name: 'Pop',
       category: 'fx',
       audioPath: 'assets/sounds/melody/quirky-music.mp3',
       duration: 2,
       mood: '🎨',
       color: '#FF6BCB',
-      startTime: 4,
-      endTime: 6
+      startTime: 2,
+      endTime: 3
     });
 
     this.addBlock({
       id: 'fx_6',
-      name: 'Fast FX',
+      name: 'Zap',
       category: 'fx',
       audioPath: 'assets/sounds/melody/fast-music.mp3',
       duration: 2,
       mood: '💥',
       color: '#FF6BCB',
       startTime: 0,
-      endTime: 2
+      endTime: 1
     });
   }
 
@@ -533,13 +432,43 @@ export class BlockLibrary {
   }
 
   /**
-   * Load all audio files
+   * Load all audio files with error handling and concurrency control
    * @param {AudioContext} audioContext
-   * @returns {Promise<void>}
+   * @param {number} [concurrency=5] - Max concurrent loads to prevent browser throttling
+   * @returns {Promise<{loaded: number, failed: number, errors: Array}>}
    */
-  async loadAll(audioContext) {
-    const loadPromises = this.blocks.map(block => block.load(audioContext));
-    await Promise.all(loadPromises);
+  async loadAll(audioContext, concurrency = 5) {
+    let loaded = 0;
+    let failed = 0;
+    const errors = [];
+
+    // Process blocks in batches to limit concurrent requests
+    const blocks = [...this.blocks];
+    const batches = [];
+    for (let i = 0; i < blocks.length; i += concurrency) {
+      batches.push(blocks.slice(i, i + concurrency));
+    }
+
+    for (const batch of batches) {
+      const loadPromises = batch.map(async (block) => {
+        try {
+          await block.load(audioContext);
+          loaded++;
+        } catch (error) {
+          failed++;
+          errors.push({ blockId: block.id, error: error.message });
+          console.warn(`Failed to load block ${block.id}:`, error.message);
+        }
+      });
+
+      await Promise.all(loadPromises);
+    }
+
+    if (failed > 0) {
+      console.warn(`Audio loading complete: ${loaded} loaded, ${failed} failed`);
+    }
+
+    return { loaded, failed, errors };
   }
 
   /**
