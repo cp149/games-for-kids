@@ -99,6 +99,44 @@ export class BlockLibrary {
       endTime: 4
     });
 
+    // New separated drums (tracks 01-09)
+    for (let i = 1; i <= 9; i++) {
+      const trackNum = String(i).padStart(2, '0');
+      this.addBlock({
+        id: `drums_track${trackNum}_a`,
+        name: `Track ${i} Drums A`,
+        category: 'drums',
+        audioPath: `assets/sounds/drums/track${trackNum}.mp3`,
+        duration: 8,
+        mood: ['🎉', '🔥', '💫', '⚡', '🎵', '🥁', '💥', '🎸', '🌟'][i-1],
+        color: '#FF6B6B',
+        startTime: 0,
+        endTime: 8
+      });
+      this.addBlock({
+        id: `drums_track${trackNum}_b`,
+        name: `Track ${i} Drums B`,
+        category: 'drums',
+        audioPath: `assets/sounds/drums/track${trackNum}.mp3`,
+        duration: 8,
+        mood: ['😊', '🎶', '✨', '🔥', '💪', '🎯', '🚀', '💎', '🌈'][i-1],
+        color: '#FF6B6B',
+        startTime: 16,
+        endTime: 24
+      });
+      this.addBlock({
+        id: `drums_track${trackNum}_long`,
+        name: `Track ${i} Drums Long`,
+        category: 'drums',
+        audioPath: `assets/sounds/drums/track${trackNum}.mp3`,
+        duration: 16,
+        mood: ['🥁', '🎵', '🔥', '💫', '⚡', '🎉', '✨', '🌟', '💥'][i-1],
+        color: '#FF6B6B',
+        startTime: 0,
+        endTime: 16
+      });
+    }
+
     // Bass blocks
     this.addBlock({
       id: 'bass_1',
@@ -187,6 +225,44 @@ export class BlockLibrary {
       startTime: 4,
       endTime: 8
     });
+
+    // New separated bass (tracks 01-09)
+    for (let i = 1; i <= 9; i++) {
+      const trackNum = String(i).padStart(2, '0');
+      this.addBlock({
+        id: `bass_track${trackNum}_a`,
+        name: `Track ${i} Bass A`,
+        category: 'bass',
+        audioPath: `assets/sounds/bass/track${trackNum}.mp3`,
+        duration: 8,
+        mood: ['🌊', '💎', '🎸', '😌', '🎉', '💙', '🌈', '🔮', '🎵'][i-1],
+        color: '#4ECDC4',
+        startTime: 0,
+        endTime: 8
+      });
+      this.addBlock({
+        id: `bass_track${trackNum}_b`,
+        name: `Track ${i} Bass B`,
+        category: 'bass',
+        audioPath: `assets/sounds/bass/track${trackNum}.mp3`,
+        duration: 8,
+        mood: ['😊', '🎶', '✨', '🌟', '💫', '🔥', '🚀', '💪', '🌙'][i-1],
+        color: '#4ECDC4',
+        startTime: 16,
+        endTime: 24
+      });
+      this.addBlock({
+        id: `bass_track${trackNum}_long`,
+        name: `Track ${i} Bass Long`,
+        category: 'bass',
+        audioPath: `assets/sounds/bass/track${trackNum}.mp3`,
+        duration: 16,
+        mood: ['🎸', '🌊', '💎', '💙', '🌈', '😌', '🎉', '🔮', '✨'][i-1],
+        color: '#4ECDC4',
+        startTime: 0,
+        endTime: 16
+      });
+    }
 
     // Melody blocks
     this.addBlock({
@@ -320,6 +396,44 @@ export class BlockLibrary {
       startTime: 4,
       endTime: 8
     });
+
+    // New separated melody (tracks 01-09)
+    for (let i = 1; i <= 9; i++) {
+      const trackNum = String(i).padStart(2, '0');
+      this.addBlock({
+        id: `melody_track${trackNum}_a`,
+        name: `Track ${i} Melody A`,
+        category: 'melody',
+        audioPath: `assets/sounds/melody/track${trackNum}.mp3`,
+        duration: 8,
+        mood: ['🎼', '🎹', '🎵', '🎶', '🎤', '🎷', '🎺', '🎻', '🪕'][i-1],
+        color: '#FFE66D',
+        startTime: 0,
+        endTime: 8
+      });
+      this.addBlock({
+        id: `melody_track${trackNum}_b`,
+        name: `Track ${i} Melody B`,
+        category: 'melody',
+        audioPath: `assets/sounds/melody/track${trackNum}.mp3`,
+        duration: 8,
+        mood: ['😊', '🌟', '✨', '💫', '🌈', '🎉', '🎊', '💖', '🦋'][i-1],
+        color: '#FFE66D',
+        startTime: 16,
+        endTime: 24
+      });
+      this.addBlock({
+        id: `melody_track${trackNum}_long`,
+        name: `Track ${i} Melody Long`,
+        category: 'melody',
+        audioPath: `assets/sounds/melody/track${trackNum}.mp3`,
+        duration: 16,
+        mood: ['🎵', '🎼', '🎹', '🎶', '🎷', '🎤', '🎺', '🎻', '✨'][i-1],
+        color: '#FFE66D',
+        startTime: 0,
+        endTime: 16
+      });
+    }
 
     // FX blocks
     this.addBlock({
