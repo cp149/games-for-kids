@@ -157,8 +157,8 @@ class Board {
     }
 
     /**
-     * Handle touch end - detect swipe direction and swap gems
-     * Only handles SWIPE gestures; taps fall through to click handler
+     * Handle touch end - detect swipe or tap gestures
+     * Handles both swipe (drag) and tap (click) for touch devices
      */
     handleTouchEnd(event) {
         if (this.isProcessing || !this.touchState.startGem) return;
@@ -173,35 +173,41 @@ class Board {
         // Reset touch state
         this.touchState = { startGem: null, startX: 0, startY: 0 };
 
-        // Only process if this is a SWIPE gesture (moved enough distance)
-        const isSwipe = Math.abs(deltaX) >= minSwipeDistance || Math.abs(deltaY) >= minSwipeDistance;
-
-        if (!isSwipe) {
-            // Not a swipe - let click handler process the tap
-            return;
-        }
-
-        // This is a swipe - prevent click from also firing
+        // Prevent click event from double-processing
         this.touchHandled = true;
 
-        // Determine swipe direction
-        let targetRow = startGem.row;
-        let targetCol = startGem.col;
+        // Check if this is a SWIPE gesture (moved enough distance)
+        const isSwipe = Math.abs(deltaX) >= minSwipeDistance || Math.abs(deltaY) >= minSwipeDistance;
 
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            // Horizontal swipe
-            targetCol += deltaX > 0 ? 1 : -1;
+        if (isSwipe) {
+            // Handle SWIPE - determine direction and swap
+            let targetRow = startGem.row;
+            let targetCol = startGem.col;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                targetCol += deltaX > 0 ? 1 : -1;
+            } else {
+                targetRow += deltaY > 0 ? 1 : -1;
+            }
+
+            if (targetRow >= 0 && targetRow < this.size &&
+                targetCol >= 0 && targetCol < this.size) {
+                const targetGem = this.grid[targetRow]?.[targetCol];
+                if (targetGem) {
+                    this.swapGems(startGem, targetGem);
+                }
+            }
         } else {
-            // Vertical swipe
-            targetRow += deltaY > 0 ? 1 : -1;
-        }
-
-        // Check if we have a valid adjacent target
-        if (targetRow >= 0 && targetRow < this.size &&
-            targetCol >= 0 && targetCol < this.size) {
-            const targetGem = this.grid[targetRow]?.[targetCol];
-            if (targetGem) {
-                this.swapGems(startGem, targetGem);
+            // Handle TAP - select or swap gem
+            if (!this.selectedGem) {
+                this.selectGem(startGem);
+            } else if (startGem === this.selectedGem) {
+                this.deselectGem();
+            } else if (startGem.isAdjacentTo(this.selectedGem)) {
+                this.swapGems(this.selectedGem, startGem);
+            } else {
+                this.deselectGem();
+                this.selectGem(startGem);
             }
         }
     }
