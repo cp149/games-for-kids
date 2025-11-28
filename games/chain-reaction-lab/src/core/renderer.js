@@ -165,27 +165,17 @@ export class Renderer {
     this.clear();
     this.drawBackground();
 
-    // Render connections first (behind everything)
-    if (gameState.mechanisms) {
-      this.renderConnections(gameState.mechanisms);
-    }
-
-    // Render mechanisms
-    if (gameState.mechanisms) {
-      this.renderMechanisms(gameState.mechanisms);
-    }
-
-    // Render player
-    if (gameState.player) {
-      this.renderPlayer(gameState.player);
+    // Render level if it exists
+    if (gameState.level) {
+      gameState.level.render(this.ctx);
     }
 
     // Render particles (on top)
     this.renderParticles();
 
     // Render hint arrow on first button (Level 1 only)
-    if (gameState.showInitialHint && gameState.mechanisms && gameState.mechanisms.length > 0) {
-      const firstButton = gameState.mechanisms.find(m => m.type === 'button');
+    if (gameState.showInitialHint && gameState.level) {
+      const firstButton = gameState.level.mechanisms.find(m => m.type === 'button');
       if (firstButton) {
         this.drawHintArrow(firstButton.x, firstButton.y);
       }
@@ -205,8 +195,6 @@ export class Renderer {
 
     this.canvas.width = width;
     this.canvas.height = height;
-
-    console.log('Canvas resized to:', width, height);
   }
 }
 

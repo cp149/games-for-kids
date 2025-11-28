@@ -6,10 +6,7 @@
 import i18n from '../utils/i18n.js';
 import { AnimationManager } from '../utils/animation.js';
 import { Renderer } from './renderer.js';
-import { Button } from '../entities/button.js';
-import { Door } from '../entities/door.js';
-import { Relay } from '../entities/relay.js';
-import { Player } from '../entities/player.js';
+import { Level } from './level.js';
 import { levels } from '../../data/levels.js';
 
 class Game {
@@ -18,14 +15,12 @@ class Game {
     this.renderer = new Renderer(this.canvas);
     this.animManager = new AnimationManager();
 
-    this.currentLevel = 0;
+    this.currentLevelIndex = 0;
     this.levels = levels;
-    this.mechanisms = [];
-    this.player = null;
+    this.currentLevelInstance = null; // Current Level instance
     this.moves = 0;
     this.startTime = 0;
     this.elapsedTime = 0;
-    this.isRunning = false;
     this.showInitialHint = false;
 
     this.settings = {
@@ -122,36 +117,29 @@ class Game {
   }
 
   handleCanvasClick(e) {
-    if (!this.isRunning) return;
+    if (!this.currentLevelInstance || !this.currentLevelInstance.isActive) return;
 
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     // Check if clicked on a button
-    this.mechanisms.forEach(mechanism => {
-      if (mechanism.type === 'button' && mechanism.containsPoint(x, y)) {
-        this.clickButton(mechanism);
-      }
-    });
+    const button = this.currentLevelInstance.handleClick(x, y);
+    if (button) {
+      this.clickButton(button);
+    }
   }
 
   handleMouseMove(e) {
-    if (!this.isRunning) return;
+    if (!this.currentLevelInstance || !this.currentLevelInstance.isActive) return;
 
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     // Check if hovering over a button
-    let isOverButton = false;
-    this.mechanisms.forEach(mechanism => {
-      if (mechanism.type === 'button' && mechanism.containsPoint(x, y)) {
-        isOverButton = true;
-      }
-    });
-
-    this.canvas.style.cursor = isOverButton ? 'pointer' : 'default';
+    const button = this.currentLevelInstance.handleClick(x, y);
+    this.canvas.style.cursor = button ? 'pointer' : 'default';
   }
 
   clickButton(button) {
@@ -177,24 +165,25 @@ class Game {
   }
 
   checkWinCondition() {
-    // Check if all doors are unlocked
-    const doors = this.mechanisms.filter(m => m.type === 'door');
-    const allUnlocked = doors.length > 0 && doors.every(d => !d.locked);
+    if (!this.currentLevelInstance) return;
 
-    if (allUnlocked) {
+    if (this.currentLevelInstance.checkWinCondition()) {
       this.winLevel();
     }
   }
 
   winLevel() {
-    console.log('winLevel called, creating fireworks NOW');
+    if (!this.currentLevelInstance) return;
+
     this.elapsedTime = Date.now() - this.startTime;
+
+    // Deactivate level to prevent further clicks
+    this.currentLevelInstance.deactivate();
 
     // Create success fireworks - immediately!
     if (this.settings.particles) {
-      const doors = this.mechanisms.filter(m => m.type === 'door');
+      const doors = this.currentLevelInstance.mechanisms.filter(m => m.type === 'door');
       doors.forEach(door => {
-        console.log('Creating fireworks at door:', door.x, door.y);
         // Create all confetti immediately in a burst
         for (let i = 0; i < 20; i++) {
           const angle = (Math.PI * 2 * i) / 20;
@@ -203,7 +192,6 @@ class Game {
         // Extra explosion effect at door
         this.renderer.createExplosion(door.x, door.y, 30, '#00ff00');
       });
-      console.log('Fireworks created, particle count:', this.renderer.particles.particles.length);
     }
 
     // Update success overlay data
@@ -211,42 +199,47 @@ class Game {
     document.getElementById('successTime').textContent = this.formatTime(this.elapsedTime);
 
     // Wait for fireworks to finish before showing success overlay
-    console.log('Setting timeout for success overlay in 2000ms');
     setTimeout(() => {
-      console.log('NOW showing success overlay');
-      this.isRunning = false; // Stop game only when showing overlay
       document.getElementById('successOverlay').classList.remove('hidden');
     }, 2000);
   }
 
   loadLevel(levelIndex) {
-    console.log('Loading level:', levelIndex);
-
     if (levelIndex >= this.levels.length) {
       console.error('Level index out of bounds:', levelIndex);
       return;
     }
 
-    this.currentLevel = levelIndex;
-    this.mechanisms = [];
+    console.log(`[LEVEL] Loading level ${levelIndex + 1}`);
+
+    // Destroy old level instance completely
+    if (this.currentLevelInstance) {
+      this.currentLevelInstance.destroy();
+      this.currentLevelInstance = null;
+    }
+
+    // Reset state
+    this.currentLevelIndex = levelIndex;
     this.moves = 0;
     this.startTime = Date.now();
-    this.isRunning = true;
     this.showInitialHint = (levelIndex === 0);
 
-    const level = this.levels[levelIndex];
+    const levelData = this.levels[levelIndex];
 
     // Update UI
     document.getElementById('levelBadge').textContent = `Level ${levelIndex + 1}`;
-    document.getElementById('levelTitle').textContent = level.title || this.getLevelTitle(levelIndex);
-    document.getElementById('goalValue').textContent = level.description || i18n.t('unlock_door');
+    document.getElementById('levelTitle').textContent = levelData.title || this.getLevelTitle(levelIndex);
+    document.getElementById('goalValue').textContent = levelData.description || i18n.t('unlock_door');
     this.updateUI();
 
     // Ensure canvas is properly sized
     this.renderer.resize();
 
-    // Create level from data
-    this.createLevelFromData(level);
+    // Create new level instance
+    this.currentLevelInstance = new Level(levelData, this.canvas);
+    this.currentLevelInstance.activate();
+
+    console.log(`[LEVEL] Level ${levelIndex + 1} loaded and activated`);
 
     // Start game loop if not running
     if (!this.frameId) {
@@ -254,47 +247,13 @@ class Game {
     }
   }
 
-  createLevelFromData(level) {
-    const w = this.canvas.width;
-    const h = this.canvas.height;
-
-    // Create mechanisms
-    level.mechanisms.forEach((mechData, index) => {
-      const x = mechData.x * w;
-      const y = mechData.y * h;
-
-      let mechanism;
-      if (mechData.type === 'button') {
-        mechanism = new Button(x, y, mechData.id || index);
-      } else if (mechData.type === 'door') {
-        mechanism = new Door(x, y);
-        mechanism.setRequiredSignals(mechData.requiredSignals || 1);
-      } else if (mechData.type === 'relay') {
-        mechanism = new Relay(x, y, mechData.id || index);
-      }
-
-      if (mechanism) {
-        this.mechanisms.push(mechanism);
-      }
-    });
-
-    // Create connections
-    level.connections.forEach(conn => {
-      const fromMech = this.mechanisms[conn.from];
-      const toMech = this.mechanisms[conn.to];
-
-      if (fromMech && toMech) {
-        fromMech.connect(toMech, conn.color || '#00ffff');
-      }
-    });
-  }
 
   restartLevel() {
     // Hide overlays
     document.getElementById('successOverlay').classList.add('hidden');
 
     // Reload current level
-    this.loadLevel(this.currentLevel);
+    this.loadLevel(this.currentLevelIndex);
   }
 
   nextLevel() {
@@ -302,7 +261,7 @@ class Game {
     document.getElementById('successOverlay').classList.add('hidden');
 
     // Load next level
-    const nextLevel = this.currentLevel + 1;
+    const nextLevel = this.currentLevelIndex + 1;
     if (nextLevel < this.levels.length) {
       this.loadLevel(nextLevel);
     } else {
@@ -407,17 +366,15 @@ class Game {
     this.lastFrameTime = timestamp;
 
     // Update
-    if (this.isRunning) {
-      this.mechanisms.forEach(m => m.update(deltaTime));
-      if (this.player) this.player.update(deltaTime);
+    if (this.currentLevelInstance) {
+      this.currentLevelInstance.update(deltaTime);
       this.renderer.updateParticles();
       this.updateUI();
     }
 
     // Render
     this.renderer.render({
-      mechanisms: this.mechanisms,
-      player: this.player,
+      level: this.currentLevelInstance,
       showInitialHint: this.showInitialHint
     });
 

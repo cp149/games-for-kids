@@ -103,5 +103,66 @@ async function testLevel5() {
   }
 }
 
-// Run test
-testLevel5().catch(console.error);
+// Test Level 11 logic
+async function testLevel11() {
+  console.log('\n\nTesting Level 11: Symmetry');
+
+  // Create mechanisms (matching level 11)
+  const buttonA = new Button(100, 100, 'A');
+  const buttonB = new Button(200, 100, 'B');
+  const buttonC = new Button(100, 200, 'C');
+  const buttonD = new Button(200, 200, 'D');
+  const door = new Door(150, 150);
+
+  door.setRequiredSignals(4);
+
+  // Setup connections (all buttons to door)
+  buttonA.connect(door, '#00ffff');
+  buttonB.connect(door, '#ff00ff');
+  buttonC.connect(door, '#ffaa00');
+  buttonD.connect(door, '#00ff88');
+
+  console.log('Initial state:');
+  console.log('  All buttons active:', buttonA.active, buttonB.active, buttonC.active, buttonD.active);
+  console.log('  Door locked:', door.locked);
+  console.log('  Door requires:', door.requiredSignals, 'signals');
+
+  // Click all 4 buttons
+  console.log('\nClicking button A...');
+  buttonA.toggle();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  console.log('  Door signals:', door.receivedSignals.size);
+
+  console.log('Clicking button B...');
+  buttonB.toggle();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  console.log('  Door signals:', door.receivedSignals.size);
+
+  console.log('Clicking button C...');
+  buttonC.toggle();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  console.log('  Door signals:', door.receivedSignals.size);
+
+  console.log('Clicking button D...');
+  buttonD.toggle();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  console.log('  Door signals:', door.receivedSignals.size);
+
+  console.log('\nFinal state:');
+  console.log('  All buttons active:', buttonA.active, buttonB.active, buttonC.active, buttonD.active);
+  console.log('  Door locked:', door.locked, '(should be false)');
+  console.log('  Door receivedSignals size:', door.receivedSignals.size);
+  console.log('  Door receivedSignals:', Array.from(door.receivedSignals).map(m => ({ type: m.type, id: m.id, active: m.active })));
+
+  if (!door.locked) {
+    console.log('✅ TEST PASSED: Door unlocked with 4 signals');
+  } else {
+    console.log('❌ TEST FAILED: Door still locked');
+    console.log('   Expected 4 signals, got:', door.receivedSignals.size);
+  }
+}
+
+// Run tests
+testLevel5()
+  .then(() => testLevel11())
+  .catch(console.error);

@@ -15,7 +15,7 @@ export class Relay extends Mechanism {
   }
 
   receiveSignal(from) {
-    // Relay activates/deactivates based on input
+    // Relay activates/deactivates based on input with delay
     setTimeout(() => {
       if (from.active) {
         this.activate();

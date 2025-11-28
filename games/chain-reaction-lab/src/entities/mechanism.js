@@ -75,6 +75,7 @@ export class Mechanism {
    */
   propagateSignal(delay = 0) {
     setTimeout(() => {
+      // Propagate to all connected mechanisms
       this.connections.forEach(({ mechanism, color }) => {
         mechanism.receiveSignal(this);
 
