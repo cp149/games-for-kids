@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Chain Reaction Lab | 连锁反应实验室</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/mechanisms.css">
+  <link rel="stylesheet" href="styles/animations.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-content">
+      <div class="lab-logo">
+        <div class="logo-ring"></div>
+        <div class="logo-core"></div>
+      </div>
+      <h1 class="loading-title">CHAIN REACTION LAB</h1>
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+      <p class="loading-text">Initializing systems...</p>
+    </div>
+  </div>
+
+  <!-- Main Game Container -->
+  <div id="gameContainer" class="game-container hidden">
+    <!-- Top Bar -->
+    <div class="top-bar glass-panel">
+      <div class="level-info">
+        <span class="level-badge" id="levelBadge">Level 1</span>
+        <h2 class="level-title" id="levelTitle">First Connection</h2>
+      </div>
+      <div class="controls">
+        <button class="btn-icon" id="btnRestart" title="Restart" aria-label="Restart level">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          </svg>
+        </button>
+        <button class="btn-icon" id="btnHint" title="Hint" aria-label="Get hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <circle cx="12" cy="8" r="0.5" fill="currentColor"/>
+          </svg>
+        </button>
+        <button class="btn-icon" id="btnSettings" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Canvas Area -->
+    <div class="game-area">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- Tutorial Overlay -->
+      <div id="tutorialOverlay" class="tutorial-overlay hidden">
+        <div class="tutorial-card glass-panel">
+          <div class="tutorial-header">
+            <span class="step-badge" id="tutorialStep">Step 1/3</span>
+            <h2 id="tutorialTitle">Welcome to the Lab!</h2>
+          </div>
+          <div class="tutorial-content">
+            <div class="tutorial-visual" id="tutorialVisual">
+              <div class="tutorial-icon">⚡</div>
+            </div>
+            <p class="tutorial-text" id="tutorialText">
+              Click buttons to activate mechanisms and create chain reactions
+            </p>
+          </div>
+          <button class="btn-primary" id="btnTutorialNext">Got it!</button>
+        </div>
+      </div>
+
+      <!-- Success Overlay -->
+      <div id="successOverlay" class="success-overlay hidden">
+        <div class="success-card glass-panel">
+          <div class="success-icon-wrapper">
+            <div class="success-icon">✨</div>
+            <div class="success-particles"></div>
+          </div>
+          <h2 class="success-title">PUZZLE SOLVED!</h2>
+          <div class="success-stats">
+            <div class="stat-item">
+              <span class="stat-label">Moves</span>
+              <span class="stat-value" id="successMoves">3</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Time</span>
+              <span class="stat-value" id="successTime">0:45</span>
+            </div>
+          </div>
+          <div class="success-actions">
+            <button class="btn-secondary" id="btnReplay">Replay</button>
+            <button class="btn-primary" id="btnNextLevel">Next Level</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar glass-panel">
+      <div class="stat">
+        <span class="icon">🎯</span>
+        <span class="label" id="goalLabel">Goal:</span>
+        <span class="value" id="goalValue">Unlock door</span>
+      </div>
+      <div class="stat">
+        <span class="icon">🔄</span>
+        <span class="label" id="movesLabel">Moves:</span>
+        <span class="value" id="movesValue">0</span>
+      </div>
+      <div class="stat">
+        <span class="icon">⏱️</span>
+        <span class="label" id="timeLabel">Time:</span>
+        <span class="value" id="timeValue">0:00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div id="settingsPanel" class="settings-panel glass-panel hidden">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button class="btn-close" id="btnCloseSettings">×</button>
+    </div>
+    <div class="settings-content">
+      <div class="setting-group">
+        <label for="languageSelect">Language / 语言</label>
+        <select id="languageSelect" class="setting-select">
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label for="soundToggle">Sound Effects</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="soundToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-group">
+        <label for="musicToggle">Background Music</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="musicToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-group">
+        <label for="particlesToggle">Particle Effects</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="particlesToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="src/utils/i18n.js"></script>
+  <script type="module" src="src/utils/animation.js"></script>
+  <script type="module" src="src/entities/mechanism.js"></script>
+  <script type="module" src="src/entities/button.js"></script>
+  <script type="module" src="src/entities/door.js"></script>
+  <script type="module" src="src/entities/relay.js"></script>
+  <script type="module" src="src/entities/player.js"></script>
+  <script type="module" src="src/core/renderer.js"></script>
+  <script type="module" src="src/core/game.js"></script>
+  <script type="module" src="data/levels.js"></script>
+</body>
+</html>
