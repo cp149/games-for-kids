@@ -49,11 +49,11 @@ export class LevelGenerator {
    */
   getDifficultyConfig(difficulty) {
     const configs = {
-      1: { buttons: 1, gates: 0, relays: 0, usedGates: [], multiConnect: false },
-      2: { buttons: 2, gates: 0, relays: 1, usedGates: [], multiConnect: false },
-      3: { buttons: 3, gates: 1, relays: 1, usedGates: ['AND', 'OR'], multiConnect: false },
-      4: { buttons: 3, gates: 2, relays: 1, usedGates: ['AND', 'OR'], multiConnect: true },
-      5: { buttons: 4, gates: 2, relays: 2, usedGates: ['AND', 'OR', 'NOT'], multiConnect: true }
+      1: { buttons: 1, gates: 0, relays: 0, usedGates: [], multiConnect: false, minSignals: 1 },
+      2: { buttons: 2, gates: 0, relays: 1, usedGates: [], multiConnect: false, minSignals: 1 },
+      3: { buttons: 3, gates: 2, relays: 2, usedGates: ['AND', 'OR', 'NOT'], multiConnect: true, minSignals: 2 },
+      4: { buttons: 4, gates: 3, relays: 3, usedGates: ['AND', 'OR', 'NOT'], multiConnect: true, minSignals: 3 },
+      5: { buttons: 5, gates: 4, relays: 4, usedGates: ['AND', 'OR', 'NOT'], multiConnect: true, minSignals: 4 }
     };
     return configs[difficulty] || configs[3];
   }
@@ -63,28 +63,71 @@ export class LevelGenerator {
    */
   generateMechanisms(config) {
     const mechanisms = [];
-    const usedPositions = new Set();
+    const usedPositions = [];
 
-    // Helper to get unique position
-    const getUniquePosition = (minX, maxX, minY = 0.2, maxY = 0.8) => {
+    // Helper to get unique position with distance-based collision detection
+    const getUniquePosition = (minX, maxX, minY = 0.2, maxY = 0.8, minDistance = 0.12) => {
       let attempts = 0;
-      while (attempts < 50) {
+      const maxAttempts = 200;
+
+      while (attempts < maxAttempts) {
         const x = minX + Math.random() * (maxX - minX);
         const y = minY + Math.random() * (maxY - minY);
-        const key = `${x.toFixed(1)},${y.toFixed(1)}`;
 
-        if (!usedPositions.has(key)) {
-          usedPositions.add(key);
+        // Check distance to all existing positions
+        let tooClose = false;
+        for (const pos of usedPositions) {
+          const dx = x - pos.x;
+          const dy = y - pos.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < minDistance) {
+            tooClose = true;
+            break;
+          }
+        }
+
+        if (!tooClose) {
+          usedPositions.push({ x, y });
           return { x, y };
         }
         attempts++;
       }
-      return { x: minX, y: 0.5 };
+
+      // Fallback: try to find any valid position with reduced distance
+      const reducedDistance = minDistance * 0.7;
+      for (let i = 0; i < 50; i++) {
+        const x = minX + Math.random() * (maxX - minX);
+        const y = minY + Math.random() * (maxY - minY);
+
+        let valid = true;
+        for (const pos of usedPositions) {
+          const dx = x - pos.x;
+          const dy = y - pos.y;
+          if (Math.sqrt(dx * dx + dy * dy) < reducedDistance) {
+            valid = false;
+            break;
+          }
+        }
+
+        if (valid) {
+          usedPositions.push({ x, y });
+          return { x, y };
+        }
+      }
+
+      // Last resort: return position anyway (should rarely happen)
+      const pos = {
+        x: minX + Math.random() * (maxX - minX),
+        y: minY + Math.random() * (maxY - minY)
+      };
+      usedPositions.push(pos);
+      return pos;
     };
 
     // Generate buttons (left side)
     for (let i = 0; i < config.buttons; i++) {
-      const pos = getUniquePosition(0.15, 0.25);
+      const pos = getUniquePosition(0.08, 0.26, 0.12, 0.88, 0.12);
       mechanisms.push({
         type: 'button',
         id: String.fromCharCode(65 + i), // A, B, C...
@@ -100,8 +143,55 @@ export class LevelGenerator {
         : ['AND', 'OR'];
 
       for (let i = 0; i < config.gates; i++) {
-        const pos = getUniquePosition(0.4, 0.6);
-        const gateType = availableGates[Math.floor(Math.random() * availableGates.length)];
+        const pos = getUniquePosition(0.36, 0.64, 0.12, 0.88, 0.12);
+
+        // For multiConnect mode, smart gate type selection
+        let gateType;
+        if (config.multiConnect && availableGates.includes('OR')) {
+          // Calculate if NOT gate is feasible
+          // Key insight: OR gates can share buttons with NOT gates (logically compatible)
+          // So we need: NOT buttons (2 per NOT) + at least 1 pure button for OR gates
+          // Conservative rule: max 1 NOT gate per level, ensure buttons >= 3
+          const currentNOTCount = mechanisms.filter(m => m.type === 'logic-gate' && m.gateType === 'NOT').length;
+
+          const gatesWithoutNOT = availableGates.filter(g => g !== 'NOT');
+
+          // Allow NOT if:
+          // 1. At least 3 buttons (2 for NOT, 1 for OR to share)
+          // 2. No NOT gate exists yet (max 1 NOT per level)
+          const canUseNOT = availableGates.includes('NOT') &&
+            config.buttons >= 3 &&
+            currentNOTCount === 0;
+
+          const selectableGates = canUseNOT ? availableGates : gatesWithoutNOT;
+
+          // Adjust gate type probabilities for strategic difficulty
+          // NOT gate forces OFF state (prevents "press all" strategy)
+          // AND gates need both inputs ON (more restrictive than OR)
+
+          // Check if we already have a NOT gate (takes 2 exclusive buttons)
+          const hasNOTGate = mechanisms.filter(m => m.type === 'logic-gate' && m.gateType === 'NOT').length > 0;
+          const pureButtonsAvailable = hasNOTGate ? config.buttons - 2 : config.buttons;
+          const isFirstGate = i === 0;
+
+          // Strategic difficulty: first gate should be NOT to prevent bruteforce
+          if (canUseNOT && (isFirstGate || Math.random() < 0.7)) {
+            // First gate must be NOT, or 70% chance for subsequent gates
+            gateType = 'NOT';
+          } else if (hasNOTGate && pureButtonsAvailable < 2) {
+            // If NOT gate exists and only 1 pure button left, must use OR
+            // (AND cannot work with only 1 independent button)
+            gateType = 'OR';
+          } else {
+            // For remaining gates: 20% OR, 80% AND
+            // Heavily favor AND gates for strategic combinations
+            const nonNOTGates = selectableGates.filter(g => g !== 'NOT');
+            gateType = Math.random() < 0.2 ? 'OR' : nonNOTGates[Math.floor(Math.random() * nonNOTGates.length)];
+          }
+        } else {
+          gateType = availableGates[Math.floor(Math.random() * availableGates.length)];
+        }
+
         mechanisms.push({
           type: 'logic-gate',
           gateType,
@@ -114,7 +204,7 @@ export class LevelGenerator {
 
     // Generate relays (middle-right)
     for (let i = 0; i < config.relays; i++) {
-      const pos = getUniquePosition(0.5, 0.65);
+      const pos = getUniquePosition(0.5, 0.7, 0.12, 0.88, 0.12);
       mechanisms.push({
         type: 'relay',
         id: `R${i}`,
@@ -124,7 +214,7 @@ export class LevelGenerator {
     }
 
     // Generate door (right side)
-    const doorPos = getUniquePosition(0.75, 0.85);
+    const doorPos = getUniquePosition(0.74, 0.92, 0.12, 0.88, 0.12);
     mechanisms.push({
       type: 'door',
       x: doorPos.x,
@@ -178,76 +268,204 @@ export class LevelGenerator {
             });
           });
           activeGates.push(gates[0]);
-        } else if (gates.length >= 2) {
-          // Multiple gates: distribute buttons
-          const half = Math.floor(buttons.length / 2);
+        } else if (config.multiConnect && gates.length > 1) {
+          // Multi-connect mode: smart button distribution
+          // Special handling: NOT gates need exclusive buttons (no sharing)
 
-          // Connect first half of buttons to gate 0
-          for (let i = 0; i < Math.max(half, 2); i++) {
-            connections.push({
-              from: mechanisms.indexOf(buttons[i]),
-              to: mechanisms.indexOf(gates[0]),
-              color: this.randomColor()
-            });
+          if (buttons.length >= 2) {
+            const notGates = gates.filter(g => g.gateType === 'NOT');
+            const otherGates = gates.filter(g => g.gateType !== 'NOT');
+
+            // Track which buttons are used by NOT gates
+            const notGateButtons = new Set();
+
+            // Assign buttons to NOT gates first (exclusive, no sharing)
+            let buttonIndex = 0;
+            for (const gate of notGates) {
+              // Each NOT gate gets 2 unique buttons
+              if (buttonIndex + 1 < buttons.length) {
+                const btn1 = buttons[buttonIndex];
+                const btn2 = buttons[buttonIndex + 1];
+
+                connections.push({
+                  from: mechanisms.indexOf(btn1),
+                  to: mechanisms.indexOf(gate),
+                  color: this.randomColor()
+                });
+
+                connections.push({
+                  from: mechanisms.indexOf(btn2),
+                  to: mechanisms.indexOf(gate),
+                  color: this.randomColor()
+                });
+
+                notGateButtons.add(buttonIndex);
+                notGateButtons.add(buttonIndex + 1);
+                buttonIndex += 2;
+
+                activeGates.push(gate);
+              }
+            }
+
+            // Assign buttons to other gates
+            // Key insight: OR gates can share buttons with NOT gates (logically compatible)
+            // AND gates cannot share with NOT gates (would create conflicts)
+            if (otherGates.length > 0) {
+              const pureButtons = buttons.filter((_, idx) => !notGateButtons.has(idx));
+              const notButtons = buttons.filter((_, idx) => notGateButtons.has(idx));
+
+              const orGates = otherGates.filter(g => g.gateType === 'OR');
+              const andGates = otherGates.filter(g => g.gateType === 'AND');
+
+              // Strategy: All OR gates use NOT+pure combo if NOT exists and OR exists
+              // AND gates use pure buttons only (need >= 2 pure buttons)
+
+              if (orGates.length > 0 && pureButtons.length >= 1 && notButtons.length >= 1) {
+                // All OR gates get NOT button + pure button combo
+                const maxORGates = Math.min(orGates.length, pureButtons.length);
+                for (let i = 0; i < maxORGates; i++) {
+                  const gate = orGates[i];
+                  // Each OR uses: any NOT button + unique pure button
+                  const pureBtn = pureButtons[i % pureButtons.length];
+                  const notBtn = notButtons[0]; // Can reuse same NOT button for all ORs
+
+                  connections.push({
+                    from: mechanisms.indexOf(notBtn),
+                    to: mechanisms.indexOf(gate),
+                    color: this.randomColor()
+                  });
+                  connections.push({
+                    from: mechanisms.indexOf(pureBtn),
+                    to: mechanisms.indexOf(gate),
+                    color: this.randomColor()
+                  });
+                  activeGates.push(gate);
+                }
+              } else if (orGates.length > 0 && pureButtons.length >= 2) {
+                // No NOT buttons available, OR gates use pure buttons (sliding window)
+                const overlap_step = pureButtons.length > 2 ?
+                  (pureButtons.length - 2) / Math.max(1, orGates.length - 1) : 0;
+
+                for (let i = 0; i < orGates.length; i++) {
+                  const startIdx = Math.min(
+                    Math.floor(i * overlap_step),
+                    pureButtons.length - 2
+                  );
+                  const gate = orGates[i];
+                  connections.push({
+                    from: mechanisms.indexOf(pureButtons[startIdx]),
+                    to: mechanisms.indexOf(gate),
+                    color: this.randomColor()
+                  });
+                  connections.push({
+                    from: mechanisms.indexOf(pureButtons[startIdx + 1]),
+                    to: mechanisms.indexOf(gate),
+                    color: this.randomColor()
+                  });
+                  activeGates.push(gate);
+                }
+              }
+
+              // AND gates need at least 2 pure buttons (sliding window)
+              if (andGates.length > 0 && pureButtons.length >= 2) {
+                const overlap_step = pureButtons.length > 2 ?
+                  (pureButtons.length - 2) / Math.max(1, andGates.length - 1) : 0;
+
+                for (let i = 0; i < andGates.length; i++) {
+                  const startIdx = Math.min(
+                    Math.floor(i * overlap_step),
+                    pureButtons.length - 2
+                  );
+                  const gate = andGates[i];
+                  connections.push({
+                    from: mechanisms.indexOf(pureButtons[startIdx]),
+                    to: mechanisms.indexOf(gate),
+                    color: this.randomColor()
+                  });
+                  connections.push({
+                    from: mechanisms.indexOf(pureButtons[startIdx + 1]),
+                    to: mechanisms.indexOf(gate),
+                    color: this.randomColor()
+                  });
+                  activeGates.push(gate);
+                }
+              }
+              // AND gates with pureButtons < 2 are skipped (cannot be connected)
+            }
           }
-          activeGates.push(gates[0]);
+        } else {
+          // Single-connect mode: can have gate chaining
+          let buttonIndex = 0;
 
-          // Connect second half to gate 1
-          for (let i = half; i < buttons.length; i++) {
-            connections.push({
-              from: mechanisms.indexOf(buttons[i]),
-              to: mechanisms.indexOf(gates[1]),
-              color: this.randomColor()
-            });
+          for (let g = 0; g < gates.length && buttonIndex < buttons.length; g++) {
+            const buttonsForThisGate = Math.min(2, buttons.length - buttonIndex);
+
+            for (let b = 0; b < buttonsForThisGate; b++) {
+              if (buttonIndex < buttons.length) {
+                connections.push({
+                  from: mechanisms.indexOf(buttons[buttonIndex]),
+                  to: mechanisms.indexOf(gates[g]),
+                  color: this.randomColor()
+                });
+                buttonIndex++;
+              }
+            }
+
+            // Gate chaining only in single-connect mode
+            if (buttonsForThisGate < 2 && g > 0) {
+              connections.push({
+                from: mechanisms.indexOf(gates[g - 1]),
+                to: mechanisms.indexOf(gates[g]),
+                color: this.randomColor()
+              });
+            }
+
+            activeGates.push(gates[g]);
           }
-
-          // If gate 1 only has 1 input, also connect gate 0 output to it
-          if (buttons.length - half < 2) {
-            connections.push({
-              from: mechanisms.indexOf(gates[0]),
-              to: mechanisms.indexOf(gates[1]),
-              color: this.randomColor()
-            });
-          }
-
-          activeGates.push(gates[1]);
         }
       }
 
       // Multi-connect mode: multiple gates to door (harder)
       if (config.multiConnect && activeGates.length > 1) {
+        const targetSignals = Math.max(
+          Math.min(activeGates.length, config.minSignals || activeGates.length),
+          2
+        );
+
         // Connect gates to door (possibly through relays)
-        if (relays.length > 0) {
-          // Use relays as intermediaries
-          activeGates.forEach((gate, i) => {
-            const relay = relays[i % relays.length];
+        if (relays.length > 0 && relays.length >= targetSignals) {
+          // Enough relays: each gate → unique relay → door
+          const usedRelays = [];
+          for (let i = 0; i < targetSignals; i++) {
+            const gate = activeGates[i];
+            const relay = relays[i];
+
             connections.push({
               from: mechanisms.indexOf(gate),
               to: mechanisms.indexOf(relay),
               color: this.randomColor()
             });
-          });
 
-          // Connect relays to door
-          relays.forEach(relay => {
             connections.push({
               from: mechanisms.indexOf(relay),
               to: doorIndex,
               color: this.randomColor()
             });
-          });
 
-          door.requiredSignals = Math.min(relays.length, activeGates.length);
+            usedRelays.push(relay);
+          }
+
+          door.requiredSignals = targetSignals;
         } else {
-          // No relays, connect gates directly to door
-          activeGates.forEach(gate => {
+          // Not enough relays, connect gates directly to door
+          for (let i = 0; i < targetSignals; i++) {
             connections.push({
-              from: mechanisms.indexOf(gate),
+              from: mechanisms.indexOf(activeGates[i]),
               to: doorIndex,
               color: this.randomColor()
             });
-          });
-          door.requiredSignals = activeGates.length;
+          }
+          door.requiredSignals = targetSignals;
         }
       } else {
         // Single connect mode: main gate to door
