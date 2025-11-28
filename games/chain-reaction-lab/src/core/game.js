@@ -8,12 +8,14 @@ import { AnimationManager } from '../utils/animation.js';
 import { Renderer } from './renderer.js';
 import { Level } from './level.js';
 import { levels } from '../../data/levels.js';
+import { LevelGenerator } from '../utils/level-generator.js';
 
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
     this.renderer = new Renderer(this.canvas);
     this.animManager = new AnimationManager();
+    this.levelGenerator = new LevelGenerator();
 
     this.currentLevelIndex = 0;
     this.levels = levels;
@@ -22,6 +24,7 @@ class Game {
     this.startTime = 0;
     this.elapsedTime = 0;
     this.showInitialHint = false;
+    this.isRandomMode = false; // Track if playing random level
 
     this.settings = {
       sound: true,
@@ -89,6 +92,7 @@ class Game {
     document.getElementById('btnRestart').addEventListener('click', () => this.restartLevel());
     document.getElementById('btnHint').addEventListener('click', () => this.showHint());
     document.getElementById('btnSettings').addEventListener('click', () => this.showSettings());
+    document.getElementById('btnRandom').addEventListener('click', () => this.showDifficultyPanel());
 
     // Settings
     document.getElementById('btnCloseSettings').addEventListener('click', () => this.hideSettings());
@@ -114,6 +118,30 @@ class Game {
     // Success screen
     document.getElementById('btnReplay').addEventListener('click', () => this.restartLevel());
     document.getElementById('btnNextLevel').addEventListener('click', () => this.nextLevel());
+
+    // Difficulty panel
+    document.getElementById('btnCloseDifficulty').addEventListener('click', () => this.hideDifficultyPanel());
+    document.querySelectorAll('.difficulty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const difficulty = parseInt(btn.getAttribute('data-difficulty'));
+        this.hideDifficultyPanel();
+        this.loadRandomLevel(difficulty);
+      });
+    });
+
+    // Game complete panel
+    document.getElementById('btnCloseComplete').addEventListener('click', () => this.hideGameCompletePanel());
+    document.getElementById('btnRestartGame').addEventListener('click', () => {
+      this.hideGameCompletePanel();
+      this.loadLevel(0);
+    });
+    document.getElementById('btnPlayRandom').addEventListener('click', () => {
+      this.hideGameCompletePanel();
+      this.showDifficultyPanel();
+    });
+
+    // Hint panel
+    document.getElementById('btnCloseHint').addEventListener('click', () => this.hideHintPanel());
   }
 
   handleCanvasClick(e) {
@@ -223,6 +251,7 @@ class Game {
     this.moves = 0;
     this.startTime = Date.now();
     this.showInitialHint = (levelIndex === 0);
+    this.isRandomMode = false;
 
     const levelData = this.levels[levelIndex];
 
@@ -247,18 +276,68 @@ class Game {
     }
   }
 
+  loadRandomLevel(difficulty = 3) {
+    console.log(`[RANDOM] Generating random level (difficulty ${difficulty})`);
+
+    // Destroy old level instance
+    if (this.currentLevelInstance) {
+      this.currentLevelInstance.destroy();
+      this.currentLevelInstance = null;
+    }
+
+    // Generate random level
+    const randomLevelData = this.levelGenerator.generateLevel(difficulty);
+
+    // Reset state
+    this.moves = 0;
+    this.startTime = Date.now();
+    this.showInitialHint = false;
+    this.isRandomMode = true;
+    this.currentDifficulty = difficulty;
+
+    // Update UI
+    document.getElementById('levelBadge').textContent = `Random ${difficulty}⭐`;
+    document.getElementById('levelTitle').textContent = randomLevelData.title;
+    document.getElementById('goalValue').textContent = randomLevelData.description;
+    this.updateUI();
+
+    // Ensure canvas is properly sized
+    this.renderer.resize();
+
+    // Create level instance from generated data
+    this.currentLevelInstance = new Level(randomLevelData, this.canvas);
+    this.currentLevelInstance.activate();
+
+    console.log('[RANDOM] Random level loaded');
+
+    // Start game loop if not running
+    if (!this.frameId) {
+      this.gameLoop();
+    }
+  }
+
 
   restartLevel() {
     // Hide overlays
     document.getElementById('successOverlay').classList.add('hidden');
 
-    // Reload current level
-    this.loadLevel(this.currentLevelIndex);
+    // If in random mode, generate new random level
+    if (this.isRandomMode) {
+      this.loadRandomLevel(this.currentDifficulty || 3);
+    } else {
+      this.loadLevel(this.currentLevelIndex);
+    }
   }
 
   nextLevel() {
     // Hide success overlay
     document.getElementById('successOverlay').classList.add('hidden');
+
+    // If in random mode, generate new random level
+    if (this.isRandomMode) {
+      this.loadRandomLevel(this.currentDifficulty || 3);
+      return;
+    }
 
     // Load next level
     const nextLevel = this.currentLevelIndex + 1;
@@ -266,15 +345,16 @@ class Game {
       this.loadLevel(nextLevel);
     } else {
       // Game complete
-      alert('Congratulations! You completed all levels!');
-      // Restart from beginning
-      this.loadLevel(0);
+      this.showGameCompletePanel();
     }
   }
 
   showHint() {
-    // TODO: Implement hint system
-    alert('Hint: Try clicking the buttons to see what happens!');
+    document.getElementById('hintPanel').classList.remove('hidden');
+  }
+
+  hideHintPanel() {
+    document.getElementById('hintPanel').classList.add('hidden');
   }
 
   showSettings() {
@@ -283,6 +363,22 @@ class Game {
 
   hideSettings() {
     document.getElementById('settingsPanel').classList.add('hidden');
+  }
+
+  showDifficultyPanel() {
+    document.getElementById('difficultyPanel').classList.remove('hidden');
+  }
+
+  hideDifficultyPanel() {
+    document.getElementById('difficultyPanel').classList.add('hidden');
+  }
+
+  showGameCompletePanel() {
+    document.getElementById('gameCompletePanel').classList.remove('hidden');
+  }
+
+  hideGameCompletePanel() {
+    document.getElementById('gameCompletePanel').classList.add('hidden');
   }
 
   showTutorial() {
