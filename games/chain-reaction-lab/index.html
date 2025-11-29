@@ -26,7 +26,7 @@
       <div class="loading-bar">
         <div class="loading-progress"></div>
       </div>
-      <p class="loading-text">Initializing systems...</p>
+      <p class="loading-text" data-i18n="loading">Initializing systems...</p>
     </div>
   </div>
 
@@ -39,27 +39,27 @@
         <h2 class="level-title" id="levelTitle">First Connection</h2>
       </div>
       <div class="controls">
-        <button class="btn-icon" id="btnRestart" title="Restart" aria-label="Restart level">
+        <button class="btn-icon" id="btnRestart" data-i18n-title="restart" data-i18n-aria="restart" title="Restart" aria-label="Restart">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
             <path d="M21 3v5h-5"/>
             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
           </svg>
         </button>
-        <button class="btn-icon" id="btnHint" title="Hint" aria-label="Get hint">
+        <button class="btn-icon" id="btnHint" data-i18n-title="hint" data-i18n-aria="hint" title="Hint" aria-label="Hint">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M12 16v-4"/>
             <circle cx="12" cy="8" r="0.5" fill="currentColor"/>
           </svg>
         </button>
-        <button class="btn-icon" id="btnSettings" title="Settings" aria-label="Settings">
+        <button class="btn-icon" id="btnSettings" data-i18n-title="settings" data-i18n-aria="settings" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
           </svg>
         </button>
-        <button class="btn-icon" id="btnRandom" title="Random Level" aria-label="Random Level">
+        <button class="btn-icon" id="btnRandom" data-i18n-title="random_level" data-i18n-aria="random_level" title="Random Level" aria-label="Random Level">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M2 18h1.4c1.3 0 1.9 0 2.5-.2.5-.2 1-.5 1.4-.9.5-.5.8-1.1 1.3-2.3l.2-.5c.5-1.2.8-1.8 1.3-2.3.4-.4.9-.7 1.4-.9.6-.2 1.2-.2 2.5-.2H16m0 0l-3-3m3 3l-3 3m0-13h1.4c1.3 0 1.9 0 2.5.2.5.2 1 .5 1.4.9.5.5.8 1.1 1.3 2.3l.2.5c.5 1.2.8 1.8 1.3 2.3.4.4.9.7 1.4.9.6.2 1.2.2 2.5.2H22m0 0l-3-3m3 3l-3 3"/>
           </svg>
@@ -86,7 +86,7 @@
               Click buttons to activate mechanisms and create chain reactions
             </p>
           </div>
-          <button class="btn-primary" id="btnTutorialNext">Got it!</button>
+          <button class="btn-primary" id="btnTutorialNext" data-i18n="tutorial_got_it">Got it!</button>
         </div>
       </div>
 
@@ -97,20 +97,20 @@
             <div class="success-icon">✨</div>
             <div class="success-particles"></div>
           </div>
-          <h2 class="success-title">PUZZLE SOLVED!</h2>
+          <h2 class="success-title" data-i18n="success_title">PUZZLE SOLVED!</h2>
           <div class="success-stats">
             <div class="stat-item">
-              <span class="stat-label">Moves</span>
+              <span class="stat-label" data-i18n="moves">Moves</span>
               <span class="stat-value" id="successMoves">3</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Time</span>
+              <span class="stat-label" data-i18n="time">Time</span>
               <span class="stat-value" id="successTime">0:45</span>
             </div>
           </div>
           <div class="success-actions">
-            <button class="btn-secondary" id="btnReplay">Replay</button>
-            <button class="btn-primary" id="btnNextLevel">Next Level</button>
+            <button class="btn-secondary" id="btnReplay" data-i18n="replay">Replay</button>
+            <button class="btn-primary" id="btnNextLevel" data-i18n="next_level">Next Level</button>
           </div>
         </div>
       </div>
@@ -120,17 +120,17 @@
     <div class="status-bar glass-panel">
       <div class="stat">
         <span class="icon">🎯</span>
-        <span class="label" id="goalLabel">Goal:</span>
+        <span class="label" id="goalLabel"><span data-i18n="goal">Goal</span>:</span>
         <span class="value" id="goalValue">Unlock door</span>
       </div>
       <div class="stat">
         <span class="icon">🔄</span>
-        <span class="label" id="movesLabel">Moves:</span>
+        <span class="label" id="movesLabel"><span data-i18n="moves">Moves</span>:</span>
         <span class="value" id="movesValue">0</span>
       </div>
       <div class="stat">
         <span class="icon">⏱️</span>
-        <span class="label" id="timeLabel">Time:</span>
+        <span class="label" id="timeLabel"><span data-i18n="time">Time</span>:</span>
         <span class="value" id="timeValue">0:00</span>
       </div>
     </div>
@@ -139,33 +139,33 @@
   <!-- Settings Panel -->
   <div id="settingsPanel" class="settings-panel glass-panel hidden">
     <div class="settings-header">
-      <h2>Settings</h2>
+      <h2 data-i18n="settings">Settings</h2>
       <button class="btn-close" id="btnCloseSettings">×</button>
     </div>
     <div class="settings-content">
       <div class="setting-group">
-        <label for="languageSelect">Language / 语言</label>
+        <label for="languageSelect" data-i18n="language">Language</label>
         <select id="languageSelect" class="setting-select">
           <option value="en">English</option>
           <option value="zh">中文</option>
         </select>
       </div>
       <div class="setting-group">
-        <label for="soundToggle">Sound Effects</label>
+        <label for="soundToggle" data-i18n="sound_effects">Sound Effects</label>
         <label class="toggle-switch">
           <input type="checkbox" id="soundToggle" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
       <div class="setting-group">
-        <label for="musicToggle">Background Music</label>
+        <label for="musicToggle" data-i18n="background_music">Background Music</label>
         <label class="toggle-switch">
           <input type="checkbox" id="musicToggle" checked>
           <span class="toggle-slider"></span>
         </label>
       </div>
       <div class="setting-group">
-        <label for="particlesToggle">Particle Effects</label>
+        <label for="particlesToggle" data-i18n="particle_effects">Particle Effects</label>
         <label class="toggle-switch">
           <input type="checkbox" id="particlesToggle" checked>
           <span class="toggle-slider"></span>
@@ -177,36 +177,36 @@
   <!-- Difficulty Selection Panel -->
   <div id="difficultyPanel" class="settings-panel glass-panel hidden">
     <div class="settings-header">
-      <h2>🎲 Random Level</h2>
+      <h2><span data-i18n="random_level">🎲 Random Level</span></h2>
       <button class="btn-close" id="btnCloseDifficulty">×</button>
     </div>
     <div class="difficulty-content">
-      <p class="difficulty-desc">Choose difficulty level:</p>
+      <p class="difficulty-desc" data-i18n="choose_difficulty">Choose difficulty level:</p>
       <div class="difficulty-buttons">
         <button class="difficulty-btn" data-difficulty="1">
           <div class="diff-icon">⭐</div>
-          <div class="diff-label">Easy</div>
-          <div class="diff-desc">1 button, simple</div>
+          <div class="diff-label" data-i18n="diff_easy">Easy</div>
+          <div class="diff-desc" data-i18n="diff_easy_desc">1 button, simple</div>
         </button>
         <button class="difficulty-btn" data-difficulty="2">
           <div class="diff-icon">⭐⭐</div>
-          <div class="diff-label">Basic</div>
-          <div class="diff-desc">2 buttons + relay</div>
+          <div class="diff-label" data-i18n="diff_basic">Basic</div>
+          <div class="diff-desc" data-i18n="diff_basic_desc">2 buttons + relay</div>
         </button>
         <button class="difficulty-btn" data-difficulty="3">
           <div class="diff-icon">⭐⭐⭐</div>
-          <div class="diff-label">Medium</div>
-          <div class="diff-desc">Logic gates</div>
+          <div class="diff-label" data-i18n="diff_medium">Medium</div>
+          <div class="diff-desc" data-i18n="diff_medium_desc">Logic gates</div>
         </button>
         <button class="difficulty-btn" data-difficulty="4">
           <div class="diff-icon">⭐⭐⭐⭐</div>
-          <div class="diff-label">Hard</div>
-          <div class="diff-desc">Multiple gates</div>
+          <div class="diff-label" data-i18n="diff_hard">Hard</div>
+          <div class="diff-desc" data-i18n="diff_hard_desc">Multiple gates</div>
         </button>
         <button class="difficulty-btn" data-difficulty="5">
           <div class="diff-icon">⭐⭐⭐⭐⭐</div>
-          <div class="diff-label">Master</div>
-          <div class="diff-desc">Complex puzzle</div>
+          <div class="diff-label" data-i18n="diff_master">Master</div>
+          <div class="diff-desc" data-i18n="diff_master_desc">Complex puzzle</div>
         </button>
       </div>
     </div>
@@ -215,16 +215,19 @@
   <!-- Game Complete Panel -->
   <div id="gameCompletePanel" class="settings-panel glass-panel hidden">
     <div class="settings-header">
-      <h2>🎉 Congratulations!</h2>
+      <h2><span data-i18n="game_complete">🎉 Congratulations!</span></h2>
       <button class="btn-close" id="btnCloseComplete">×</button>
     </div>
     <div class="settings-content">
-      <p style="text-align: center; margin: 20px 0; font-size: 1.1em;">
+      <p style="text-align: center; margin: 20px 0; font-size: 1.1em;" data-i18n="complete_all_levels">
         You completed all levels!
       </p>
-      <div class="success-actions" style="display: flex; gap: 10px; justify-content: center;">
-        <button class="btn-secondary" id="btnRestartGame">Restart from Level 1</button>
-        <button class="btn-primary" id="btnPlayRandom">Play Random Levels</button>
+      <p style="text-align: center; margin: 10px 0 30px 0; font-size: 0.95em; color: var(--accent-cyan);" data-i18n="complete_hint">
+        Try the infinite random levels for more challenges!
+      </p>
+      <div class="success-actions" style="display: flex; flex-direction: column; gap: 15px; justify-content: center; align-items: stretch;">
+        <button class="btn-primary" id="btnPlayRandom" data-i18n="play_random" style="font-size: 1.1em; padding: 15px 30px;">🎲 Play Random Levels</button>
+        <button class="btn-secondary" id="btnRestartGame" data-i18n="restart_game">Restart from Level 1</button>
       </div>
     </div>
   </div>
@@ -232,7 +235,7 @@
   <!-- Hint Panel -->
   <div id="hintPanel" class="settings-panel glass-panel hidden">
     <div class="settings-header">
-      <h2>💡 Hint</h2>
+      <h2><span data-i18n="hint">💡 Hint</span></h2>
       <button class="btn-close" id="btnCloseHint">×</button>
     </div>
     <div class="settings-content">

@@ -14,6 +14,7 @@ export class Door extends Mechanism {
     this.openProgress = 0;
     this.requiredSignals = 1;
     this.receivedSignals = new Set();
+    this.animationFrameId = null; // Store animation frame ID for cleanup
   }
 
   receiveSignal(from) {
@@ -44,11 +45,24 @@ export class Door extends Mechanism {
       this.animateOpen();
 
       // Trigger win check immediately
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
+        // Safety check: prevent execution if already destroyed
+        if (this.isDestroyed) {
+          return;
+        }
+
+        // Remove from active timers after execution
+        const index = this.activeTimers.indexOf(timerId);
+        if (index > -1) {
+          this.activeTimers.splice(index, 1);
+        }
+
         if (window.gameInstance) {
           window.gameInstance.checkWinCondition();
         }
       }, 100);
+
+      this.activeTimers.push(timerId);
     }
   }
 
@@ -56,12 +70,17 @@ export class Door extends Mechanism {
     if (!this.locked) {
       this.locked = true;
       this.active = false;
-      this.receivedSignals.clear();
+      // Don't clear receivedSignals - let receiveSignal() manage the Set
       this.animateClose();
     }
   }
 
   animateOpen() {
+    // Cancel previous animation
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+
     const startTime = Date.now();
     const duration = 500;
 
@@ -75,14 +94,21 @@ export class Door extends Mechanism {
         : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        this.animationFrameId = requestAnimationFrame(animate);
+      } else {
+        this.animationFrameId = null; // Animation complete
       }
     };
 
-    animate();
+    this.animationFrameId = requestAnimationFrame(animate);
   }
 
   animateClose() {
+    // Cancel previous animation
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+
     const startTime = Date.now();
     const duration = 300;
 
@@ -93,11 +119,30 @@ export class Door extends Mechanism {
       this.openProgress = 1 - progress;
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        this.animationFrameId = requestAnimationFrame(animate);
+      } else {
+        this.animationFrameId = null; // Animation complete
       }
     };
 
-    animate();
+    this.animationFrameId = requestAnimationFrame(animate);
+  }
+
+  /**
+   * Clean up resources
+   */
+  destroy() {
+    // Cancel animation
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    // Clear received signals
+    this.receivedSignals.clear();
+
+    // Call parent destroy
+    super.destroy();
   }
 
   update(deltaTime) {
@@ -107,6 +152,7 @@ export class Door extends Mechanism {
   render(ctx) {
     const centerX = this.x;
     const centerY = this.y;
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
 
     ctx.save();
 
@@ -142,7 +188,7 @@ export class Door extends Mechanism {
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      if (filled) {
+      if (filled && highQuality) {
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#00ff00';
         ctx.fill();
@@ -156,8 +202,10 @@ export class Door extends Mechanism {
       const barSpacing = this.height / barCount;
 
       ctx.fillStyle = this.locked ? '#ff0000' : '#00ff00';
-      ctx.shadowBlur = this.locked ? 30 : 20;
-      ctx.shadowColor = this.locked ? '#ff0000' : '#00ff00';
+      if (highQuality) {
+        ctx.shadowBlur = this.locked ? 30 : 20;
+        ctx.shadowColor = this.locked ? '#ff0000' : '#00ff00';
+      }
 
       for (let i = 0; i < barCount; i++) {
         const barY = centerY - this.height / 2 + i * barSpacing;
@@ -174,16 +222,20 @@ export class Door extends Mechanism {
 
     // Lock icon - bigger
     if (this.locked) {
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#ff0000';
+      if (highQuality) {
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#ff0000';
+      }
       ctx.fillStyle = '#ff0000';
       ctx.font = 'bold 36px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('🔒', centerX, centerY);
     } else if (this.openProgress === 1) {
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#00ff00';
+      if (highQuality) {
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#00ff00';
+      }
       ctx.fillStyle = '#00ff00';
       ctx.font = 'bold 36px Arial';
       ctx.textAlign = 'center';

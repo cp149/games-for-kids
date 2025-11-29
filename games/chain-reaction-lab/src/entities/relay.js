@@ -16,13 +16,26 @@ export class Relay extends Mechanism {
 
   receiveSignal(from) {
     // Relay activates/deactivates based on input with delay
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
+      // Safety check: prevent execution if already destroyed
+      if (this.isDestroyed) {
+        return;
+      }
+
+      // Remove from active timers after execution
+      const index = this.activeTimers.indexOf(timerId);
+      if (index > -1) {
+        this.activeTimers.splice(index, 1);
+      }
+
       if (from.active) {
         this.activate();
       } else {
         this.deactivate();
       }
     }, this.delay);
+
+    this.activeTimers.push(timerId);
   }
 
   onActivate() {
@@ -47,12 +60,13 @@ export class Relay extends Mechanism {
     const centerY = this.y;
     const radius = this.size / 2;
     const pulse = Math.sin(this.pulsePhase) * 0.2 + 1;
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
 
     ctx.save();
     ctx.translate(centerX, centerY);
 
-    // Glow effect when active
-    if (this.active) {
+    // Glow effect when active (only in high quality mode)
+    if (this.active && highQuality) {
       ctx.shadowBlur = 25 * pulse;
       ctx.shadowColor = '#ffaa00';
     }

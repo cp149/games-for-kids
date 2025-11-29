@@ -19,10 +19,10 @@ export class Button extends Mechanism {
     this.propagateSignal(200); // Delay for visual effect
   }
 
-  update(deltaTime) {
+  update(deltaTime, timestamp = 0) {
     // Glow pulse animation when active
     if (this.active) {
-      this.glowIntensity = 0.5 + Math.sin(Date.now() * 0.003) * 0.5;
+      this.glowIntensity = 0.5 + Math.sin(timestamp * 0.003) * 0.5;
     } else {
       this.glowIntensity *= 0.9; // Fade out
     }
@@ -34,23 +34,24 @@ export class Button extends Mechanism {
     }
   }
 
-  render(ctx) {
+  render(ctx, timestamp = 0) {
     const centerX = this.x;
     const centerY = this.y;
     const radius = this.size / 2;
 
     // Pulse animation - larger when active
     const pulseScale = this.active
-      ? 1.15 + Math.sin(Date.now() * 0.003) * 0.05
-      : 1 + Math.sin(Date.now() * 0.002) * 0.03;
+      ? 1.15 + Math.sin(timestamp * 0.003) * 0.05
+      : 1 + Math.sin(timestamp * 0.002) * 0.03;
     const scale = (1 - this.clickAnimProgress * 0.1) * pulseScale;
 
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.scale(scale, scale);
 
-    // Strong glow when active
-    if (this.active && this.glowIntensity > 0) {
+    // Strong glow when active (only in high quality mode)
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    if (highQuality && this.active && this.glowIntensity > 0) {
       ctx.shadowBlur = 50 * this.glowIntensity;
       ctx.shadowColor = '#00ff00';
     }
@@ -81,7 +82,7 @@ export class Button extends Mechanism {
 
       // Particles around button
       for (let i = 0; i < 4; i++) {
-        const angle = Date.now() * 0.001 + (Math.PI * 2 * i / 4);
+        const angle = timestamp * 0.001 + (Math.PI * 2 * i / 4);
         const dist = radius * 1.3;
         const px = Math.cos(angle) * dist;
         const py = Math.sin(angle) * dist;

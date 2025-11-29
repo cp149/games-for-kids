@@ -32,6 +32,7 @@ export class Player {
   }
 
   render(ctx) {
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
     ctx.save();
 
     // Shadow
@@ -41,8 +42,10 @@ export class Player {
     ctx.fill();
 
     // Player circle
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00ffff';
+    if (highQuality) {
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#00ffff';
+    }
     ctx.fillStyle = '#00ffff';
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);

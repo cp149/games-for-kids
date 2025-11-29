@@ -10,102 +10,233 @@ const LOGIC_GATES = {
   'AND': (activeCount, totalInputs) => activeCount === totalInputs && totalInputs > 0,
   'OR': (activeCount, totalInputs) => activeCount > 0,
   'XOR': (activeCount, totalInputs) => activeCount === 1,
-  'NOT': (activeCount, totalInputs) => totalInputs > 0 && activeCount === 0,
+  'NOT': (activeCount, totalInputs) => activeCount === 0, // Fixed: works even with 0 inputs
   'NAND': (activeCount, totalInputs) => totalInputs > 0 && !(activeCount === totalInputs),
   'NOR': (activeCount, totalInputs) => activeCount === 0 && totalInputs > 0
 };
 
 // Draw visual icons for each gate type (child-friendly graphics)
-const drawGateIcon = (ctx, gateType, active) => {
+const drawGateIcon = (ctx, gateType, active, highQuality = true) => {
   const color = active ? '#ffffff' : '#8a9aaa';
   const glowColor = active ? '#ffffff' : color;
 
   switch(gateType) {
     case 'AND':
-      // Two large dots - both must be lit
-      ctx.fillStyle = color;
-      ctx.shadowBlur = active ? 8 : 0;
-      ctx.shadowColor = glowColor;
+      // Standard AND gate shape: D shape with input/output lines
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      if (highQuality) {
+        ctx.shadowBlur = active ? 10 : 0;
+        ctx.shadowColor = glowColor;
+      }
       ctx.beginPath();
-      ctx.arc(-10, 0, 5, 0, Math.PI * 2);
-      ctx.arc(10, 0, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      // Top input line
+      ctx.moveTo(-12, -6);
+      ctx.lineTo(-6, -6);
+      // Bottom input line
+      ctx.moveTo(-12, 6);
+      ctx.lineTo(-6, 6);
+      // Gate body - left flat side
+      ctx.moveTo(-6, -8);
+      ctx.lineTo(-6, 8);
+      // Bottom curve
+      ctx.lineTo(0, 8);
+      // Right curved side (arc)
+      ctx.arc(0, 0, 8, Math.PI/2, -Math.PI/2, true);
+      // Top curve back to start
+      ctx.lineTo(-6, -8);
+      // Output line
+      ctx.moveTo(8, 0);
+      ctx.lineTo(12, 0);
+      ctx.stroke();
+      if (highQuality) {
+        ctx.shadowBlur = 0;
+      }
       break;
 
     case 'OR':
-      // Three large dots in triangle - any can be lit
-      ctx.fillStyle = color;
-      ctx.shadowBlur = active ? 8 : 0;
-      ctx.shadowColor = glowColor;
+      // Standard OR gate shape: curved arrow shape with input/output lines
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      if (highQuality) {
+        ctx.shadowBlur = active ? 10 : 0;
+        ctx.shadowColor = glowColor;
+      }
       ctx.beginPath();
-      ctx.arc(0, -8, 5, 0, Math.PI * 2);
-      ctx.arc(-8, 5, 5, 0, Math.PI * 2);
-      ctx.arc(8, 5, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      // Top input line
+      ctx.moveTo(-12, -6);
+      ctx.lineTo(-8, -6);
+      // Bottom input line
+      ctx.moveTo(-12, 6);
+      ctx.lineTo(-8, 6);
+      // Left curved input side
+      ctx.moveTo(-8, -8);
+      ctx.quadraticCurveTo(-2, 0, -8, 8);
+      // Bottom curved side
+      ctx.moveTo(-8, 8);
+      ctx.quadraticCurveTo(0, 6, 6, 0);
+      // Top curved side
+      ctx.moveTo(-8, -8);
+      ctx.quadraticCurveTo(0, -6, 6, 0);
+      // Output line
+      ctx.moveTo(6, 0);
+      ctx.lineTo(12, 0);
+      ctx.stroke();
+      if (highQuality) {
+        ctx.shadowBlur = 0;
+      }
       break;
 
     case 'XOR':
-      // Large dot with bold circle - only one
+      // Standard XOR gate shape: OR gate with extra curved line and I/O lines
       ctx.strokeStyle = color;
       ctx.lineWidth = 3;
-      ctx.shadowBlur = active ? 10 : 0;
-      ctx.shadowColor = glowColor;
+      ctx.lineCap = 'round';
+      if (highQuality) {
+        ctx.shadowBlur = active ? 10 : 0;
+        ctx.shadowColor = glowColor;
+      }
       ctx.beginPath();
-      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      // Top input line
+      ctx.moveTo(-12, -6);
+      ctx.lineTo(-6, -6);
+      // Bottom input line
+      ctx.moveTo(-12, 6);
+      ctx.lineTo(-6, 6);
+      // Extra curved line on the left (XOR indicator)
+      ctx.moveTo(-10, -8);
+      ctx.quadraticCurveTo(-4, 0, -10, 8);
+      // Main OR gate shape - left curved side
+      ctx.moveTo(-6, -8);
+      ctx.quadraticCurveTo(0, 0, -6, 8);
+      // Bottom curved side
+      ctx.moveTo(-6, 8);
+      ctx.quadraticCurveTo(2, 6, 6, 0);
+      // Top curved side
+      ctx.moveTo(-6, -8);
+      ctx.quadraticCurveTo(2, -6, 6, 0);
+      // Output line
+      ctx.moveTo(6, 0);
+      ctx.lineTo(12, 0);
       ctx.stroke();
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(0, 0, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      if (highQuality) {
+        ctx.shadowBlur = 0;
+      }
       break;
 
     case 'NOT':
-      // Bold X mark
+      // Standard NOT gate shape: triangle with bubble and I/O lines
       ctx.strokeStyle = color;
-      ctx.lineWidth = 4;
-      ctx.shadowBlur = active ? 8 : 0;
-      ctx.shadowColor = glowColor;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      if (highQuality) {
+        ctx.shadowBlur = active ? 10 : 0;
+        ctx.shadowColor = glowColor;
+      }
       ctx.beginPath();
-      ctx.moveTo(-8, -8);
-      ctx.lineTo(8, 8);
-      ctx.moveTo(8, -8);
-      ctx.lineTo(-8, 8);
+      // Input line
+      ctx.moveTo(-12, 0);
+      ctx.lineTo(-8, 0);
+      // Triangle
+      ctx.moveTo(-8, -7);
+      ctx.lineTo(-8, 7);
+      ctx.lineTo(5, 0);
+      ctx.closePath();
       ctx.stroke();
-      ctx.shadowBlur = 0;
+      // Small bubble at output (inversion indicator)
+      ctx.beginPath();
+      ctx.arc(8, 0, 3, 0, Math.PI * 2);
+      ctx.stroke();
+      // Output line
+      ctx.beginPath();
+      ctx.moveTo(11, 0);
+      ctx.lineTo(12, 0);
+      ctx.stroke();
+      if (highQuality) {
+        ctx.shadowBlur = 0;
+      }
       break;
 
     case 'NAND':
-      // AND with slash
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(-10, 0, 4, 0, Math.PI * 2);
-      ctx.arc(10, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
+      // Standard NAND gate: AND gate with bubble at output and I/O lines
       ctx.strokeStyle = color;
       ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      if (highQuality) {
+        ctx.shadowBlur = active ? 10 : 0;
+        ctx.shadowColor = glowColor;
+      }
       ctx.beginPath();
-      ctx.moveTo(-12, -10);
-      ctx.lineTo(12, 10);
+      // Top input line
+      ctx.moveTo(-12, -6);
+      ctx.lineTo(-8, -6);
+      // Bottom input line
+      ctx.moveTo(-12, 6);
+      ctx.lineTo(-8, 6);
+      // Gate body - left flat side
+      ctx.moveTo(-8, -7);
+      ctx.lineTo(-8, 7);
+      // Bottom
+      ctx.lineTo(-2, 7);
+      // Right curved side (arc)
+      ctx.arc(-2, 0, 7, Math.PI/2, -Math.PI/2, true);
+      // Top
+      ctx.lineTo(-8, -7);
       ctx.stroke();
+      // Bubble at output (inversion indicator)
+      ctx.beginPath();
+      ctx.arc(8, 0, 3, 0, Math.PI * 2);
+      ctx.stroke();
+      // Output line
+      ctx.beginPath();
+      ctx.moveTo(11, 0);
+      ctx.lineTo(12, 0);
+      ctx.stroke();
+      if (highQuality) {
+        ctx.shadowBlur = 0;
+      }
       break;
 
     case 'NOR':
-      // OR with slash
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(0, -6, 3, 0, Math.PI * 2);
-      ctx.arc(-6, 4, 3, 0, Math.PI * 2);
-      ctx.arc(6, 4, 3, 0, Math.PI * 2);
-      ctx.fill();
+      // Standard NOR gate: OR gate with bubble at output and I/O lines
       ctx.strokeStyle = color;
       ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      if (highQuality) {
+        ctx.shadowBlur = active ? 10 : 0;
+        ctx.shadowColor = glowColor;
+      }
       ctx.beginPath();
-      ctx.moveTo(-10, -8);
-      ctx.lineTo(10, 8);
+      // Top input line
+      ctx.moveTo(-12, -6);
+      ctx.lineTo(-8, -6);
+      // Bottom input line
+      ctx.moveTo(-12, 6);
+      ctx.lineTo(-8, 6);
+      // Left curved input side
+      ctx.moveTo(-8, -7);
+      ctx.quadraticCurveTo(-2, 0, -8, 7);
+      // Bottom curved side
+      ctx.moveTo(-8, 7);
+      ctx.quadraticCurveTo(0, 5, 5, 0);
+      // Top curved side
+      ctx.moveTo(-8, -7);
+      ctx.quadraticCurveTo(0, -5, 5, 0);
       ctx.stroke();
+      // Bubble at output (inversion indicator)
+      ctx.beginPath();
+      ctx.arc(8, 0, 3, 0, Math.PI * 2);
+      ctx.stroke();
+      // Output line
+      ctx.beginPath();
+      ctx.moveTo(11, 0);
+      ctx.lineTo(12, 0);
+      ctx.stroke();
+      if (highQuality) {
+        ctx.shadowBlur = 0;
+      }
       break;
   }
 };
@@ -167,12 +298,13 @@ export class LogicGate extends Mechanism {
     const centerY = this.y;
     const radius = this.size / 2;
     const pulse = Math.sin(this.pulsePhase) * 0.2 + 1;
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
 
     ctx.save();
     ctx.translate(centerX, centerY);
 
-    // Glow effect when active
-    if (this.active) {
+    // Glow effect when active (only in high quality mode)
+    if (this.active && highQuality) {
       ctx.shadowBlur = 25 * pulse;
       ctx.shadowColor = this.getGateColor();
     }
@@ -199,7 +331,7 @@ export class LogicGate extends Mechanism {
     ctx.stroke();
 
     // Draw gate icon
-    drawGateIcon(ctx, this.gateType, this.active);
+    drawGateIcon(ctx, this.gateType, this.active, highQuality);
 
     ctx.restore();
   }

@@ -51,8 +51,8 @@ function testButtonDistribution() {
 
   let allPass = true;
 
-  // Test difficulty 3: 3 buttons, 2 gates
-  console.log('  Difficulty 3 (3 buttons, 2 gates):');
+  // Test difficulty 3: 4 buttons, 2 gates
+  console.log('  Difficulty 3 (4 buttons, 2 gates):');
   for (let i = 0; i < 5; i++) {
     const level = generator.generateLevel(3);
     const mechanisms = level.mechanisms;
@@ -64,9 +64,9 @@ function testButtonDistribution() {
       const gateIdx = mechanisms.indexOf(gate);
       const inputs = connections.filter(c => c.to === gateIdx);
 
-      // Each gate should have exactly 2 inputs in multiConnect mode
-      if (inputs.length !== 2) {
-        console.log(`    ❌ Gate has ${inputs.length} inputs (expected 2)`);
+      // Each gate should have at least 2 inputs (can have more to use all buttons)
+      if (inputs.length < 2) {
+        console.log(`    ❌ Gate has ${inputs.length} inputs (expected ≥2)`);
         allPass = false;
       }
 
@@ -81,7 +81,7 @@ function testButtonDistribution() {
   }
 
   if (allPass) {
-    console.log('    ✅ All gates have 2 unique inputs');
+    console.log('    ✅ All gates have ≥2 unique inputs');
   }
 
   return allPass;
@@ -388,6 +388,99 @@ function testStrategicDifficulty() {
   return allPass;
 }
 
+// Test 9: All buttons connected (no orphaned buttons)
+function testAllButtonsConnected() {
+  console.log('\n=== Test 9: All Buttons Connected ===');
+
+  let allPass = true;
+
+  for (let difficulty = 3; difficulty <= 5; difficulty++) {
+    let orphanedCount = 0;
+
+    for (let i = 0; i < 20; i++) {
+      const level = generator.generateLevel(difficulty);
+      const mechanisms = level.mechanisms;
+      const connections = level.connections;
+
+      const buttons = mechanisms.filter(m => m.type === 'button');
+
+      // Check each button is connected to at least one gate/door
+      for (const button of buttons) {
+        const buttonIdx = mechanisms.indexOf(button);
+        const isConnected = connections.some(c => c.from === buttonIdx);
+
+        if (!isConnected) {
+          orphanedCount++;
+          const gates = mechanisms.filter(m => m.type === 'logic-gate');
+          const pattern = gates.map(g => g.gateType).sort().join('+');
+          console.log(`  Difficulty ${difficulty}: ❌ Orphaned button in pattern ${pattern}`);
+          allPass = false;
+          break;
+        }
+      }
+    }
+
+    if (orphanedCount === 0) {
+      console.log(`  Difficulty ${difficulty}: ✅ All buttons connected (0/20 orphaned)`);
+    } else {
+      console.log(`  Difficulty ${difficulty}: ❌ ${orphanedCount}/20 levels have orphaned buttons`);
+    }
+  }
+
+  return allPass;
+}
+
+// Test 10: Pattern diversity (avoid single-pattern monotony)
+function testPatternDiversity() {
+  console.log('\n=== Test 10: Pattern Diversity ===');
+
+  let allPass = true;
+
+  for (let difficulty = 3; difficulty <= 5; difficulty++) {
+    const patterns = {};
+    const sampleSize = 50;
+
+    for (let i = 0; i < sampleSize; i++) {
+      const level = generator.generateLevel(difficulty);
+      const gates = level.mechanisms.filter(m => m.type === 'logic-gate');
+
+      // Create pattern signature (sorted gate types)
+      const pattern = gates.map(g => g.gateType).sort().join('+');
+      patterns[pattern] = (patterns[pattern] || 0) + 1;
+    }
+
+    const uniquePatterns = Object.keys(patterns).length;
+    const sortedPatterns = Object.entries(patterns).sort((a, b) => b[1] - a[1]);
+    const mostCommonPercentage = (sortedPatterns[0][1] / sampleSize * 100).toFixed(0);
+
+    // Requirements:
+    // - At least 2 different patterns
+    // - Most common pattern should not exceed 80%
+    const minPatterns = 2;
+    const maxDominance = 80;
+
+    const hasVariety = uniquePatterns >= minPatterns;
+    const notTooDominant = parseInt(mostCommonPercentage) <= maxDominance;
+    const pass = hasVariety && notTooDominant;
+
+    console.log(`  Difficulty ${difficulty}:`);
+    console.log(`    Unique patterns: ${uniquePatterns} (min ${minPatterns}) ${hasVariety ? '✅' : '❌'}`);
+    console.log(`    Most common: ${sortedPatterns[0][0]} (${mostCommonPercentage}%, max ${maxDominance}%) ${notTooDominant ? '✅' : '❌'}`);
+
+    // Show all patterns
+    sortedPatterns.forEach(([pattern, count]) => {
+      const pct = (count / sampleSize * 100).toFixed(0);
+      console.log(`      ${pattern}: ${count}/${sampleSize} (${pct}%)`);
+    });
+
+    if (!pass) {
+      allPass = false;
+    }
+  }
+
+  return allPass;
+}
+
 // Run all tests
 console.log('🧪 Running LevelGenerator Tests\n');
 
@@ -399,7 +492,9 @@ const results = {
   'Level Solvability': testLevelSolvability(),
   'Gate Input Types': testGateInputTypes(),
   'NOT Gate Logic': testNOTGateLogic(),
-  'Strategic Difficulty': testStrategicDifficulty()
+  'Strategic Difficulty': testStrategicDifficulty(),
+  'All Buttons Connected': testAllButtonsConnected(),
+  'Pattern Diversity': testPatternDiversity()
 };
 
 console.log('\n' + '='.repeat(50));

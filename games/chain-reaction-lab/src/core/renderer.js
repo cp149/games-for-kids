@@ -12,16 +12,26 @@ export class Renderer {
     this.particles = new ParticleSystem(canvas, this.ctx);
     this.gridSize = 50;
     this.gridColor = 'rgba(0, 255, 255, 0.05)';
+
+    // Offscreen canvas for background caching
+    this.offscreenBg = document.createElement('canvas');
+    this.bgCtx = this.offscreenBg.getContext('2d');
+    this.bgCached = false;
   }
 
   clear() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  drawBackground() {
-    const ctx = this.ctx;
+  cacheBackground() {
     const w = this.canvas.width;
     const h = this.canvas.height;
+
+    // Set offscreen canvas size
+    this.offscreenBg.width = w;
+    this.offscreenBg.height = h;
+
+    const ctx = this.bgCtx;
 
     // Dark gradient background
     const gradient = ctx.createLinearGradient(0, 0, w, h);
@@ -51,14 +61,29 @@ export class Renderer {
       ctx.lineTo(w, y);
       ctx.stroke();
     }
+
+    this.bgCached = true;
+  }
+
+  drawBackground() {
+    // Cache background if not cached yet
+    if (!this.bgCached) {
+      this.cacheBackground();
+    }
+
+    // Draw cached background (single drawImage call)
+    this.ctx.drawImage(this.offscreenBg, 0, 0);
   }
 
   drawGlowingTile(x, y, size, color, intensity = 1) {
     const ctx = this.ctx;
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
 
     ctx.save();
-    ctx.shadowBlur = 20 * intensity;
-    ctx.shadowColor = color;
+    if (highQuality) {
+      ctx.shadowBlur = 20 * intensity;
+      ctx.shadowColor = color;
+    }
     ctx.fillStyle = color;
     ctx.globalAlpha = 0.1 * intensity;
 
@@ -106,52 +131,68 @@ export class Renderer {
 
   createRing(x, y, radius, color = '#00ff88') {
     const particleCount = 30;
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 * i) / particleCount;
+    const availableSlots = this.particles.maxParticles - this.particles.particles.length;
+    const actualCount = Math.min(particleCount, availableSlots);
+
+    for (let i = 0; i < actualCount; i++) {
+      const angle = (Math.PI * 2 * i) / actualCount;
       const px = x + Math.cos(angle) * radius;
       const py = y + Math.sin(angle) * radius;
-      this.particles.particles.push({
-        x: px,
-        y: py,
-        vx: Math.cos(angle) * 2,
-        vy: Math.sin(angle) * 2,
-        color: color,
-        life: 0.5,
-        decay: 0.02,
-        size: 4
-      });
+
+      // Use object pool
+      const particle = this.particles.acquireParticle();
+      particle.x = px;
+      particle.y = py;
+      particle.vx = Math.cos(angle) * 2;
+      particle.vy = Math.sin(angle) * 2;
+      particle.color = color;
+      particle.life = 0.5;
+      particle.decay = 0.02;
+      particle.size = 4;
+
+      this.particles.particles.push(particle);
     }
   }
 
   createConfetti(x, y, angle) {
     const colors = ['#ffff00', '#ff00ff', '#00ffff', '#00ff00', '#ff0000'];
-    for (let i = 0; i < 3; i++) {
+    const confettiCount = 3;
+    const availableSlots = this.particles.maxParticles - this.particles.particles.length;
+    const actualCount = Math.min(confettiCount, availableSlots);
+
+    for (let i = 0; i < actualCount; i++) {
       const speed = 3 + Math.random() * 2;
-      this.particles.particles.push({
-        x: x,
-        y: y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        life: 1.5,
-        decay: 0.01,
-        size: 5 + Math.random() * 3
-      });
+
+      // Use object pool
+      const particle = this.particles.acquireParticle();
+      particle.x = x;
+      particle.y = y;
+      particle.vx = Math.cos(angle) * speed;
+      particle.vy = Math.sin(angle) * speed - 2;
+      particle.color = colors[Math.floor(Math.random() * colors.length)];
+      particle.life = 1.5;
+      particle.decay = 0.01;
+      particle.size = 5 + Math.random() * 3;
+
+      this.particles.particles.push(particle);
     }
   }
 
-  drawHintArrow(x, y) {
+  drawHintArrow(x, y, timestamp = 0) {
     const ctx = this.ctx;
-    const bounceY = Math.sin(Date.now() * 0.004) * 15;
+    const bounceY = Math.sin(timestamp * 0.004) * 15;
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
 
     ctx.save();
     ctx.font = '70px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Glow effect
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = '#ffff00';
+    // Glow effect (only in high quality mode)
+    if (highQuality) {
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = '#ffff00';
+    }
     ctx.fillStyle = '#ffff00';
     ctx.fillText('👆', x, y - 80 + bounceY);
 
@@ -161,13 +202,13 @@ export class Renderer {
   /**
    * Render complete frame
    */
-  render(gameState) {
+  render(gameState, timestamp = 0) {
     this.clear();
     this.drawBackground();
 
     // Render level if it exists
     if (gameState.level) {
-      gameState.level.render(this.ctx);
+      gameState.level.render(this.ctx, timestamp);
     }
 
     // Render particles (on top)
@@ -177,7 +218,7 @@ export class Renderer {
     if (gameState.showInitialHint && gameState.level) {
       const firstButton = gameState.level.mechanisms.find(m => m.type === 'button');
       if (firstButton) {
-        this.drawHintArrow(firstButton.x, firstButton.y);
+        this.drawHintArrow(firstButton.x, firstButton.y, timestamp);
       }
     }
   }
@@ -195,6 +236,9 @@ export class Renderer {
 
     this.canvas.width = width;
     this.canvas.height = height;
+
+    // Invalidate background cache on resize
+    this.bgCached = false;
   }
 }
 

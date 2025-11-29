@@ -113,49 +113,103 @@ export class AnimationManager {
 }
 
 /**
- * Particle effect generator
+ * Particle effect generator with object pooling
  */
 export class ParticleSystem {
   constructor(canvas, ctx) {
     this.canvas = canvas;
     this.ctx = ctx;
     this.particles = [];
+    this.maxParticles = 500; // Hard limit to prevent memory leak
+
+    // Object pool to reduce GC pressure
+    this.pool = [];
+    this.poolSize = 500;
+
+    // Pre-allocate particle objects
+    for (let i = 0; i < this.poolSize; i++) {
+      this.pool.push(this.createParticleObject());
+    }
+  }
+
+  /**
+   * Create a particle object template
+   */
+  createParticleObject() {
+    return {
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      life: 0,
+      decay: 0,
+      size: 0,
+      color: ''
+    };
+  }
+
+  /**
+   * Acquire a particle from pool or create new one
+   */
+  acquireParticle() {
+    return this.pool.pop() || this.createParticleObject();
+  }
+
+  /**
+   * Release particle back to pool
+   */
+  releaseParticle(particle) {
+    if (this.pool.length < this.poolSize) {
+      this.pool.push(particle);
+    }
   }
 
   createExplosion(x, y, count = 20, color = '#00ffff') {
-    for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count;
+    // Limit total particle count
+    const availableSlots = this.maxParticles - this.particles.length;
+    const actualCount = Math.min(count, availableSlots);
+
+    for (let i = 0; i < actualCount; i++) {
+      const angle = (Math.PI * 2 * i) / actualCount;
       const speed = 2 + Math.random() * 3;
 
-      this.particles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: 1,
-        decay: 0.02 + Math.random() * 0.02,
-        size: 2 + Math.random() * 3,
-        color
-      });
+      // Acquire particle from pool and configure it
+      const particle = this.acquireParticle();
+      particle.x = x;
+      particle.y = y;
+      particle.vx = Math.cos(angle) * speed;
+      particle.vy = Math.sin(angle) * speed;
+      particle.life = 1;
+      particle.decay = 0.02 + Math.random() * 0.02;
+      particle.size = 2 + Math.random() * 3;
+      particle.color = color;
+
+      this.particles.push(particle);
     }
   }
 
   createTrail(x1, y1, x2, y2, count = 10, color = '#00ffff') {
-    for (let i = 0; i < count; i++) {
-      const t = i / count;
-      const x = x1 + (x2 - x1) * t;
-      const y = y1 + (y2 - y1) * t;
+    // Limit total particle count
+    const availableSlots = this.maxParticles - this.particles.length;
+    const actualCount = Math.min(count, availableSlots);
 
-      this.particles.push({
-        x,
-        y,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        life: 1,
-        decay: 0.02 + Math.random() * 0.01,
-        size: 1 + Math.random() * 2,
-        color
-      });
+    for (let i = 0; i < actualCount; i++) {
+      const t = i / actualCount;
+      const px = x1 + (x2 - x1) * t;
+      const py = y1 + (y2 - y1) * t;
+
+      // Acquire particle from pool and configure it
+      const particle = this.acquireParticle();
+      particle.x = px;
+      particle.y = py;
+      particle.vx = (Math.random() - 0.5) * 0.5;
+      particle.vy = (Math.random() - 0.5) * 0.5;
+      particle.life = 1;
+      particle.decay = 0.02 + Math.random() * 0.01;
+      particle.size = 1 + Math.random() * 2;
+      particle.color = color;
+
+      this.particles.push(particle);
     }
   }
 
@@ -168,13 +222,18 @@ export class ParticleSystem {
       p.life -= p.decay;
 
       if (p.life <= 0) {
+        // Return particle to pool before removing
+        this.releaseParticle(p);
         this.particles.splice(i, 1);
       }
     }
   }
 
   render() {
-    this.particles.forEach(p => {
+    // Use for loop instead of forEach for better performance
+    const len = this.particles.length;
+    for (let i = 0; i < len; i++) {
+      const p = this.particles[i];
       this.ctx.save();
       this.ctx.globalAlpha = p.life;
       this.ctx.fillStyle = p.color;
@@ -182,10 +241,14 @@ export class ParticleSystem {
       this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       this.ctx.fill();
       this.ctx.restore();
-    });
+    }
   }
 
   clear() {
+    // Return all particles to pool before clearing
+    for (let i = 0, len = this.particles.length; i < len; i++) {
+      this.releaseParticle(this.particles[i]);
+    }
     this.particles = [];
   }
 }

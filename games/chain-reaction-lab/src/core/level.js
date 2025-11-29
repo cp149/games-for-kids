@@ -60,6 +60,13 @@ export class Level {
         }
       }
     });
+
+    // After all connections are created, initialize logic gate states
+    this.mechanisms.forEach(mech => {
+      if (mech.type === 'logic-gate' && mech.evaluateLogic) {
+        mech.evaluateLogic();
+      }
+    });
   }
 
   /**
@@ -104,25 +111,33 @@ export class Level {
   /**
    * Update all mechanisms
    */
-  update(deltaTime) {
+  update(deltaTime, timestamp = 0) {
     if (!this.isActive) return;
 
-    this.mechanisms.forEach(m => m.update(deltaTime));
+    // Use for loop for better performance
+    for (let i = 0, len = this.mechanisms.length; i < len; i++) {
+      this.mechanisms[i].update(deltaTime, timestamp);
+    }
   }
 
   /**
    * Render all mechanisms
    */
-  render(ctx) {
+  render(ctx, timestamp = 0) {
+    const len = this.mechanisms.length;
+
     // Render connections first
-    this.mechanisms.forEach(m => {
+    for (let i = 0; i < len; i++) {
+      const m = this.mechanisms[i];
       if (m.renderConnections) {
-        m.renderConnections(ctx);
+        m.renderConnections(ctx, timestamp);
       }
-    });
+    }
 
     // Render mechanisms on top
-    this.mechanisms.forEach(m => m.render(ctx));
+    for (let i = 0; i < len; i++) {
+      this.mechanisms[i].render(ctx, timestamp);
+    }
   }
 
   /**

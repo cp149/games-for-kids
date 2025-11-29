@@ -1,504 +1,261 @@
 /**
- * Main Game Class
- * Handles game loop, state management, and UI updates
+ * Main Game Class (Refactored)
+ * Orchestrates managers and game loop
  */
 
 import i18n from '../utils/i18n.js';
 import { AnimationManager } from '../utils/animation.js';
 import { Renderer } from './renderer.js';
-import { Level } from './level.js';
-import { levels } from '../../data/levels.js';
-import { LevelGenerator } from '../utils/level-generator.js';
+import { GameStateManager } from '../managers/game-state-manager.js';
+import { UIManager } from '../managers/ui-manager.js';
+import { InputManager } from '../managers/input-manager.js';
+import { SettingsManager } from '../managers/settings-manager.js';
+import { MusicManager } from '../managers/music-manager.js';
 
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
     this.renderer = new Renderer(this.canvas);
     this.animManager = new AnimationManager();
-    this.levelGenerator = new LevelGenerator();
 
-    this.currentLevelIndex = 0;
-    this.levels = levels;
-    this.currentLevelInstance = null; // Current Level instance
-    this.moves = 0;
-    this.startTime = 0;
-    this.elapsedTime = 0;
-    this.showInitialHint = false;
-    this.isRandomMode = false; // Track if playing random level
-
-    this.settings = {
-      sound: true,
-      music: true,
-      particles: true
-    };
+    // Initialize managers
+    this.settingsManager = new SettingsManager();
+    this.musicManager = new MusicManager(this.settingsManager);
+    this.uiManager = new UIManager();
+    this.gameState = null; // Created after settings loaded
+    this.inputManager = null; // Created in setupInput()
 
     this.lastFrameTime = 0;
     this.frameId = null;
+    this.isRunning = false; // Game loop running state
+    this.resizeHandler = null; // Store resize handler reference
+    this.lastUIUpdate = 0; // Throttle UI updates
   }
 
   async init() {
-    console.log('Initializing Chain Reaction Lab...');
-
-    // Make renderer and game globally accessible
+    // Make renderer, game, and settings globally accessible
     window.gameRenderer = this.renderer;
     window.gameInstance = this;
-
-    // Setup event listeners
-    this.setupEventListeners();
-
-    // Resize canvas
-    this.renderer.resize();
-    window.addEventListener('resize', () => this.renderer.resize());
+    window.gameSettings = this.settingsManager;
 
     // Load settings
-    this.loadSettings();
+    this.settingsManager.load();
+    this.settingsManager.syncUI();
+
+    // Initialize game state with settings
+    this.gameState = new GameStateManager(this.canvas, this.renderer, this.settingsManager);
+
+    // Setup state manager callbacks
+    this.gameState.onLevelLoaded = (info) => this.handleLevelLoaded(info);
+    this.gameState.onWin = (data) => this.handleWin(data);
+
+    // Setup input manager with callbacks
+    this.setupInput();
+
+    // Resize canvas with stored handler reference
+    this.resizeHandler = () => this.renderer.resize();
+    this.renderer.resize();
+    window.addEventListener('resize', this.resizeHandler);
 
     // Initialize i18n
     i18n.updateUI();
 
-    // Hide loading screen
+    // Hide loading screen and start
     setTimeout(() => {
-      document.getElementById('loadingScreen').classList.add('hidden');
-      document.getElementById('gameContainer').classList.remove('hidden');
+      this.uiManager.hideLoadingScreen();
 
       // Show tutorial for first time
-      if (!localStorage.getItem('chainReactionLab_tutorialComplete')) {
-        this.showTutorial();
+      if (!this.uiManager.isTutorialComplete()) {
+        this.uiManager.showTutorial();
       } else {
-        // Load first level
-        this.loadLevel(0);
+        this.gameState.loadLevel(0);
+        // Start music after user has interacted
+        this.musicManager.play();
       }
     }, 2000);
   }
 
-  setupEventListeners() {
-    // Canvas click and touch
-    this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
-    this.canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const rect = this.canvas.getBoundingClientRect();
-      const clickEvent = {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-      };
-      this.handleCanvasClick(clickEvent);
-    });
+  setupInput() {
+    this.inputManager = new InputManager(this.canvas, {
+      // Canvas interactions
+      onCanvasClick: (x, y) => {
+        const button = this.gameState.getButtonAt(x, y);
+        if (button) {
+          this.gameState.clickButton(button);
+          this.uiManager.updateStats(this.gameState.moves, this.gameState.getElapsedTime());
+        }
+      },
+      onGetButtonAt: (x, y) => this.gameState.getButtonAt(x, y),
 
-    // Mouse move for cursor changes
-    this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+      // Level controls
+      onRestart: () => {
+        this.uiManager.hideSuccess();
+        this.gameState.restartLevel();
+      },
+      onNextLevel: () => {
+        this.uiManager.hideSuccess();
+        this.gameState.nextLevel();
+      },
+      onRestartGame: () => this.gameState.loadLevel(0),
+      onLoadRandom: (difficulty) => {
+        this.uiManager.hideDifficulty();
+        this.gameState.loadRandomLevel(difficulty);
+      },
 
-    // Top bar buttons
-    document.getElementById('btnRestart').addEventListener('click', () => this.restartLevel());
-    document.getElementById('btnHint').addEventListener('click', () => this.showHint());
-    document.getElementById('btnSettings').addEventListener('click', () => this.showSettings());
-    document.getElementById('btnRandom').addEventListener('click', () => this.showDifficultyPanel());
+      // UI panels
+      onShowHint: () => this.uiManager.showHint(),
+      onHideHint: () => this.uiManager.hideHint(),
+      onShowSettings: () => this.uiManager.showSettings(),
+      onHideSettings: () => this.uiManager.hideSettings(),
+      onShowDifficulty: () => this.uiManager.showDifficulty(),
+      onHideDifficulty: () => this.uiManager.hideDifficulty(),
+      onHideGameComplete: () => this.uiManager.hideGameComplete(),
 
-    // Settings
-    document.getElementById('btnCloseSettings').addEventListener('click', () => this.hideSettings());
-    document.getElementById('languageSelect').addEventListener('change', (e) => {
-      i18n.setLanguage(e.target.value);
-    });
-    document.getElementById('soundToggle').addEventListener('change', (e) => {
-      this.settings.sound = e.target.checked;
-      this.saveSettings();
-    });
-    document.getElementById('musicToggle').addEventListener('change', (e) => {
-      this.settings.music = e.target.checked;
-      this.saveSettings();
-    });
-    document.getElementById('particlesToggle').addEventListener('change', (e) => {
-      this.settings.particles = e.target.checked;
-      this.saveSettings();
-    });
+      // Settings
+      onSettingChange: (key, value) => {
+        this.settingsManager.update(key, value);
+        // Update music when music setting changes
+        if (key === 'music') {
+          this.musicManager.updateFromSettings();
+        }
+      },
 
-    // Tutorial
-    document.getElementById('btnTutorialNext').addEventListener('click', () => this.nextTutorialStep());
-
-    // Success screen
-    document.getElementById('btnReplay').addEventListener('click', () => this.restartLevel());
-    document.getElementById('btnNextLevel').addEventListener('click', () => this.nextLevel());
-
-    // Difficulty panel
-    document.getElementById('btnCloseDifficulty').addEventListener('click', () => this.hideDifficultyPanel());
-    document.querySelectorAll('.difficulty-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const difficulty = parseInt(btn.getAttribute('data-difficulty'));
-        this.hideDifficultyPanel();
-        this.loadRandomLevel(difficulty);
-      });
-    });
-
-    // Game complete panel
-    document.getElementById('btnCloseComplete').addEventListener('click', () => this.hideGameCompletePanel());
-    document.getElementById('btnRestartGame').addEventListener('click', () => {
-      this.hideGameCompletePanel();
-      this.loadLevel(0);
-    });
-    document.getElementById('btnPlayRandom').addEventListener('click', () => {
-      this.hideGameCompletePanel();
-      this.showDifficultyPanel();
-    });
-
-    // Hint panel
-    document.getElementById('btnCloseHint').addEventListener('click', () => this.hideHintPanel());
-  }
-
-  handleCanvasClick(e) {
-    if (!this.currentLevelInstance || !this.currentLevelInstance.isActive) return;
-
-    const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Check if clicked on a button
-    const button = this.currentLevelInstance.handleClick(x, y);
-    if (button) {
-      this.clickButton(button);
-    }
-  }
-
-  handleMouseMove(e) {
-    if (!this.currentLevelInstance || !this.currentLevelInstance.isActive) return;
-
-    const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Check if hovering over a button
-    const button = this.currentLevelInstance.handleClick(x, y);
-    this.canvas.style.cursor = button ? 'pointer' : 'default';
-  }
-
-  clickButton(button) {
-    button.toggle();
-    this.moves++;
-    this.showInitialHint = false;
-    this.updateUI();
-
-    // Create ripple effect
-    if (this.settings.particles) {
-      this.renderer.createExplosion(button.x, button.y, button.active ? '#00ff00' : '#3a4f6c');
-
-      // Triple ripple rings
-      for (let i = 0; i < 3; i++) {
-        setTimeout(() => {
-          this.renderer.createRing(button.x, button.y, 60 + i * 20, '#00ff88');
-        }, i * 100);
+      // Tutorial
+      onTutorialNext: () => {
+        const isComplete = this.uiManager.nextTutorialStep();
+        if (isComplete) {
+          this.uiManager.hideTutorial();
+          this.gameState.loadLevel(0);
+          // Start music after tutorial (user has interacted)
+          this.musicManager.play();
+        }
       }
-    }
+    });
 
-    // Check win condition after signal propagation completes
-    setTimeout(() => this.checkWinCondition(), 600);
+    this.inputManager.setupEventListeners();
+  }
+
+  handleLevelLoaded(info) {
+    this.uiManager.updateLevelInfo(info.badge, info.title, info.description);
+    this.uiManager.updateStats(0, 0);
+    this.renderer.resize();
+
+    // Start game loop if not running
+    this.startGameLoop();
+  }
+
+  handleWin(data) {
+    if (data.gameComplete) {
+      this.uiManager.showGameComplete();
+    } else {
+      this.uiManager.updateSuccessOverlay(data.moves, data.time);
+      // Wait for fireworks before showing overlay
+      setTimeout(() => {
+        this.uiManager.showSuccess();
+      }, 2000);
+    }
   }
 
   checkWinCondition() {
-    if (!this.currentLevelInstance) return;
-
-    if (this.currentLevelInstance.checkWinCondition()) {
-      this.winLevel();
+    if (this.gameState) {
+      this.gameState.checkWinCondition();
     }
   }
 
-  winLevel() {
-    if (!this.currentLevelInstance) return;
-
-    this.elapsedTime = Date.now() - this.startTime;
-
-    // Deactivate level to prevent further clicks
-    this.currentLevelInstance.deactivate();
-
-    // Create success fireworks - immediately!
-    if (this.settings.particles) {
-      const doors = this.currentLevelInstance.mechanisms.filter(m => m.type === 'door');
-      doors.forEach(door => {
-        // Create all confetti immediately in a burst
-        for (let i = 0; i < 20; i++) {
-          const angle = (Math.PI * 2 * i) / 20;
-          this.renderer.createConfetti(door.x, door.y, angle);
-        }
-        // Extra explosion effect at door
-        this.renderer.createExplosion(door.x, door.y, 30, '#00ff00');
-      });
-    }
-
-    // Update success overlay data
-    document.getElementById('successMoves').textContent = this.moves;
-    document.getElementById('successTime').textContent = this.formatTime(this.elapsedTime);
-
-    // Wait for fireworks to finish before showing success overlay
-    setTimeout(() => {
-      document.getElementById('successOverlay').classList.remove('hidden');
-    }, 2000);
-  }
-
-  loadLevel(levelIndex) {
-    if (levelIndex >= this.levels.length) {
-      console.error('Level index out of bounds:', levelIndex);
-      return;
-    }
-
-    console.log(`[LEVEL] Loading level ${levelIndex + 1}`);
-
-    // Destroy old level instance completely
-    if (this.currentLevelInstance) {
-      this.currentLevelInstance.destroy();
-      this.currentLevelInstance = null;
-    }
-
-    // Reset state
-    this.currentLevelIndex = levelIndex;
-    this.moves = 0;
-    this.startTime = Date.now();
-    this.showInitialHint = (levelIndex === 0);
-    this.isRandomMode = false;
-
-    const levelData = this.levels[levelIndex];
-
-    // Update UI
-    document.getElementById('levelBadge').textContent = `Level ${levelIndex + 1}`;
-    document.getElementById('levelTitle').textContent = levelData.title || this.getLevelTitle(levelIndex);
-    document.getElementById('goalValue').textContent = levelData.description || i18n.t('unlock_door');
-    this.updateUI();
-
-    // Ensure canvas is properly sized
-    this.renderer.resize();
-
-    // Create new level instance
-    this.currentLevelInstance = new Level(levelData, this.canvas);
-    this.currentLevelInstance.activate();
-
-    console.log(`[LEVEL] Level ${levelIndex + 1} loaded and activated`);
-
-    // Start game loop if not running
-    if (!this.frameId) {
-      this.gameLoop();
+  startGameLoop() {
+    if (!this.isRunning) {
+      this.isRunning = true;
+      this.lastFrameTime = performance.now();
+      this.frameId = requestAnimationFrame((t) => this.gameLoop(t));
     }
   }
 
-  loadRandomLevel(difficulty = 3) {
-    console.log(`[RANDOM] Generating random level (difficulty ${difficulty})`);
-
-    // Destroy old level instance
-    if (this.currentLevelInstance) {
-      this.currentLevelInstance.destroy();
-      this.currentLevelInstance = null;
+  stopGameLoop() {
+    this.isRunning = false;
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
     }
-
-    // Generate random level
-    const randomLevelData = this.levelGenerator.generateLevel(difficulty);
-
-    // Reset state
-    this.moves = 0;
-    this.startTime = Date.now();
-    this.showInitialHint = false;
-    this.isRandomMode = true;
-    this.currentDifficulty = difficulty;
-
-    // Update UI
-    document.getElementById('levelBadge').textContent = `Random ${difficulty}⭐`;
-    document.getElementById('levelTitle').textContent = randomLevelData.title;
-    document.getElementById('goalValue').textContent = randomLevelData.description;
-    this.updateUI();
-
-    // Ensure canvas is properly sized
-    this.renderer.resize();
-
-    // Create level instance from generated data
-    this.currentLevelInstance = new Level(randomLevelData, this.canvas);
-    this.currentLevelInstance.activate();
-
-    console.log('[RANDOM] Random level loaded');
-
-    // Start game loop if not running
-    if (!this.frameId) {
-      this.gameLoop();
-    }
-  }
-
-
-  restartLevel() {
-    // Hide overlays
-    document.getElementById('successOverlay').classList.add('hidden');
-
-    // If in random mode, generate new random level
-    if (this.isRandomMode) {
-      this.loadRandomLevel(this.currentDifficulty || 3);
-    } else {
-      this.loadLevel(this.currentLevelIndex);
-    }
-  }
-
-  nextLevel() {
-    // Hide success overlay
-    document.getElementById('successOverlay').classList.add('hidden');
-
-    // If in random mode, generate new random level
-    if (this.isRandomMode) {
-      this.loadRandomLevel(this.currentDifficulty || 3);
-      return;
-    }
-
-    // Load next level
-    const nextLevel = this.currentLevelIndex + 1;
-    if (nextLevel < this.levels.length) {
-      this.loadLevel(nextLevel);
-    } else {
-      // Game complete
-      this.showGameCompletePanel();
-    }
-  }
-
-  showHint() {
-    document.getElementById('hintPanel').classList.remove('hidden');
-  }
-
-  hideHintPanel() {
-    document.getElementById('hintPanel').classList.add('hidden');
-  }
-
-  showSettings() {
-    document.getElementById('settingsPanel').classList.remove('hidden');
-  }
-
-  hideSettings() {
-    document.getElementById('settingsPanel').classList.add('hidden');
-  }
-
-  showDifficultyPanel() {
-    document.getElementById('difficultyPanel').classList.remove('hidden');
-  }
-
-  hideDifficultyPanel() {
-    document.getElementById('difficultyPanel').classList.add('hidden');
-  }
-
-  showGameCompletePanel() {
-    document.getElementById('gameCompletePanel').classList.remove('hidden');
-  }
-
-  hideGameCompletePanel() {
-    document.getElementById('gameCompletePanel').classList.add('hidden');
-  }
-
-  showTutorial() {
-    document.getElementById('tutorialOverlay').classList.remove('hidden');
-    this.tutorialStep = 0;
-    this.updateTutorialStep();
-  }
-
-  hideTutorial() {
-    document.getElementById('tutorialOverlay').classList.add('hidden');
-    localStorage.setItem('chainReactionLab_tutorialComplete', 'true');
-    this.loadLevel(0);
-  }
-
-  nextTutorialStep() {
-    this.tutorialStep++;
-
-    if (this.tutorialStep > 2) {
-      this.hideTutorial();
-    } else {
-      this.updateTutorialStep();
-    }
-  }
-
-  updateTutorialStep() {
-    const steps = [
-      {
-        title: i18n.t('tutorial_welcome'),
-        text: i18n.t('tutorial_1'),
-        icon: '⚡'
-      },
-      {
-        title: 'Chain Reactions',
-        text: i18n.t('tutorial_2'),
-        icon: '🔗'
-      },
-      {
-        title: 'Solve Puzzles',
-        text: i18n.t('tutorial_3'),
-        icon: '🧩'
-      }
-    ];
-
-    const step = steps[this.tutorialStep];
-    document.getElementById('tutorialStep').textContent = `Step ${this.tutorialStep + 1}/${steps.length}`;
-    document.getElementById('tutorialTitle').textContent = step.title;
-    document.getElementById('tutorialText').textContent = step.text;
-    document.querySelector('.tutorial-icon').textContent = step.icon;
-  }
-
-  updateUI() {
-    document.getElementById('movesValue').textContent = this.moves;
-    document.getElementById('timeValue').textContent = this.formatTime(Date.now() - this.startTime);
-  }
-
-  formatTime(ms) {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
-
-  getLevelTitle(index) {
-    const titles = [
-      'First Connection',
-      'Double Trigger',
-      'Chain Link',
-      'Power Grid',
-      'Synchronized',
-      'Network Flow',
-      'Circuit Board',
-      'Energy Web',
-      'Master Link',
-      'Final Test'
-    ];
-    return titles[index] || `Level ${index + 1}`;
   }
 
   gameLoop(timestamp = 0) {
+    if (!this.isRunning) return; // Check running state
+
     const deltaTime = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
 
-    // Update
-    if (this.currentLevelInstance) {
-      this.currentLevelInstance.update(deltaTime);
-      this.renderer.updateParticles();
-      this.updateUI();
+    // Update (pass timestamp for animations)
+    this.gameState.update(deltaTime, timestamp);
+    this.renderer.updateParticles();
+
+    // Throttle UI updates to 10fps (100ms) - sufficient for stats display
+    if (timestamp - this.lastUIUpdate >= 100) {
+      this.uiManager.updateStats(this.gameState.moves, this.gameState.getElapsedTime());
+      this.lastUIUpdate = timestamp;
     }
 
-    // Render
+    // Render (pass timestamp for animations)
     this.renderer.render({
-      level: this.currentLevelInstance,
-      showInitialHint: this.showInitialHint
-    });
+      level: this.gameState.currentLevelInstance,
+      showInitialHint: this.gameState.showInitialHint
+    }, timestamp);
 
-    // Continue loop
-    this.frameId = requestAnimationFrame((t) => this.gameLoop(t));
+    // Continue loop only if running
+    if (this.isRunning) {
+      this.frameId = requestAnimationFrame((t) => this.gameLoop(t));
+    }
   }
 
-  loadSettings() {
-    const saved = localStorage.getItem('chainReactionLab_settings');
-    if (saved) {
-      this.settings = JSON.parse(saved);
+  /**
+   * Clean up all resources
+   */
+  destroy() {
+    // Stop game loop
+    this.stopGameLoop();
+
+    // Clean up managers
+    if (this.musicManager) {
+      this.musicManager.destroy();
+    }
+    if (this.inputManager) {
+      this.inputManager.destroy();
+    }
+    if (this.gameState) {
+      this.gameState.destroy();
+    }
+    if (this.animManager) {
+      this.animManager.cancelAll();
     }
 
-    // Update UI
-    document.getElementById('soundToggle').checked = this.settings.sound;
-    document.getElementById('musicToggle').checked = this.settings.music;
-    document.getElementById('particlesToggle').checked = this.settings.particles;
-  }
+    // Remove resize listener
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+      this.resizeHandler = null;
+    }
 
-  saveSettings() {
-    localStorage.setItem('chainReactionLab_settings', JSON.stringify(this.settings));
+    // Clear global references
+    window.gameRenderer = null;
+    window.gameInstance = null;
+    window.gameSettings = null;
   }
 }
 
 // Initialize game when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+const initHandler = () => {
   const game = new Game();
   game.init();
+
+  // Remove listener after initialization
+  document.removeEventListener('DOMContentLoaded', initHandler);
+};
+
+document.addEventListener('DOMContentLoaded', initHandler);
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+  if (window.gameInstance) {
+    window.gameInstance.destroy();
+  }
 });
 
 export default Game;

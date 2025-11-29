@@ -11,13 +11,28 @@ export class Mechanism {
     this.active = false;
     this.connections = [];
     this.animationProgress = 0;
+    this.activeTimers = []; // Store timer IDs for cleanup
+    this.isDestroyed = false; // Prevent race conditions in setTimeout callbacks
   }
 
   /**
    * Add a connection to another mechanism
    */
   connect(mechanism, color = '#00ffff') {
-    this.connections.push({ mechanism, color });
+    // Pre-calculate bezier curve control points for performance
+    const dx = mechanism.x - this.x;
+    const dy = mechanism.y - this.y;
+    const cx1 = this.x + dx * 0.25;
+    const cy1 = this.y + dy * 0.25 + 20;
+    const cx2 = this.x + dx * 0.75;
+    const cy2 = this.y + dy * 0.75 + 20;
+
+    this.connections.push({
+      mechanism,
+      color,
+      // Cache control points
+      cx1, cy1, cx2, cy2
+    });
   }
 
   /**
@@ -74,7 +89,18 @@ export class Mechanism {
    * Propagate activation signal to connected mechanisms
    */
   propagateSignal(delay = 0) {
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
+      // Safety check: prevent execution if already destroyed
+      if (this.isDestroyed) {
+        return;
+      }
+
+      // Remove from active timers after execution
+      const index = this.activeTimers.indexOf(timerId);
+      if (index > -1) {
+        this.activeTimers.splice(index, 1);
+      }
+
       // Propagate to all connected mechanisms
       this.connections.forEach(({ mechanism, color }) => {
         mechanism.receiveSignal(this);
@@ -85,6 +111,23 @@ export class Mechanism {
         }
       });
     }, delay);
+
+    this.activeTimers.push(timerId);
+  }
+
+  /**
+   * Clean up resources
+   */
+  destroy() {
+    // Mark as destroyed to prevent race conditions
+    this.isDestroyed = true;
+
+    // Cancel all pending timers
+    this.activeTimers.forEach(timerId => clearTimeout(timerId));
+    this.activeTimers = [];
+
+    // Clear connections
+    this.connections = [];
   }
 
   /**
@@ -112,28 +155,31 @@ export class Mechanism {
   /**
    * Render connections to other mechanisms
    */
-  renderConnections(ctx) {
-    this.connections.forEach(({ mechanism, color }) => {
-      this.drawConnection(ctx, this.x, this.y, mechanism.x, mechanism.y, color, this.active);
-    });
+  renderConnections(ctx, timestamp = 0) {
+    // Use for loop for better performance
+    for (let i = 0, len = this.connections.length; i < len; i++) {
+      const conn = this.connections[i];
+      this.drawConnection(
+        ctx,
+        this.x, this.y,
+        conn.mechanism.x, conn.mechanism.y,
+        conn.cx1, conn.cy1, conn.cx2, conn.cy2,
+        conn.color,
+        this.active,
+        timestamp
+      );
+    }
   }
 
   /**
-   * Draw a connection line with glow effect
+   * Draw a connection line with glow effect (using cached control points)
    */
-  drawConnection(ctx, x1, y1, x2, y2, color, active) {
+  drawConnection(ctx, x1, y1, x2, y2, cx1, cy1, cx2, cy2, color, active, timestamp = 0) {
+    const highQuality = window.gameSettings?.get('highQuality') ?? true;
     ctx.save();
 
-    // Calculate control points for curved line
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const cx1 = x1 + dx * 0.25;
-    const cy1 = y1 + dy * 0.25 + 20;
-    const cx2 = x1 + dx * 0.75;
-    const cy2 = y1 + dy * 0.75 + 20;
-
     // Draw glow if active - much stronger
-    if (active) {
+    if (active && highQuality) {
       ctx.strokeStyle = color;
       ctx.lineWidth = 12;
       ctx.shadowBlur = 35;
@@ -149,7 +195,9 @@ export class Mechanism {
     // Draw main line - thicker
     ctx.strokeStyle = active ? color : 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = active ? 6 : 3;
-    ctx.shadowBlur = active ? 20 : 0;
+    if (highQuality) {
+      ctx.shadowBlur = active ? 20 : 0;
+    }
     ctx.globalAlpha = active ? 1 : 0.4;
 
     ctx.beginPath();
@@ -159,7 +207,7 @@ export class Mechanism {
 
     // Draw animated arrow along path when active
     if (active) {
-      const progress = (Date.now() % 2000) / 2000;
+      const progress = ((timestamp % 2000) / 2000);
 
       // Calculate position along bezier curve
       const t = progress;
@@ -175,8 +223,10 @@ export class Mechanism {
       ctx.rotate(angle);
 
       ctx.fillStyle = '#00ff88';
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#00ff88';
+      if (highQuality) {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00ff88';
+      }
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(-20, -10);
