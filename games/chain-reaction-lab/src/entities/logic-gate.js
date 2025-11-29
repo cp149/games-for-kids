@@ -10,7 +10,7 @@ const LOGIC_GATES = {
   'AND': (activeCount, totalInputs) => activeCount === totalInputs && totalInputs > 0,
   'OR': (activeCount, totalInputs) => activeCount > 0,
   'XOR': (activeCount, totalInputs) => activeCount === 1,
-  'NOT': (activeCount, totalInputs) => activeCount === 0, // Fixed: works even with 0 inputs
+  'NOT': (activeCount, totalInputs) => totalInputs > 0 && activeCount === 0,
   'NAND': (activeCount, totalInputs) => totalInputs > 0 && !(activeCount === totalInputs),
   'NOR': (activeCount, totalInputs) => activeCount === 0 && totalInputs > 0
 };
