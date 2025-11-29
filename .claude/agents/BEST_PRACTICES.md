@@ -311,35 +311,182 @@ element.style.top = y + 'px';
 
 ---
 
-## 8. Quality Checklist
+## 8. Comprehensive Quality Checklist
 
-Before considering a game complete:
-
-### Code Quality
-- [ ] index.html < 100 lines
-- [ ] Main game class < 300 lines
-- [ ] All config in config.js
-- [ ] Manager pattern used for separation
-- [ ] Every class has destroy() method
-- [ ] Event listeners tracked and cleaned
-
-### Memory Safety
-- [ ] No orphaned event listeners
-- [ ] Timers cleared in destroy()
-- [ ] Audio stopped and dereferenced
-- [ ] DOM elements properly removed
-- [ ] No circular references
-
-### Mobile
-- [ ] Touch targets ≥ 44px
-- [ ] Touch/scroll distinction works
-- [ ] iOS Safari compatible
-- [ ] GPU-accelerated animations
+Before considering a game complete, perform multi-round QA across these dimensions:
 
 ### Performance
-- [ ] 60 FPS on target devices
-- [ ] No memory leaks over time
-- [ ] Assets properly cached
+- [ ] FPS stability: 60 FPS maintained during gameplay
+- [ ] Memory leaks: No growth over 30+ minute sessions
+- [ ] Rendering optimization: GPU-accelerated transforms
+- [ ] Event listeners: Tracked and properly cleaned up
+- [ ] Animation performance: No janky scrolling or transitions
+- [ ] Asset loading: Cached and optimized
+
+### Algorithm Quality
+- [ ] Time complexity: Optimal algorithms for game logic
+- [ ] Space complexity: Efficient memory usage
+- [ ] Algorithm selection: Appropriate for problem domain
+- [ ] Edge case handling: Boundary conditions properly tested
+- [ ] Brute-force prevention: Strategic difficulty (not just solvable)
+- [ ] State validation: BFS or similar for puzzle verification
+
+### Code Quality
+- [ ] Code duplication: DRY principle applied
+- [ ] Function length: Functions < 50 lines, classes < 300 lines
+- [ ] Naming conventions: Descriptive, consistent naming
+- [ ] Comment completeness: Complex logic explained
+- [ ] Manager pattern: Separation of concerns
+- [ ] Configuration: All magic numbers in config.js
+- [ ] index.html: < 100 lines
+
+### Security
+- [ ] XSS protection: User input sanitized
+- [ ] Input validation: All inputs validated before use
+- [ ] Data sanitization: innerHTML avoided or sanitized
+- [ ] Third-party scripts: Only trusted sources
+- [ ] Content Security Policy: CSP headers if applicable
+
+### User Experience
+- [ ] Teaching curve: Gradual difficulty increase
+- [ ] Error feedback: Clear, actionable messages
+- [ ] Visual feedback: Immediate response to actions
+- [ ] Audio balance: Music/SFX volumes appropriate
+- [ ] Tutorial quality: First-time users understand gameplay
+- [ ] Child testing: Tested with target age group
+- [ ] Attention span: Engagement maintained for session length
+
+### Memory Safety (Critical)
+- [ ] Event listener cleanup: All listeners removed in destroy()
+- [ ] Timer cleanup: setInterval/setTimeout cleared
+- [ ] Audio cleanup: Paused and dereferenced
+- [ ] DOM cleanup: Elements properly removed
+- [ ] Circular references: None present
+- [ ] Destroy chain: Parent destroys all children
+
+---
+
+## 9. Leveraging Project Memory (MANDATORY)
+
+### Serena Memory System
+
+This project uses Serena MCP to store accumulated knowledge in `.serena/memories/`. While sub-agents don't have direct MCP access, you can **read memory files directly** using the Read tool.
+
+### Before Starting Any Task
+
+**ALWAYS check for relevant memories first:**
+
+```bash
+# List available memories
+ls .serena/memories/
+
+# Common memory files to check:
+# - qa-agent-improvements-2025-01.md (QA strategies)
+# - testing-strategy.md (Testing best practices)
+# - game-development-workflow.md (Development process)
+# - code-quality-checklist.md (Code standards)
+# - [game-name]-architecture.md (Game-specific patterns)
+```
+
+### How to Use Memories
+
+**1. Identify Relevant Memories**
+```javascript
+// For QA tasks:
+Read('.serena/memories/qa-agent-improvements-2025-01.md')
+Read('.serena/memories/testing-strategy.md')
+
+// For performance tasks:
+Read('.serena/memories/[game-name]-architecture.md')
+
+// For new games:
+Read('.serena/memories/game-development-lessons-2025-01.md')
+Read('.serena/memories/game-design-patterns.md')
+```
+
+**2. Apply Learned Lessons**
+- Check for past mistakes and avoid them
+- Follow established patterns from successful games
+- Use proven testing strategies
+- Reference architecture decisions
+
+**3. Examples**
+
+```markdown
+## QA Agent Starting Task
+1. Read .serena/memories/qa-agent-improvements-2025-01.md
+2. Apply multi-round QA strategy learned from Chain Reaction Lab
+3. Check .serena/memories/testing-strategy.md for edge cases
+4. Execute QA with accumulated knowledge
+
+## Performance Optimizer Starting Task
+1. Read .serena/memories/music-factory-timing-bugs-lessons.md
+2. Learn from past timing issues and solutions
+3. Apply preventive measures from memory
+4. Check game-specific architecture for context
+```
+
+### Available Memory Categories
+
+**Architecture Memories**:
+- `[game-name]-architecture.md` - Game-specific implementation patterns
+- `game-design-patterns.md` - Reusable design patterns
+
+**Process Memories**:
+- `game-development-workflow.md` - Standard development process
+- `agent-coordination-best-practices.md` - Multi-agent collaboration
+
+**Quality Memories**:
+- `qa-agent-improvements-2025-01.md` - QA strategies and multi-round approach
+- `testing-strategy.md` - Testing methodologies
+- `code-quality-checklist.md` - Code standards
+
+**Domain-Specific Lessons**:
+- `music-factory-timing-bugs-lessons.md` - Audio timing issues
+- `user-feedback-luban-lock.md` - User feedback insights
+- `game-development-lessons-2025-01.md` - Monthly lessons learned
+
+### Memory Reading Pattern
+
+```javascript
+// Standard workflow for ANY agent starting a task:
+
+// Step 1: Check if relevant memories exist
+Bash('ls .serena/memories/ | grep -E "(qa|testing|[game-name])"')
+
+// Step 2: Read relevant memories
+Read('.serena/memories/relevant-memory.md')
+
+// Step 3: Apply knowledge to current task
+// ... use insights in your work ...
+
+// Step 4: Note new lessons for future memory updates
+// (Report to user or game-director for memory updates)
+```
+
+### Why This Matters
+
+**Example from Chain Reaction Lab**:
+- **Without memory**: Repeat 60%→95%→100% algorithm iterations
+- **With memory**: Start with anti-brute-force validation from day 1
+
+**Benefits**:
+- ✅ Learn from past mistakes (avoid repeating errors)
+- ✅ Apply proven patterns (faster development)
+- ✅ Consistent quality (follow established standards)
+- ✅ Compound knowledge (each project makes next one better)
+
+### Agent-Specific Memory Recommendations
+
+**@qa-tester**: Always read `qa-agent-improvements-2025-01.md`, `testing-strategy.md`
+
+**@performance-optimizer**: Read `[game-name]-architecture.md`, timing-related memories
+
+**@game-mechanics-engineer**: Read `game-design-patterns.md`, `[similar-game]-architecture.md`
+
+**@frontend-developer**: Read architecture memories for code organization patterns
+
+**@project-chronicler**: Read all relevant memories before creating new documentation
 
 ---
 

@@ -30,6 +30,10 @@ class Game {
     this.isRunning = false; // Game loop running state
     this.resizeHandler = null; // Store resize handler reference
     this.lastUIUpdate = 0; // Throttle UI updates
+
+    // Memory leak prevention
+    this.activeTimers = []; // Track all setTimeout/setInterval
+    this.isDestroyed = false; // Prevent callbacks after destroy
   }
 
   async init() {
@@ -61,7 +65,8 @@ class Game {
     i18n.updateUI();
 
     // Hide loading screen and start
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
+      if (this.isDestroyed) return; // Safety check
       this.uiManager.hideLoadingScreen();
 
       // Show tutorial for first time
@@ -73,6 +78,7 @@ class Game {
         this.musicManager.play();
       }
     }, 2000);
+    this.activeTimers.push(timerId);
   }
 
   setupInput() {
@@ -97,9 +103,20 @@ class Game {
         this.gameState.nextLevel();
       },
       onRestartGame: () => this.gameState.loadLevel(0),
-      onLoadRandom: (difficulty) => {
+      onLoadRandom: async (difficulty) => {
         this.uiManager.hideDifficulty();
+
+        // Show loading indicator
+        this.uiManager.showLoadingIndicator();
+
+        // Allow UI to update before heavy computation
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Generate level (may take 200-800ms)
         this.gameState.loadRandomLevel(difficulty);
+
+        // Hide loading indicator
+        this.uiManager.hideLoadingIndicator();
       },
 
       // UI panels
@@ -150,9 +167,11 @@ class Game {
     } else {
       this.uiManager.updateSuccessOverlay(data.moves, data.time);
       // Wait for fireworks before showing overlay
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
+        if (this.isDestroyed) return; // Safety check
         this.uiManager.showSuccess();
       }, 2000);
+      this.activeTimers.push(timerId);
     }
   }
 
@@ -210,6 +229,13 @@ class Game {
    * Clean up all resources
    */
   destroy() {
+    // Prevent callbacks after destroy
+    this.isDestroyed = true;
+
+    // Clear all pending timers
+    this.activeTimers.forEach(timerId => clearTimeout(timerId));
+    this.activeTimers = [];
+
     // Stop game loop
     this.stopGameLoop();
 
@@ -225,6 +251,9 @@ class Game {
     }
     if (this.animManager) {
       this.animManager.cancelAll();
+    }
+    if (this.renderer) {
+      this.renderer.destroy();
     }
 
     // Remove resize listener
@@ -255,6 +284,18 @@ document.addEventListener('DOMContentLoaded', initHandler);
 window.addEventListener('beforeunload', () => {
   if (window.gameInstance) {
     window.gameInstance.destroy();
+  }
+});
+
+// Clean up on uncaught errors to prevent memory leaks
+window.addEventListener('error', (event) => {
+  console.error('Uncaught error, performing cleanup:', event.error);
+  if (window.gameInstance && !window.gameInstance.isDestroyed) {
+    try {
+      window.gameInstance.destroy();
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
   }
 });
 

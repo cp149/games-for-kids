@@ -84,6 +84,37 @@ export class UIManager {
     document.getElementById('successOverlay').classList.add('hidden');
   }
 
+  showLoadingIndicator() {
+    let indicator = document.getElementById('generatingOverlay');
+    if (!indicator) {
+      // Create loading indicator if it doesn't exist
+      indicator = document.createElement('div');
+      indicator.id = 'generatingOverlay';
+      indicator.className = 'overlay';
+      indicator.innerHTML = `
+        <div style="text-align: center; color: #fff;">
+          <div class="loading-spinner"></div>
+          <p style="margin-top: 20px; font-size: 1.2em;">Generating level...</p>
+        </div>
+      `;
+      document.body.appendChild(indicator);
+    }
+    indicator.classList.remove('hidden');
+  }
+
+  hideLoadingIndicator() {
+    const indicator = document.getElementById('generatingOverlay');
+    if (indicator) {
+      indicator.classList.add('hidden');
+      // Remove from DOM after transition to prevent memory leak
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 300); // Match CSS transition duration
+    }
+  }
+
   // ==================== Tutorial Management ====================
 
   showTutorial() {

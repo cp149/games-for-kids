@@ -15,6 +15,7 @@ export class MusicManager {
     this.currentTrack = 0;
     this.audio = null;
     this.isInitialized = false;
+    this.endedHandler = null;
   }
 
   /**
@@ -28,12 +29,12 @@ export class MusicManager {
     this.audio.loop = false; // Don't loop single track
 
     // Auto-play next track when current ends
-    this.audio.addEventListener('ended', () => {
+    this.endedHandler = () => {
       this.playNext();
-    });
+    };
+    this.audio.addEventListener('ended', this.endedHandler);
 
     this.isInitialized = true;
-    console.log('[MUSIC] Music system initialized');
   }
 
   /**
@@ -50,10 +51,9 @@ export class MusicManager {
 
     if (this.audio && this.audio.paused) {
       this.audio.src = this.playlist[this.currentTrack];
-      this.audio.play().catch(err => {
-        console.warn('[MUSIC] Autoplay prevented:', err.message);
+      this.audio.play().catch(() => {
+        // Autoplay prevented by browser - this is expected behavior
       });
-      console.log(`[MUSIC] Playing track ${this.currentTrack + 1}/${this.playlist.length}`);
     }
   }
 
@@ -63,7 +63,6 @@ export class MusicManager {
   pause() {
     if (this.audio && !this.audio.paused) {
       this.audio.pause();
-      console.log('[MUSIC] Music paused');
     }
   }
 
@@ -100,10 +99,15 @@ export class MusicManager {
    */
   destroy() {
     if (this.audio) {
+      // Remove event listener to prevent memory leak
+      if (this.endedHandler) {
+        this.audio.removeEventListener('ended', this.endedHandler);
+      }
       this.audio.pause();
       this.audio.src = '';
       this.audio = null;
     }
+    this.endedHandler = null;
     this.isInitialized = false;
   }
 }

@@ -240,6 +240,31 @@ export class Renderer {
     // Invalidate background cache on resize
     this.bgCached = false;
   }
+
+  /**
+   * Clean up canvas resources to prevent memory leaks
+   */
+  destroy() {
+    // Clear particle system
+    if (this.particles) {
+      this.particles.clear();
+      this.particles = null;
+    }
+
+    // Clear offscreen canvas
+    if (this.bgCtx) {
+      this.bgCtx = null;
+    }
+    if (this.offscreenBg) {
+      this.offscreenBg.width = 0;
+      this.offscreenBg.height = 0;
+      this.offscreenBg = null;
+    }
+
+    // Clear main canvas context reference
+    this.ctx = null;
+    this.canvas = null;
+  }
 }
 
 export default Renderer;

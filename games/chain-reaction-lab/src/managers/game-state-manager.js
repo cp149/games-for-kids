@@ -43,8 +43,6 @@ export class GameStateManager {
       return;
     }
 
-    console.log(`[LEVEL] Loading level ${levelIndex + 1}`);
-
     // Cleanup old level
     this.destroyCurrentLevel();
 
@@ -61,8 +59,6 @@ export class GameStateManager {
     this.currentLevelInstance = new Level(levelData, this.canvas);
     this.currentLevelInstance.activate();
 
-    console.log(`[LEVEL] Level ${levelIndex + 1} loaded and activated`);
-
     // Notify game
     if (this.onLevelLoaded) {
       this.onLevelLoaded({
@@ -78,8 +74,6 @@ export class GameStateManager {
    * @param {number} difficulty - Difficulty level (1-5)
    */
   loadRandomLevel(difficulty = 3) {
-    console.log(`[RANDOM] Generating random level (difficulty ${difficulty})`);
-
     // Cleanup old level
     this.destroyCurrentLevel();
 
@@ -96,8 +90,6 @@ export class GameStateManager {
     // Create level instance
     this.currentLevelInstance = new Level(randomLevelData, this.canvas);
     this.currentLevelInstance.activate();
-
-    console.log('[RANDOM] Random level loaded');
 
     // Notify game
     if (this.onLevelLoaded) {
