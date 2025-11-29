@@ -60,13 +60,6 @@ export class Level {
         }
       }
     });
-
-    // After all connections are created, initialize logic gate states
-    this.mechanisms.forEach(mech => {
-      if (mech.type === 'logic-gate' && mech.evaluateLogic) {
-        mech.evaluateLogic();
-      }
-    });
   }
 
   /**
