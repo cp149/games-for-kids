@@ -110,19 +110,21 @@ console.log('='.repeat(50));
 console.log('Level Generation Quality Tests');
 console.log('='.repeat(50));
 
-const results = {
-  diff3: testDifficulty(3),
-  diff4: testDifficulty(4),
-  diff5: testDifficulty(5)
-};
+const results = {};
+for (let difficulty = 3; difficulty <= 10; difficulty++) {
+  results[`diff${difficulty}`] = testDifficulty(difficulty, difficulty <= 5 ? 20 : 10);
+}
 
 console.log('\n' + '='.repeat(50));
 console.log('Final Results:');
-console.log(`  Difficulty 3: ${results.diff3 ? '✅ PASS' : '❌ FAIL'}`);
-console.log(`  Difficulty 4: ${results.diff4 ? '✅ PASS' : '❌ FAIL'}`);
-console.log(`  Difficulty 5: ${results.diff5 ? '✅ PASS' : '❌ FAIL'}`);
+let allPassed = true;
+for (let difficulty = 3; difficulty <= 10; difficulty++) {
+  const key = `diff${difficulty}`;
+  const passed = results[key];
+  console.log(`  Difficulty ${difficulty}: ${passed ? '✅ PASS' : '❌ FAIL'}`);
+  allPassed = allPassed && passed;
+}
 
-const allPassed = results.diff3 && results.diff4 && results.diff5;
 console.log(`\nOverall: ${allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`);
 console.log('='.repeat(50));
 

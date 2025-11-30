@@ -478,8 +478,9 @@ body::before {
 
 .difficulty-buttons {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--spacing-md);
-  max-width: 500px;
+  max-width: 800px;
   margin: 0 auto;
 }
 

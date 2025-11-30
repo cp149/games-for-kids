@@ -57,9 +57,54 @@ export class DifficultyConfig {
         multiConnect: true,
         minSignals: 4,
         maxLayers: 3
+      },
+      6: {
+        buttons: 7,
+        gates: 8,
+        relays: 5,
+        usedGates: ['AND', 'OR', 'NOT'],
+        multiConnect: true,
+        minSignals: 5,
+        maxLayers: 3
+      },
+      7: {
+        buttons: 8,
+        gates: 10,
+        relays: 6,
+        usedGates: ['AND', 'OR', 'NOT'],
+        multiConnect: true,
+        minSignals: 6,
+        maxLayers: 3
+      },
+      8: {
+        buttons: 9,
+        gates: 12,
+        relays: 7,
+        usedGates: ['AND', 'OR', 'NOT'],
+        multiConnect: true,
+        minSignals: 7,
+        maxLayers: 3
+      },
+      9: {
+        buttons: 10,
+        gates: 14,
+        relays: 8,
+        usedGates: ['AND', 'OR', 'NOT'],
+        multiConnect: true,
+        minSignals: 8,
+        maxLayers: 3
+      },
+      10: {
+        buttons: 12,
+        gates: 16,
+        relays: 9,
+        usedGates: ['AND', 'OR', 'NOT'],
+        multiConnect: true,
+        minSignals: 9,
+        maxLayers: 3
       }
     };
-    return configs[difficulty] || configs[3];
+    return configs[difficulty] || configs[5];
   }
 
   /**
