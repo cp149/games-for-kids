@@ -6,14 +6,24 @@ This file contains important guidelines for Claude when working on this project.
 
 **BE CONCISE. MINIMIZE TOKEN USAGE.**
 
-- Keep responses short and direct
-- No unnecessary preamble or postamble
-- No lengthy explanations unless asked
-- No repetitive summaries
-- Answer questions directly without elaboration
-- Only provide details when specifically requested
-- Use bullet points instead of paragraphs when possible
-- Skip obvious statements
+### 报告长度限制
+- **默认**: 不输出报告，除非明确需要
+- **必要时**: 最多200字（~100个汉字）
+- **格式**: 使用项目符号，不用段落
+- **例外**: 仅在用户明确要求详细信息时超出限制
+
+**示例**:
+- ✅ "修复3个问题。分数:8.5→8.7/10"
+- ❌ 冗长的修复说明和原因分析
+
+### 通用规则
+- 简短直接，无多余前言/结语
+- 无冗长解释（除非被问到）
+- 无重复总结
+- 直接回答问题，不展开
+- 仅在明确请求时提供细节
+- 优先使用项目符号而非段落
+- 跳过显而易见的陈述
 
 ## Language Policy 🌍
 

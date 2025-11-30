@@ -35,9 +35,9 @@ export class ConnectionBuilder {
 
     // Connect buttons to gates/relays
     if (gates.length > 0) {
-      const activeGates = this.connectButtonsToGates(
-        buttons, gates, config, connections, mechanisms
-      );
+      const activeGates = config.maxLayers > 0
+        ? this.buildLayeredCircuit(buttons, gates, config, connections, mechanisms)
+        : this.connectButtonsToGates(buttons, gates, config, connections, mechanisms);
 
       this.connectGatesToDoor(
         activeGates, relays, door, doorIndex, config, connections, mechanisms
@@ -226,6 +226,188 @@ export class ConnectionBuilder {
   }
 
   /**
+   * Build layered circuit with serial and parallel connections
+   * @returns {Array} Final layer gates (outputs)
+   */
+  buildLayeredCircuit(buttons, gates, config, connections, mechanisms) {
+    const minFinalLayerGates = config.minSignals || 2;
+    const layers = this.distributeGatesToLayers(gates, config.maxLayers, minFinalLayerGates);
+
+    // Layer 0: Use multi-connect strategy to prevent brute-force
+    if (config.multiConnect) {
+      const activeGates = [];
+      this.handleMultiConnectMode(buttons, layers[0], activeGates, connections, mechanisms);
+      // Ensure all layer 0 gates connect to layer 1 (even if not button-connected)
+    } else {
+      this.connectButtonsToFirstLayer(buttons, layers[0], connections, mechanisms);
+    }
+
+    // Connect subsequent layers serially (use actual layer arrays, not activeGates)
+    for (let i = 1; i < layers.length; i++) {
+      this.connectToLayer(layers[i - 1], layers[i], connections, mechanisms);
+    }
+
+    // Return final layer as active gates
+    return layers[layers.length - 1];
+  }
+
+  /**
+   * Distribute gates across layers (pyramid: wide → narrow)
+   */
+  distributeGatesToLayers(gates, maxLayers, minFinalLayerGates = 2) {
+    if (maxLayers === 0 || gates.length <= 2) {
+      return [gates]; // Single layer
+    }
+
+    const totalGates = gates.length;
+    const actualLayers = Math.min(maxLayers, Math.ceil(totalGates / 2));
+
+    const layers = [];
+    let remaining = totalGates;
+    let startIdx = 0;
+
+    for (let i = 0; i < actualLayers; i++) {
+      let gatesInLayer;
+
+      if (i === actualLayers - 1) {
+        // Final layer: all remaining
+        gatesInLayer = remaining;
+      } else if (i === 0) {
+        // First layer: leave enough for middle + final layers
+        const middleLayers = actualLayers - 2;
+        const reserveForOthers = minFinalLayerGates + middleLayers;
+        const maxFirstLayer = Math.max(1, totalGates - reserveForOthers);
+        gatesInLayer = Math.min(Math.ceil(totalGates * 0.5), maxFirstLayer);
+      } else {
+        // Middle layers: leave enough for final layer
+        const layersLeft = actualLayers - i;
+        const maxForThisLayer = remaining - minFinalLayerGates;
+        gatesInLayer = Math.min(
+          Math.ceil((remaining - minFinalLayerGates) / (layersLeft - 1)),
+          maxForThisLayer
+        );
+      }
+
+      gatesInLayer = Math.max(1, Math.min(gatesInLayer, remaining));
+
+      if (gatesInLayer > 0) {
+        layers.push(gates.slice(startIdx, startIdx + gatesInLayer));
+        startIdx += gatesInLayer;
+        remaining -= gatesInLayer;
+      }
+    }
+
+    return layers;
+  }
+
+  /**
+   * Connect ALL buttons to first layer (no orphans)
+   */
+  connectButtonsToFirstLayer(buttons, firstLayer, connections, mechanisms) {
+    if (buttons.length === 0 || firstLayer.length === 0) return;
+
+    // Track which buttons have been connected
+    const usedButtons = new Set();
+
+    // Step 1: Give each gate its minimum required inputs
+    for (const gate of firstLayer) {
+      const inputsNeeded = gate.gateType === 'NOT' ? 1 : 2;
+      const available = buttons.filter((_, idx) => !usedButtons.has(idx));
+
+      const selected = available.slice(0, Math.min(inputsNeeded, available.length));
+
+      for (const btn of selected) {
+        const btnIdx = buttons.indexOf(btn);
+        usedButtons.add(btnIdx);
+
+        connections.push({
+          from: mechanisms.indexOf(btn),
+          to: mechanisms.indexOf(gate),
+          color: this.randomColor()
+        });
+      }
+    }
+
+    // Step 2: Connect remaining unused buttons
+    buttons.forEach((btn, idx) => {
+      if (!usedButtons.has(idx)) {
+        // Connect to a random gate (prefer non-NOT gates)
+        const nonNOTGates = firstLayer.filter(g => g.gateType !== 'NOT');
+        const targetGates = nonNOTGates.length > 0 ? nonNOTGates : firstLayer;
+        const target = targetGates[Math.floor(Math.random() * targetGates.length)];
+
+        connections.push({
+          from: mechanisms.indexOf(btn),
+          to: mechanisms.indexOf(target),
+          color: this.randomColor()
+        });
+      }
+    });
+  }
+
+  /**
+   * Connect sources to layer (ensure all sources have outputs)
+   */
+  connectToLayer(sources, targetLayer, connections, mechanisms) {
+    if (sources.length === 0 || targetLayer.length === 0) return;
+
+    const usedSources = new Set();
+
+    // Step 1: Each target gets minimum required inputs
+    for (const target of targetLayer) {
+      const inputsNeeded = target.gateType === 'NOT' ? 1 : 2;
+      const available = sources.filter(s => !usedSources.has(sources.indexOf(s)));
+      const selectedSources = this.selectSourcesForGate(
+        available.length > 0 ? available : sources,
+        target,
+        inputsNeeded
+      );
+
+      for (const source of selectedSources) {
+        usedSources.add(sources.indexOf(source));
+        connections.push({
+          from: mechanisms.indexOf(source),
+          to: mechanisms.indexOf(target),
+          color: this.randomColor()
+        });
+      }
+    }
+
+    // Step 2: Connect remaining unused sources to random targets
+    sources.forEach((source, idx) => {
+      if (!usedSources.has(idx)) {
+        const target = targetLayer[Math.floor(Math.random() * targetLayer.length)];
+        connections.push({
+          from: mechanisms.indexOf(source),
+          to: mechanisms.indexOf(target),
+          color: this.randomColor()
+        });
+      }
+    });
+  }
+
+  /**
+   * Select appropriate sources for a gate
+   */
+  selectSourcesForGate(sources, gate, count) {
+    if (sources.length <= count) {
+      return sources; // Use all available
+    }
+
+    // Random selection to create variety
+    const selected = [];
+    const available = [...sources];
+
+    for (let i = 0; i < count && available.length > 0; i++) {
+      const idx = Math.floor(Math.random() * available.length);
+      selected.push(available[idx]);
+      available.splice(idx, 1);
+    }
+
+    return selected;
+  }
+
+  /**
    * Handle single-connect mode (allows gate chaining)
    */
   handleSingleConnectMode(buttons, gates, activeGates, connections, mechanisms) {
@@ -263,14 +445,11 @@ export class ConnectionBuilder {
    */
   connectGatesToDoor(activeGates, relays, door, doorIndex, config, connections, mechanisms) {
     if (config.multiConnect && activeGates.length > 1) {
-      const targetSignals = Math.max(
-        Math.min(activeGates.length, config.minSignals || activeGates.length),
-        2
-      );
+      if (relays.length > 0) {
+        // Use all relays, connect multiple gates (not just final layer)
+        const gatesToUse = Math.min(relays.length, activeGates.length);
 
-      if (relays.length > 0 && relays.length >= targetSignals) {
-        // Through relays
-        for (let i = 0; i < targetSignals; i++) {
+        for (let i = 0; i < gatesToUse; i++) {
           connections.push({
             from: mechanisms.indexOf(activeGates[i]),
             to: mechanisms.indexOf(relays[i]),
@@ -282,8 +461,15 @@ export class ConnectionBuilder {
             color: this.randomColor()
           });
         }
+
+        door.requiredSignals = gatesToUse;
       } else {
         // Direct connection
+        const targetSignals = Math.max(
+          Math.min(activeGates.length, config.minSignals || activeGates.length),
+          2
+        );
+
         for (let i = 0; i < targetSignals; i++) {
           connections.push({
             from: mechanisms.indexOf(activeGates[i]),
@@ -291,9 +477,9 @@ export class ConnectionBuilder {
             color: this.randomColor()
           });
         }
-      }
 
-      door.requiredSignals = targetSignals;
+        door.requiredSignals = targetSignals;
+      }
     } else {
       // Single connect mode
       const mainGate = activeGates[activeGates.length - 1];

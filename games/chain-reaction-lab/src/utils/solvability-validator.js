@@ -105,23 +105,70 @@ export class SolvabilityValidator {
   /**
    * Calculate par (optimal number of moves)
    * @param {Array} mechanisms - All mechanisms in the level
-   * @param {Array} _connections - All connections (reserved for future use)
+   * @param {Array} connections - All connections
    * @returns {number} Optimal move count
    */
-  static calculatePar(mechanisms, _connections) {
+  static calculatePar(mechanisms, connections) {
     const buttons = mechanisms.filter(m => m.type === 'button');
     const gates = mechanisms.filter(m => m.type === 'logic-gate');
+    const door = mechanisms.find(m => m.type === 'door');
 
-    // Simple heuristic based on gate types
     if (gates.length === 0) return buttons.length;
 
+    // Analyze gate requirements
+    const gateInputs = this.analyzeGateRequirements(mechanisms, connections, gates);
+
+    // Heuristic: estimate based on gate complexity
     const andGates = gates.filter(g => g.gateType === 'AND' || g.gateType === 'NAND');
     const notGates = gates.filter(g => g.gateType === 'NOT' || g.gateType === 'NOR');
+    const orGates = gates.filter(g => g.gateType === 'OR');
 
-    if (notGates.length > 0) return 0; // NOT gates want no input
-    if (andGates.length > 0) return buttons.length; // AND wants all inputs
+    // NOT gates need specific buttons NOT pressed
+    // Estimate: half of buttons for complex logic
+    if (notGates.length > 0) {
+      return Math.max(1, Math.ceil(buttons.length / 2));
+    }
 
-    return 1; // OR/XOR can solve with just one button
+    // AND gates typically need all their inputs
+    if (andGates.length > 0) {
+      const maxInputs = Math.max(...gateInputs);
+      return Math.min(buttons.length, maxInputs);
+    }
+
+    // OR gates need at least one input
+    return Math.max(1, Math.ceil(buttons.length / orGates.length));
+  }
+
+  /**
+   * Analyze gate input requirements
+   * @param {Array} mechanisms - All mechanisms
+   * @param {Array} connections - All connections
+   * @param {Array} gates - Gates to analyze
+   * @returns {Array} Array of input counts per gate
+   */
+  static analyzeGateRequirements(mechanisms, connections, gates) {
+    return gates.map(gate => {
+      const gateIdx = mechanisms.indexOf(gate);
+      const directInputs = connections.filter(c => c.to === gateIdx);
+
+      // Count unique button sources (through gates or direct)
+      const buttonSources = new Set();
+      const queue = [...directInputs.map(c => c.from)];
+
+      while (queue.length > 0) {
+        const idx = queue.shift();
+        const mech = mechanisms[idx];
+
+        if (mech.type === 'button') {
+          buttonSources.add(idx);
+        } else if (mech.type === 'logic-gate') {
+          const inputs = connections.filter(c => c.to === idx);
+          inputs.forEach(inp => queue.push(inp.from));
+        }
+      }
+
+      return buttonSources.size;
+    });
   }
 
   /**
