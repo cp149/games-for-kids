@@ -186,6 +186,29 @@ export class ConnectionBuilder {
         activeGates.push(gate);
       }
     }
+
+    // Safety check: Ensure all pure buttons are connected
+    // Check if there are any pure buttons without connections
+    const connectedButtons = new Set();
+    connections.forEach(conn => {
+      const source = mechanisms[conn.from];
+      if (source.type === 'button' && pureButtons.includes(source)) {
+        connectedButtons.add(source);
+      }
+    });
+
+    // Connect orphaned pure buttons to available gates
+    const orphanedButtons = pureButtons.filter(btn => !connectedButtons.has(btn));
+    if (orphanedButtons.length > 0 && (orGates.length > 0 || andGates.length > 0)) {
+      const targetGate = orGates.length > 0 ? orGates[0] : andGates[0];
+      for (const btn of orphanedButtons) {
+        this.addConnection(btn, targetGate, connections, mechanisms);
+      }
+      // Ensure target gate is in activeGates
+      if (!activeGates.includes(targetGate)) {
+        activeGates.push(targetGate);
+      }
+    }
   }
 
   /**

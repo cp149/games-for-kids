@@ -212,21 +212,33 @@ export class LevelGenerator {
       }
     }
 
-    // Generate NOT gates: 80% probability, up to maxNOTGates
+    // Generate NOT gates with strategic minimum to prevent brute-force
+    // Low gate counts need higher NOT ratio for strategic difficulty
+    const minNOTGates = config.gates <= 2 ? Math.min(1, maxNOTGates) : 0;
+    const notProbability = config.gates <= 2 ? 0.60 : 0.45;
+
     let notCount = 0;
     if (hasNOTAvailable && maxNOTGates > 0) {
-      for (let i = 0; i < config.gates && notCount < maxNOTGates; i++) {
-        if (Math.random() < 0.80) {
+      // Ensure minimum NOT gates
+      while (notCount < minNOTGates && gateTypes.length < config.gates) {
+        gateTypes.push('NOT');
+        notCount++;
+      }
+
+      // Add additional NOT gates based on probability
+      for (let i = gateTypes.length; i < config.gates && notCount < maxNOTGates; i++) {
+        if (Math.random() < notProbability) {
           gateTypes.push('NOT');
           notCount++;
         }
       }
     }
 
-    // Fill remaining gates with AND (80%) / OR (20%)
+    // Fill remaining gates with balanced distribution: OR (40%) / AND (60%)
+    // Ensure sufficient OR gates to prevent orphaned buttons
     while (gateTypes.length < config.gates) {
       if (nonNOTGates.length > 0) {
-        const gateType = Math.random() < 0.2 ? 'OR' : 'AND';
+        const gateType = Math.random() < 0.40 ? 'OR' : 'AND';
         gateTypes.push(nonNOTGates.includes(gateType) ? gateType : nonNOTGates[0]);
       } else {
         gateTypes.push('AND');
