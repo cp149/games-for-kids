@@ -14,6 +14,7 @@ export class DifficultyConfig {
   static getConfig(difficulty) {
     const configs = {
       1: {
+        difficulty: 1,
         buttons: 1,
         gates: 0,
         relays: 0,
@@ -23,15 +24,17 @@ export class DifficultyConfig {
         maxLayers: 0
       },
       2: {
+        difficulty: 2,
         buttons: 2,
-        gates: 0,
+        gates: 1,
         relays: 1,
-        usedGates: [],
+        usedGates: ['AND', 'OR', 'NOT'],
         multiConnect: false,
         minSignals: 1,
         maxLayers: 0
       },
       3: {
+        difficulty: 3,
         buttons: 4,
         gates: 2,
         relays: 2,
@@ -41,6 +44,7 @@ export class DifficultyConfig {
         maxLayers: 1
       },
       4: {
+        difficulty: 4,
         buttons: 5,
         gates: 4,
         relays: 3,
@@ -50,6 +54,7 @@ export class DifficultyConfig {
         maxLayers: 2
       },
       5: {
+        difficulty: 5,
         buttons: 6,
         gates: 6,
         relays: 4,
@@ -59,6 +64,7 @@ export class DifficultyConfig {
         maxLayers: 3
       },
       6: {
+        difficulty: 6,
         buttons: 7,
         gates: 8,
         relays: 5,
@@ -68,6 +74,7 @@ export class DifficultyConfig {
         maxLayers: 3
       },
       7: {
+        difficulty: 7,
         buttons: 8,
         gates: 10,
         relays: 6,
@@ -77,6 +84,7 @@ export class DifficultyConfig {
         maxLayers: 3
       },
       8: {
+        difficulty: 8,
         buttons: 9,
         gates: 12,
         relays: 7,
@@ -86,6 +94,7 @@ export class DifficultyConfig {
         maxLayers: 3
       },
       9: {
+        difficulty: 9,
         buttons: 10,
         gates: 14,
         relays: 8,
@@ -95,6 +104,7 @@ export class DifficultyConfig {
         maxLayers: 3
       },
       10: {
+        difficulty: 10,
         buttons: 12,
         gates: 16,
         relays: 9,

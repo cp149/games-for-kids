@@ -559,6 +559,66 @@ function testPatternDiversity() {
   return allPass;
 }
 
+// Test 11: No fallback generation (prevent generating simple 1-button levels)
+function testNoFallbackGeneration() {
+  console.log('\n=== Test 11: No Fallback Generation ===');
+
+  let allPass = true;
+
+  // Expected mechanism counts for each difficulty
+  const expectedCounts = {
+    1: { buttons: 1, relays: 0, gates: 0, total: 2 },  // 1 button + 1 door
+    2: { buttons: 2, relays: 1, gates: 1, total: 5 },  // 2 buttons + 1 gate + 1 relay + 1 door
+    3: { buttons: 4, relays: 2, gates: 2, total: 9 },  // 4 buttons + 2 relays + 2 gates + 1 door
+    4: { buttons: 5, relays: 3, gates: 4, total: 13 }, // 5 buttons + 3 relays + 4 gates + 1 door
+    5: { buttons: 6, relays: 4, gates: 6, total: 17 }  // 6 buttons + 4 relays + 6 gates + 1 door
+  };
+
+  for (let difficulty = 1; difficulty <= 5; difficulty++) {
+    const expected = expectedCounts[difficulty];
+    let fallbackCount = 0;
+    const testCount = 20;
+
+    for (let i = 0; i < testCount; i++) {
+      const level = generator.generateLevel(difficulty);
+      const mechanisms = level.mechanisms;
+
+      const buttons = mechanisms.filter(m => m.type === 'button').length;
+      const relays = mechanisms.filter(m => m.type === 'relay').length;
+      const gates = mechanisms.filter(m => m.type === 'logic-gate').length;
+      const total = mechanisms.length;
+
+      // Fallback level is always: 1 button + 1 door = 2 mechanisms
+      const isFallback = (total === 2 && buttons === 1 && relays === 0 && gates === 0);
+
+      // Check if mechanism counts match expected values
+      const correctCounts = (
+        buttons === expected.buttons &&
+        relays === expected.relays &&
+        gates === expected.gates &&
+        total === expected.total
+      );
+
+      if (isFallback && difficulty > 1) {
+        fallbackCount++;
+        console.log(`  Difficulty ${difficulty}: ❌ Fallback detected (${buttons}B, ${relays}R, ${gates}G, ${total} total)`);
+        allPass = false;
+      } else if (!correctCounts) {
+        console.log(`  Difficulty ${difficulty}: ❌ Wrong counts (${buttons}B, ${relays}R, ${gates}G, ${total} total) - expected (${expected.buttons}B, ${expected.relays}R, ${expected.gates}G, ${expected.total} total)`);
+        allPass = false;
+      }
+    }
+
+    if (fallbackCount === 0) {
+      console.log(`  Difficulty ${difficulty}: ✅ No fallback (0/${testCount}), all have correct counts`);
+    } else {
+      console.log(`  Difficulty ${difficulty}: ❌ ${fallbackCount}/${testCount} are fallback levels`);
+    }
+  }
+
+  return allPass;
+}
+
 // Run all tests
 console.log('🧪 Running LevelGenerator Tests\n');
 
@@ -572,7 +632,8 @@ const results = {
   'NOT Gate Logic': testNOTGateLogic(),
   'Strategic Difficulty': testStrategicDifficulty(),
   'All Buttons Connected': testAllButtonsConnected(),
-  'Pattern Diversity': testPatternDiversity()
+  'Pattern Diversity': testPatternDiversity(),
+  'No Fallback Generation': testNoFallbackGeneration()
 };
 
 console.log('\n' + '='.repeat(50));

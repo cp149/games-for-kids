@@ -189,6 +189,12 @@ export class LevelGenerator {
       return Array(config.gates).fill('AND');
     }
 
+    // Special case: Single gate - equal probability for all types
+    if (config.gates === 1 && selectableGates.length === 3) {
+      const randomIndex = Math.floor(Math.random() * 3);
+      return [selectableGates[randomIndex]];
+    }
+
     const hasNOTAvailable = selectableGates.includes('NOT');
     const nonNOTGates = selectableGates.filter(g => g !== 'NOT');
 
@@ -214,8 +220,8 @@ export class LevelGenerator {
 
     // Generate NOT gates with strategic minimum to prevent brute-force
     // Low gate counts need higher NOT ratio for strategic difficulty
-    const minNOTGates = config.gates <= 2 ? Math.min(1, maxNOTGates) : 0;
-    const notProbability = config.gates <= 2 ? 0.60 : 0.45;
+    const minNOTGates = config.gates === 2 ? Math.min(1, maxNOTGates) : 0;
+    const notProbability = config.gates === 2 ? 0.60 : 0.45;
 
     let notCount = 0;
     if (hasNOTAvailable && maxNOTGates > 0) {
