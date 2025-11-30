@@ -230,7 +230,8 @@ export class ConnectionBuilder {
    * @returns {Array} Final layer gates (outputs)
    */
   buildLayeredCircuit(buttons, gates, config, connections, mechanisms) {
-    const minFinalLayerGates = config.minSignals || 2;
+    // Keep final layer size at 2-3 gates, use relays to multiply signals
+    const minFinalLayerGates = Math.min(3, Math.max(2, Math.floor(gates.length / 3)));
     const layers = this.distributeGatesToLayers(gates, config.maxLayers, minFinalLayerGates);
 
     // Layer 0: Use multi-connect strategy to prevent brute-force
@@ -446,12 +447,11 @@ export class ConnectionBuilder {
   connectGatesToDoor(activeGates, relays, door, doorIndex, config, connections, mechanisms) {
     if (config.multiConnect && activeGates.length > 1) {
       if (relays.length > 0) {
-        // Use all relays, connect multiple gates (not just final layer)
-        const gatesToUse = Math.min(relays.length, activeGates.length);
-
-        for (let i = 0; i < gatesToUse; i++) {
+        // Use ALL relays by distributing them across gates
+        for (let i = 0; i < relays.length; i++) {
+          const gateIdx = i % activeGates.length; // Cycle through gates
           connections.push({
-            from: mechanisms.indexOf(activeGates[i]),
+            from: mechanisms.indexOf(activeGates[gateIdx]),
             to: mechanisms.indexOf(relays[i]),
             color: this.randomColor()
           });
@@ -462,7 +462,7 @@ export class ConnectionBuilder {
           });
         }
 
-        door.requiredSignals = gatesToUse;
+        door.requiredSignals = Math.min(relays.length, config.minSignals || relays.length);
       } else {
         // Direct connection
         const targetSignals = Math.max(
