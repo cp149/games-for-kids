@@ -4,6 +4,7 @@
  */
 
 import { ParticleSystem } from '../utils/animation.js';
+import { VISUAL_CONSTANTS } from '../config/visual-constants.js';
 
 export class Renderer {
   constructor(canvas) {
@@ -77,15 +78,15 @@ export class Renderer {
 
   drawGlowingTile(x, y, size, color, intensity = 1) {
     const ctx = this.ctx;
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
 
     ctx.save();
     if (highQuality) {
-      ctx.shadowBlur = 20 * intensity;
+      ctx.shadowBlur = VISUAL_CONSTANTS.GLOW_SHADOW_BLUR * intensity;
       ctx.shadowColor = color;
     }
     ctx.fillStyle = color;
-    ctx.globalAlpha = 0.1 * intensity;
+    ctx.globalAlpha = VISUAL_CONSTANTS.GLOW_OPACITY * intensity;
 
     ctx.fillRect(
       x - size / 2,
@@ -180,8 +181,8 @@ export class Renderer {
 
   drawHintArrow(x, y, timestamp = 0) {
     const ctx = this.ctx;
-    const bounceY = Math.sin(timestamp * 0.004) * 15;
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const bounceY = Math.sin(timestamp * 0.004) * VISUAL_CONSTANTS.HINT_ARROW_BOUNCE_AMPLITUDE;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
 
     ctx.save();
     ctx.font = '70px Arial';
@@ -190,7 +191,7 @@ export class Renderer {
 
     // Glow effect (only in high quality mode)
     if (highQuality) {
-      ctx.shadowBlur = 30;
+      ctx.shadowBlur = VISUAL_CONSTANTS.HINT_ARROW_GLOW_BLUR;
       ctx.shadowColor = '#ffff00';
     }
     ctx.fillStyle = '#ffff00';
@@ -252,12 +253,12 @@ export class Renderer {
     }
 
     // Clear offscreen canvas
-    if (this.bgCtx) {
-      this.bgCtx = null;
-    }
-    if (this.offscreenBg) {
+    if (this.offscreenBg && this.bgCtx) {
+      // Clear context before releasing
+      this.bgCtx.clearRect(0, 0, this.offscreenBg.width, this.offscreenBg.height);
       this.offscreenBg.width = 0;
       this.offscreenBg.height = 0;
+      this.bgCtx = null;
       this.offscreenBg = null;
     }
 

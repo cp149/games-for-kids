@@ -106,8 +106,8 @@ export class Mechanism {
         mechanism.receiveSignal(this);
 
         // Trigger visual flow animation
-        if (this.active && window.gameRenderer) {
-          window.gameRenderer.createEnergyTrail(this.x, this.y, mechanism.x, mechanism.y, color);
+        if (this.active && window.ChainReactionLab?.renderer) {
+          window.ChainReactionLab?.renderer.createEnergyTrail(this.x, this.y, mechanism.x, mechanism.y, color);
         }
       });
     }, delay);
@@ -175,7 +175,7 @@ export class Mechanism {
    * Draw a connection line with glow effect (using cached control points)
    */
   drawConnection(ctx, x1, y1, x2, y2, cx1, cy1, cx2, cy2, color, active, timestamp = 0) {
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
     ctx.save();
 
     // Draw glow if active - much stronger

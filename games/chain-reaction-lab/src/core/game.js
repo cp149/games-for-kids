@@ -11,6 +11,8 @@ import { UIManager } from '../managers/ui-manager.js';
 import { InputManager } from '../managers/input-manager.js';
 import { SettingsManager } from '../managers/settings-manager.js';
 import { MusicManager } from '../managers/music-manager.js';
+import { VISUAL_CONSTANTS } from '../config/visual-constants.js';
+import logger from '../utils/logger.js';
 
 class Game {
   constructor() {
@@ -37,10 +39,12 @@ class Game {
   }
 
   async init() {
-    // Make renderer, game, and settings globally accessible
-    window.gameRenderer = this.renderer;
-    window.gameInstance = this;
-    window.gameSettings = this.settingsManager;
+    // Encapsulate in single namespace to avoid global pollution
+    window.ChainReactionLab = {
+      renderer: this.renderer,
+      game: this,
+      settings: this.settingsManager
+    };
 
     // Load settings
     this.settingsManager.load();
@@ -170,7 +174,7 @@ class Game {
       const timerId = setTimeout(() => {
         if (this.isDestroyed) return; // Safety check
         this.uiManager.showSuccess();
-      }, 2000);
+      }, VISUAL_CONSTANTS.WIN_OVERLAY_DELAY_MS);
       this.activeTimers.push(timerId);
     }
   }
@@ -207,8 +211,8 @@ class Game {
     this.gameState.update(deltaTime, timestamp);
     this.renderer.updateParticles();
 
-    // Throttle UI updates to 10fps (100ms) - sufficient for stats display
-    if (timestamp - this.lastUIUpdate >= 100) {
+    // Throttle UI updates to 10fps - sufficient for stats display
+    if (timestamp - this.lastUIUpdate >= VISUAL_CONSTANTS.STATS_UPDATE_INTERVAL_MS) {
       this.uiManager.updateStats(this.gameState.moves, this.gameState.getElapsedTime());
       this.lastUIUpdate = timestamp;
     }
@@ -262,10 +266,14 @@ class Game {
       this.resizeHandler = null;
     }
 
+    // Remove global event listeners
+    if (window.ChainReactionLab?.globalHandlers) {
+      window.removeEventListener('beforeunload', window.ChainReactionLab.globalHandlers.beforeUnload);
+      window.removeEventListener('error', window.ChainReactionLab.globalHandlers.error);
+    }
+
     // Clear global references
-    window.gameRenderer = null;
-    window.gameInstance = null;
-    window.gameSettings = null;
+    window.ChainReactionLab = null;
   }
 }
 
@@ -278,25 +286,33 @@ const initHandler = () => {
   document.removeEventListener('DOMContentLoaded', initHandler);
 };
 
-document.addEventListener('DOMContentLoaded', initHandler);
-
-// Clean up on page unload
-window.addEventListener('beforeunload', () => {
-  if (window.gameInstance) {
-    window.gameInstance.destroy();
+// Store global event handlers for cleanup
+const beforeUnloadHandler = () => {
+  if (window.ChainReactionLab?.game) {
+    window.ChainReactionLab.game.destroy();
   }
-});
+};
 
-// Clean up on uncaught errors to prevent memory leaks
-window.addEventListener('error', (event) => {
-  console.error('Uncaught error, performing cleanup:', event.error);
-  if (window.gameInstance && !window.gameInstance.isDestroyed) {
+const errorHandler = (event) => {
+  logger.error('Uncaught error, performing cleanup:', event.error);
+  if (window.ChainReactionLab?.game && !window.ChainReactionLab.game.isDestroyed) {
     try {
-      window.gameInstance.destroy();
+      window.ChainReactionLab.game.destroy();
     } catch (cleanupError) {
-      console.error('Error during cleanup:', cleanupError);
+      logger.error('Error during cleanup:', cleanupError);
     }
   }
-});
+};
+
+document.addEventListener('DOMContentLoaded', initHandler);
+window.addEventListener('beforeunload', beforeUnloadHandler);
+window.addEventListener('error', errorHandler);
+
+// Store references for cleanup
+window.ChainReactionLab = window.ChainReactionLab || {};
+window.ChainReactionLab.globalHandlers = {
+  beforeUnload: beforeUnloadHandler,
+  error: errorHandler
+};
 
 export default Game;

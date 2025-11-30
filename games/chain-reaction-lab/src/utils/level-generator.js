@@ -1,7 +1,7 @@
 /**
  * Level Generator (Refactored)
  * Procedurally generates valid puzzle levels based on difficulty
- * Delegatescomplex logic to specialized classes for maintainability
+ * Delegates complex logic to specialized classes for maintainability
  */
 
 import { DifficultyConfig } from './difficulty-config.js';

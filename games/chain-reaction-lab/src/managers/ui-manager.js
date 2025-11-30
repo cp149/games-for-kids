@@ -8,6 +8,8 @@ import i18n from '../utils/i18n.js';
 export class UIManager {
   constructor() {
     this.tutorialStep = 0;
+    this.activeTimers = [];
+    this.isDestroyed = false;
   }
 
   /**
@@ -106,12 +108,20 @@ export class UIManager {
     const indicator = document.getElementById('generatingOverlay');
     if (indicator) {
       indicator.classList.add('hidden');
+
       // Remove from DOM after transition to prevent memory leak
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
+        if (this.isDestroyed) return;
+
+        const index = this.activeTimers.indexOf(timerId);
+        if (index > -1) this.activeTimers.splice(index, 1);
+
         if (indicator.parentNode) {
           indicator.parentNode.removeChild(indicator);
         }
       }, 300); // Match CSS transition duration
+
+      this.activeTimers.push(timerId);
     }
   }
 
@@ -207,5 +217,14 @@ export class UIManager {
   hideLoadingScreen() {
     document.getElementById('loadingScreen').classList.add('hidden');
     document.getElementById('gameContainer').classList.remove('hidden');
+  }
+
+  /**
+   * Clean up all timers and resources
+   */
+  destroy() {
+    this.isDestroyed = true;
+    this.activeTimers.forEach(timerId => clearTimeout(timerId));
+    this.activeTimers = [];
   }
 }

@@ -7,6 +7,8 @@ import { Level } from '../core/level.js';
 import { levels } from '../../data/levels.js';
 import { LevelGenerator } from '../utils/level-generator.js';
 import i18n from '../utils/i18n.js';
+import { VISUAL_CONSTANTS } from '../config/visual-constants.js';
+import logger from '../utils/logger.js';
 
 export class GameStateManager {
   constructor(canvas, renderer, settings) {
@@ -39,7 +41,7 @@ export class GameStateManager {
    */
   loadLevel(levelIndex) {
     if (levelIndex >= this.levels.length) {
-      console.error('Level index out of bounds:', levelIndex);
+      logger.error('Level index out of bounds:', levelIndex);
       return;
     }
 
@@ -146,7 +148,7 @@ export class GameStateManager {
       this.renderer.createExplosion(button.x, button.y, button.active ? '#00ff00' : '#3a4f6c');
 
       // Triple ripple rings with tracked timers
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < VISUAL_CONSTANTS.RIPPLE_EFFECT_COUNT; i++) {
         const timerId = setTimeout(() => {
           if (this.isDestroyed) return;
 
@@ -155,8 +157,9 @@ export class GameStateManager {
             this.activeTimers.splice(index, 1);
           }
 
-          this.renderer.createRing(button.x, button.y, 60 + i * 20, '#00ff88');
-        }, i * 100);
+          const radius = VISUAL_CONSTANTS.RIPPLE_BASE_RADIUS + i * VISUAL_CONSTANTS.RIPPLE_RADIUS_INCREMENT;
+          this.renderer.createRing(button.x, button.y, radius, '#00ff88');
+        }, i * VISUAL_CONSTANTS.RIPPLE_EFFECT_DELAY_MS);
         this.activeTimers.push(timerId);
       }
     }
@@ -171,7 +174,7 @@ export class GameStateManager {
       }
 
       this.checkWinCondition();
-    }, 1000);
+    }, VISUAL_CONSTANTS.SIGNAL_PROPAGATION_DELAY_MS);
     this.activeTimers.push(winCheckTimer);
   }
 
@@ -202,12 +205,12 @@ export class GameStateManager {
       const doors = this.currentLevelInstance.mechanisms.filter(m => m.type === 'door');
       doors.forEach(door => {
         // Create confetti burst
-        for (let i = 0; i < 20; i++) {
-          const angle = (Math.PI * 2 * i) / 20;
+        for (let i = 0; i < VISUAL_CONSTANTS.CONFETTI_COUNT; i++) {
+          const angle = (Math.PI * 2 * i) / VISUAL_CONSTANTS.CONFETTI_COUNT;
           this.renderer.createConfetti(door.x, door.y, angle);
         }
         // Explosion effect
-        this.renderer.createExplosion(door.x, door.y, 30, '#00ff00');
+        this.renderer.createExplosion(door.x, door.y, VISUAL_CONSTANTS.SUCCESS_EXPLOSION_PARTICLES, '#00ff00');
       });
     }
 

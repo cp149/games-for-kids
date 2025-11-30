@@ -32,7 +32,7 @@ export class Player {
   }
 
   render(ctx) {
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
     ctx.save();
 
     // Shadow

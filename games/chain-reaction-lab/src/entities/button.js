@@ -50,7 +50,7 @@ export class Button extends Mechanism {
     ctx.scale(scale, scale);
 
     // Strong glow when active (only in high quality mode)
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
     if (highQuality && this.active && this.glowIntensity > 0) {
       ctx.shadowBlur = 50 * this.glowIntensity;
       ctx.shadowColor = '#00ff00';

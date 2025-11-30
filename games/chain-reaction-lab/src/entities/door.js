@@ -57,8 +57,8 @@ export class Door extends Mechanism {
           this.activeTimers.splice(index, 1);
         }
 
-        if (window.gameInstance) {
-          window.gameInstance.checkWinCondition();
+        if (window.ChainReactionLab?.game) {
+          window.ChainReactionLab?.game.checkWinCondition();
         }
       }, 100);
 
@@ -152,7 +152,7 @@ export class Door extends Mechanism {
   render(ctx) {
     const centerX = this.x;
     const centerY = this.y;
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
 
     ctx.save();
 

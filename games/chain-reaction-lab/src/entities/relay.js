@@ -60,7 +60,7 @@ export class Relay extends Mechanism {
     const centerY = this.y;
     const radius = this.size / 2;
     const pulse = Math.sin(this.pulsePhase) * 0.2 + 1;
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
 
     ctx.save();
     ctx.translate(centerX, centerY);

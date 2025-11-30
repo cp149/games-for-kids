@@ -5,6 +5,7 @@
 
 import { Mechanism } from './mechanism.js';
 import { LOGIC_GATES, drawGateIcon } from './gate-icons.js';
+import logger from '../utils/logger.js';
 
 export class LogicGate extends Mechanism {
   constructor(x, y, gateType, id) {
@@ -18,7 +19,7 @@ export class LogicGate extends Mechanism {
     // Get logic function for this gate type
     this.evaluateFunction = LOGIC_GATES[gateType];
     if (!this.evaluateFunction) {
-      console.error(`Unknown gate type: ${gateType}`);
+      logger.error(`Unknown gate type: ${gateType}`);
       this.evaluateFunction = () => false;
     }
   }
@@ -63,7 +64,7 @@ export class LogicGate extends Mechanism {
     const centerY = this.y;
     const radius = this.size / 2;
     const pulse = Math.sin(this.pulsePhase) * 0.2 + 1;
-    const highQuality = window.gameSettings?.get('highQuality') ?? true;
+    const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
 
     ctx.save();
     ctx.translate(centerX, centerY);
