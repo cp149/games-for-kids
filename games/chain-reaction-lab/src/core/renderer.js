@@ -99,15 +99,17 @@ export class Renderer {
   }
 
   renderConnections(mechanisms) {
-    mechanisms.forEach(mechanism => {
-      mechanism.renderConnections(this.ctx);
-    });
+    // Use for loop for better performance (no function call overhead)
+    for (let i = 0, len = mechanisms.length; i < len; i++) {
+      mechanisms[i].renderConnections(this.ctx);
+    }
   }
 
   renderMechanisms(mechanisms) {
-    mechanisms.forEach(mechanism => {
-      mechanism.render(this.ctx);
-    });
+    // Use for loop for better performance (no function call overhead)
+    for (let i = 0, len = mechanisms.length; i < len; i++) {
+      mechanisms[i].render(this.ctx);
+    }
   }
 
   renderPlayer(player) {

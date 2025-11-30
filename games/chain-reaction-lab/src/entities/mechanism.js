@@ -26,11 +26,37 @@ export class Mechanism {
     const cx2 = this.x + dx * 0.75;
     const cy2 = this.y + dy * 0.75 + 20;
 
+    // Pre-calculate Bezier coefficients for arrow position (performance optimization)
+    // Bezier formula: P(t) = (1-t)³×P0 + 3(1-t)²t×P1 + 3(1-t)t²×P2 + t³×P3
+    // We can expand this to: P(t) = a×t³ + b×t² + c×t + d
+    const x1 = this.x, y1 = this.y;
+    const x2 = mechanism.x, y2 = mechanism.y;
+
+    // Bezier coefficients for X (P(t) = ax*t³ + bx*t² + cx_coef*t + dx_coef)
+    const ax = x2 - 3*cx2 + 3*cx1 - x1;
+    const bx = 3*cx2 - 6*cx1 + 3*x1;
+    const cx_coef = 3*cx1 - 3*x1;
+    const dx_coef = x1;
+
+    // Bezier coefficients for Y
+    const ay = y2 - 3*cy2 + 3*cy1 - y1;
+    const by = 3*cy2 - 6*cy1 + 3*y1;
+    const cy_coef = 3*cy1 - 3*y1;
+    const dy_coef = y1;
+
+    // Cache arrow angle (constant for each connection)
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+
     this.connections.push({
       mechanism,
       color,
-      // Cache control points
-      cx1, cy1, cx2, cy2
+      // Cache control points (for Canvas bezierCurveTo)
+      cx1, cy1, cx2, cy2,
+      // Cache Bezier coefficients for fast arrow position calculation
+      ax, bx, cx_coef, dx_coef,
+      ay, by, cy_coef, dy_coef,
+      // Cache arrow angle
+      angle
     });
   }
 
@@ -95,15 +121,16 @@ export class Mechanism {
       return;
     }
 
-    // Propagate to all connected mechanisms
-    this.connections.forEach(({ mechanism, color }) => {
-      mechanism.receiveSignal(this);
+    // Propagate to all connected mechanisms (use for loop for performance)
+    for (let i = 0, len = this.connections.length; i < len; i++) {
+      const conn = this.connections[i];
+      conn.mechanism.receiveSignal(this);
 
       // Trigger visual flow animation
       if (this.active && window.ChainReactionLab?.renderer) {
-        window.ChainReactionLab.renderer.createEnergyTrail(this.x, this.y, mechanism.x, mechanism.y, color);
+        window.ChainReactionLab.renderer.createEnergyTrail(this.x, this.y, conn.mechanism.x, conn.mechanism.y, conn.color);
       }
-    });
+    }
   }
 
   /**
@@ -146,22 +173,17 @@ export class Mechanism {
     // Use for loop for better performance
     for (let i = 0, len = this.connections.length; i < len; i++) {
       const conn = this.connections[i];
-      this.drawConnection(
-        ctx,
-        this.x, this.y,
-        conn.mechanism.x, conn.mechanism.y,
-        conn.cx1, conn.cy1, conn.cx2, conn.cy2,
-        conn.color,
-        this.active,
-        timestamp
-      );
+      this.drawConnection(ctx, conn, this.active, timestamp);
     }
   }
 
   /**
-   * Draw a connection line with glow effect (using cached control points)
+   * Draw a connection line with glow effect (using cached control points and coefficients)
    */
-  drawConnection(ctx, x1, y1, x2, y2, cx1, cy1, cx2, cy2, color, active, timestamp = 0) {
+  drawConnection(ctx, conn, active, timestamp = 0) {
+    const x1 = this.x, y1 = this.y;
+    const x2 = conn.mechanism.x, y2 = conn.mechanism.y;
+    const { cx1, cy1, cx2, cy2, color, ax, bx, cx_coef, dx_coef, ay, by, cy_coef, dy_coef, angle } = conn;
     const highQuality = window.ChainReactionLab?.settings?.get('highQuality') ?? true;
     ctx.save();
 
@@ -194,16 +216,15 @@ export class Mechanism {
 
     // Draw animated arrow along path when active
     if (active) {
-      const progress = ((timestamp % 2000) / 2000);
+      const t = ((timestamp % 2000) / 2000);
 
-      // Calculate position along bezier curve
-      const t = progress;
-      const mt = 1 - t;
-      const arrowX = mt*mt*mt*x1 + 3*mt*mt*t*cx1 + 3*mt*t*t*cx2 + t*t*t*x2;
-      const arrowY = mt*mt*mt*y1 + 3*mt*mt*t*cy1 + 3*mt*t*t*cy2 + t*t*t*y2;
-
-      // Calculate angle
-      const angle = Math.atan2(y2 - y1, x2 - x1);
+      // Fast Bezier calculation using pre-cached coefficients
+      // P(t) = a×t³ + b×t² + c×t + d (4 multiplications + 3 additions per coordinate)
+      // vs original: 16 multiplications + 3 additions per coordinate
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const arrowX = ax*t3 + bx*t2 + cx_coef*t + dx_coef;
+      const arrowY = ay*t3 + by*t2 + cy_coef*t + dy_coef;
 
       ctx.save();
       ctx.translate(arrowX, arrowY);

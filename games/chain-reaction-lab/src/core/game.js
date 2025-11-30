@@ -13,6 +13,7 @@ import { SettingsManager } from '../managers/settings-manager.js';
 import { MusicManager } from '../managers/music-manager.js';
 import { VISUAL_CONSTANTS } from '../config/visual-constants.js';
 import logger from '../utils/logger.js';
+import { PerformanceMonitor } from '../../../lib/performance-monitor.js';
 
 class Game {
   constructor() {
@@ -44,6 +45,12 @@ class Game {
 
     // Memory leak prevention
     this.isDestroyed = false; // Prevent callbacks after destroy
+
+    // Performance monitoring (universal component)
+    this.perfMonitor = new PerformanceMonitor({
+      position: 'top-right',
+      logger: logger
+    });
   }
 
   async init() {
@@ -75,6 +82,9 @@ class Game {
 
     // Initialize i18n
     i18n.updateUI();
+
+    // Initialize performance monitoring (universal component)
+    this.perfMonitor.init();
 
     // Start game loop - initialization delay will be handled in gameLoop()
     this.startGameLoop();
@@ -196,6 +206,9 @@ class Game {
   gameLoop(timestamp = 0) {
     if (!this.isRunning) return; // Check running state
 
+    // Begin performance measurement
+    this.perfMonitor.begin();
+
     const deltaTime = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
 
@@ -245,6 +258,9 @@ class Game {
       showInitialHint: this.gameState.showInitialHint
     }, timestamp);
 
+    // End performance measurement
+    this.perfMonitor.end();
+
     // Continue loop only if running
     if (this.isRunning) {
       this.frameId = requestAnimationFrame((t) => this.gameLoop(t));
@@ -282,6 +298,11 @@ class Game {
     if (this.resizeHandler) {
       window.removeEventListener('resize', this.resizeHandler);
       this.resizeHandler = null;
+    }
+
+    // Clean up performance monitor
+    if (this.perfMonitor) {
+      this.perfMonitor.destroy();
     }
 
     // Remove global event listeners
