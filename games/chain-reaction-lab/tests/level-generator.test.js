@@ -87,38 +87,69 @@ function testButtonDistribution() {
   return allPass;
 }
 
-// Test 3: No gate chaining in multiConnect mode
-function testNoGateChaining() {
-  console.log('\n=== Test 3: No Gate Chaining (MultiConnect) ===');
+// Test 3: Layered circuit validation (maxLayers feature)
+function testLayeredCircuits() {
+  console.log('\n=== Test 3: Layered Circuit Structure ===');
 
   let allPass = true;
 
   for (let difficulty = 3; difficulty <= 5; difficulty++) {
-    let chainFound = false;
+    // Get expected maxLayers and gates from difficulty config
+    const config = {
+      3: { maxLayers: 1, gates: 2 },  // 2 gates = single layer (not enough for layering)
+      4: { maxLayers: 2, gates: 4 },  // 4 gates can form layers
+      5: { maxLayers: 3, gates: 6 }   // 6 gates can form layers
+    }[difficulty];
 
-    for (let i = 0; i < 5; i++) {
-      const level = generator.generateLevel(difficulty);
-      const mechanisms = level.mechanisms;
-      const connections = level.connections;
+    // Gates <= 2 will use single layer regardless of maxLayers setting
+    const expectLayers = config.maxLayers > 0 && config.gates > 2;
 
-      const gates = mechanisms.filter(m => m.type === 'logic-gate');
-      const gateIndices = gates.map(g => mechanisms.indexOf(g));
+    if (!expectLayers) {
+      // Not enough gates for layers: check no gate chaining
+      let chainFound = false;
+      for (let i = 0; i < 5; i++) {
+        const level = generator.generateLevel(difficulty);
+        const mechanisms = level.mechanisms;
+        const connections = level.connections;
 
-      // Check if any gate connects to another gate
-      for (const conn of connections) {
-        if (gateIndices.includes(conn.from) && gateIndices.includes(conn.to)) {
-          chainFound = true;
-          console.log(`  Difficulty ${difficulty}: ❌ Gate chaining found: gate → gate`);
-          allPass = false;
-          break;
+        const gates = mechanisms.filter(m => m.type === 'logic-gate');
+        const gateIndices = gates.map(g => mechanisms.indexOf(g));
+
+        for (const conn of connections) {
+          if (gateIndices.includes(conn.from) && gateIndices.includes(conn.to)) {
+            chainFound = true;
+            console.log(`  Difficulty ${difficulty}: ❌ Gate chaining found (expected none, ${config.gates} gates)`);
+            allPass = false;
+            break;
+          }
         }
+        if (chainFound) break;
+      }
+      if (!chainFound) {
+        console.log(`  Difficulty ${difficulty}: ✅ No gate chaining (${config.gates} gates, single layer)`);
+      }
+    } else {
+      // Enough gates for layers: verify gate chaining exists (layered structure)
+      let layeredCount = 0;
+      for (let i = 0; i < 5; i++) {
+        const level = generator.generateLevel(difficulty);
+        const mechanisms = level.mechanisms;
+        const connections = level.connections;
+
+        const gates = mechanisms.filter(m => m.type === 'logic-gate');
+        const gateIndices = gates.map(g => mechanisms.indexOf(g));
+
+        // Check if gate-to-gate connections exist
+        const hasGateChaining = connections.some(conn =>
+          gateIndices.includes(conn.from) && gateIndices.includes(conn.to)
+        );
+
+        if (hasGateChaining) layeredCount++;
       }
 
-      if (chainFound) break;
-    }
-
-    if (!chainFound) {
-      console.log(`  Difficulty ${difficulty}: ✅ No gate chaining`);
+      const hasLayers = layeredCount > 0;
+      console.log(`  Difficulty ${difficulty}: ${layeredCount}/5 levels have layered circuits (${config.gates} gates, maxLayers=${config.maxLayers}) ${hasLayers ? '✅' : '❌'}`);
+      if (!hasLayers) allPass = false;
     }
   }
 
@@ -219,38 +250,85 @@ function testLevelSolvability() {
   return allPass;
 }
 
-// Test 6: Gate input types (no gate-to-gate in multiConnect)
+// Test 6: Gate input validation (layer-aware)
 function testGateInputTypes() {
-  console.log('\n=== Test 6: Gate Input Types ===');
+  console.log('\n=== Test 6: Gate Input Validation ===');
 
   let allPass = true;
 
   for (let difficulty = 3; difficulty <= 5; difficulty++) {
-    for (let i = 0; i < 5; i++) {
-      const level = generator.generateLevel(difficulty);
-      const mechanisms = level.mechanisms;
-      const connections = level.connections;
+    const config = {
+      3: { maxLayers: 1, gates: 2 },
+      4: { maxLayers: 2, gates: 4 },
+      5: { maxLayers: 3, gates: 6 }
+    }[difficulty];
 
-      const gates = mechanisms.filter(m => m.type === 'logic-gate');
+    const expectLayers = config.maxLayers > 0 && config.gates > 2;
 
-      for (const gate of gates) {
-        const gateIdx = mechanisms.indexOf(gate);
-        const inputs = connections.filter(c => c.to === gateIdx);
+    if (!expectLayers) {
+      // No layers: all gate inputs should be buttons
+      let invalidFound = false;
+      for (let i = 0; i < 5; i++) {
+        const level = generator.generateLevel(difficulty);
+        const mechanisms = level.mechanisms;
+        const connections = level.connections;
 
-        // In multiConnect mode, all gate inputs should be buttons
-        const inputTypes = inputs.map(c => mechanisms[c.from].type);
-        const hasGateInput = inputTypes.includes('logic-gate');
+        const gates = mechanisms.filter(m => m.type === 'logic-gate');
 
-        if (hasGateInput) {
-          console.log(`  Difficulty ${difficulty}: ❌ Gate receives input from another gate`);
-          allPass = false;
+        for (const gate of gates) {
+          const gateIdx = mechanisms.indexOf(gate);
+          const inputs = connections.filter(c => c.to === gateIdx);
+
+          const inputTypes = inputs.map(c => mechanisms[c.from].type);
+          const hasGateInput = inputTypes.includes('logic-gate');
+
+          if (hasGateInput) {
+            console.log(`  Difficulty ${difficulty}: ❌ Gate receives gate input (${config.gates} gates, single layer)`);
+            allPass = false;
+            invalidFound = true;
+          }
         }
       }
-    }
-  }
+      if (!invalidFound) {
+        console.log(`  Difficulty ${difficulty}: ✅ All gates receive button inputs only (${config.gates} gates, single layer)`);
+      }
+    } else {
+      // Has layers: verify all gates have valid inputs (buttons or other gates)
+      let validCount = 0;
+      for (let i = 0; i < 5; i++) {
+        const level = generator.generateLevel(difficulty);
+        const mechanisms = level.mechanisms;
+        const connections = level.connections;
 
-  if (allPass) {
-    console.log('  ✅ All gates receive inputs only from buttons (multiConnect mode)');
+        const gates = mechanisms.filter(m => m.type === 'logic-gate');
+        let allValid = true;
+
+        for (const gate of gates) {
+          const gateIdx = mechanisms.indexOf(gate);
+          const inputs = connections.filter(c => c.to === gateIdx);
+
+          // Each gate must have at least one input
+          if (inputs.length === 0) {
+            allValid = false;
+            break;
+          }
+
+          // Inputs must be either buttons or gates (not relays/doors)
+          const inputTypes = inputs.map(c => mechanisms[c.from].type);
+          const invalidTypes = inputTypes.filter(t => t !== 'button' && t !== 'logic-gate');
+          if (invalidTypes.length > 0) {
+            allValid = false;
+            break;
+          }
+        }
+
+        if (allValid) validCount++;
+      }
+
+      const allValid = validCount === 5;
+      console.log(`  Difficulty ${difficulty}: ${validCount}/5 levels have valid gate inputs (${config.gates} gates, maxLayers=${config.maxLayers}) ${allValid ? '✅' : '❌'}`);
+      if (!allValid) allPass = false;
+    }
   }
 
   return allPass;
@@ -487,10 +565,10 @@ console.log('🧪 Running LevelGenerator Tests\n');
 const results = {
   'Position Collision': testPositionCollision(),
   'Button Distribution': testButtonDistribution(),
-  'No Gate Chaining': testNoGateChaining(),
+  'Layered Circuits': testLayeredCircuits(),
   'Door Requirements': testDoorSignalRequirements(),
   'Level Solvability': testLevelSolvability(),
-  'Gate Input Types': testGateInputTypes(),
+  'Gate Input Validation': testGateInputTypes(),
   'NOT Gate Logic': testNOTGateLogic(),
   'Strategic Difficulty': testStrategicDifficulty(),
   'All Buttons Connected': testAllButtonsConnected(),

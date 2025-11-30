@@ -12,6 +12,21 @@ export class ConnectionBuilder {
   }
 
   /**
+   * Add a connection between two components
+   * @param {Object} source - Source component
+   * @param {Object} target - Target component
+   * @param {Array} connections - Connections array
+   * @param {Array} mechanisms - All mechanisms
+   */
+  addConnection(source, target, connections, mechanisms) {
+    connections.push({
+      from: mechanisms.indexOf(source),
+      to: mechanisms.indexOf(target),
+      color: this.randomColor()
+    });
+  }
+
+  /**
    * Generate connections between mechanisms
    * @param {Array} mechanisms - All mechanisms in the level
    * @param {Object} config - Difficulty configuration
@@ -55,12 +70,9 @@ export class ConnectionBuilder {
    * Connect buttons directly to door (no gates/relays)
    */
   connectButtonsDirectlyToDoor(buttons, doorIndex, door, connections, mechanisms) {
+    const doorObj = mechanisms[doorIndex];
     buttons.forEach(button => {
-      connections.push({
-        from: mechanisms.indexOf(button),
-        to: doorIndex,
-        color: this.randomColor()
-      });
+      this.addConnection(button, doorObj, connections, mechanisms);
     });
     door.requiredSignals = buttons.length;
     return connections;
@@ -94,11 +106,7 @@ export class ConnectionBuilder {
    */
   connectAllButtonsToGate(buttons, gate, connections, mechanisms) {
     buttons.forEach(button => {
-      connections.push({
-        from: mechanisms.indexOf(button),
-        to: mechanisms.indexOf(gate),
-        color: this.randomColor()
-      });
+      this.addConnection(button, gate, connections, mechanisms);
     });
   }
 
@@ -123,11 +131,7 @@ export class ConnectionBuilder {
       if (buttonCount >= 2) {
         // Each NOT gate gets at least 2 buttons
         for (let i = 0; i < buttonCount; i++) {
-          connections.push({
-            from: mechanisms.indexOf(buttons[buttonIndex]),
-            to: mechanisms.indexOf(gate),
-            color: this.randomColor()
-          });
+          this.addConnection(buttons[buttonIndex], gate, connections, mechanisms);
           notGateButtons.add(buttonIndex);
           buttonIndex++;
         }
@@ -157,19 +161,11 @@ export class ConnectionBuilder {
         const gate = orGates[i];
 
         // Connect to NOT button
-        connections.push({
-          from: mechanisms.indexOf(notButtons[i % notButtons.length]),
-          to: mechanisms.indexOf(gate),
-          color: this.randomColor()
-        });
+        this.addConnection(notButtons[i % notButtons.length], gate, connections, mechanisms);
 
         // Connect to ALL pure buttons
         for (const pureBtn of pureButtons) {
-          connections.push({
-            from: mechanisms.indexOf(pureBtn),
-            to: mechanisms.indexOf(gate),
-            color: this.randomColor()
-          });
+          this.addConnection(pureBtn, gate, connections, mechanisms);
         }
 
         activeGates.push(gate);
@@ -185,11 +181,7 @@ export class ConnectionBuilder {
     if (andGates.length > 0 && pureButtons.length >= 2) {
       for (const gate of andGates) {
         for (const pureBtn of pureButtons) {
-          connections.push({
-            from: mechanisms.indexOf(pureBtn),
-            to: mechanisms.indexOf(gate),
-            color: this.randomColor()
-          });
+          this.addConnection(pureBtn, gate, connections, mechanisms);
         }
         activeGates.push(gate);
       }
@@ -210,16 +202,8 @@ export class ConnectionBuilder {
       );
       const gate = gates[i];
 
-      connections.push({
-        from: mechanisms.indexOf(buttons[startIdx]),
-        to: mechanisms.indexOf(gate),
-        color: this.randomColor()
-      });
-      connections.push({
-        from: mechanisms.indexOf(buttons[startIdx + 1]),
-        to: mechanisms.indexOf(gate),
-        color: this.randomColor()
-      });
+      this.addConnection(buttons[startIdx], gate, connections, mechanisms);
+      this.addConnection(buttons[startIdx + 1], gate, connections, mechanisms);
 
       activeGates.push(gate);
     }
@@ -320,12 +304,7 @@ export class ConnectionBuilder {
       for (const btn of selected) {
         const btnIdx = buttons.indexOf(btn);
         usedButtons.add(btnIdx);
-
-        connections.push({
-          from: mechanisms.indexOf(btn),
-          to: mechanisms.indexOf(gate),
-          color: this.randomColor()
-        });
+        this.addConnection(btn, gate, connections, mechanisms);
       }
     }
 
@@ -336,12 +315,7 @@ export class ConnectionBuilder {
         const nonNOTGates = firstLayer.filter(g => g.gateType !== 'NOT');
         const targetGates = nonNOTGates.length > 0 ? nonNOTGates : firstLayer;
         const target = targetGates[Math.floor(Math.random() * targetGates.length)];
-
-        connections.push({
-          from: mechanisms.indexOf(btn),
-          to: mechanisms.indexOf(target),
-          color: this.randomColor()
-        });
+        this.addConnection(btn, target, connections, mechanisms);
       }
     });
   }
@@ -366,11 +340,7 @@ export class ConnectionBuilder {
 
       for (const source of selectedSources) {
         usedSources.add(sources.indexOf(source));
-        connections.push({
-          from: mechanisms.indexOf(source),
-          to: mechanisms.indexOf(target),
-          color: this.randomColor()
-        });
+        this.addConnection(source, target, connections, mechanisms);
       }
     }
 
@@ -378,11 +348,7 @@ export class ConnectionBuilder {
     sources.forEach((source, idx) => {
       if (!usedSources.has(idx)) {
         const target = targetLayer[Math.floor(Math.random() * targetLayer.length)];
-        connections.push({
-          from: mechanisms.indexOf(source),
-          to: mechanisms.indexOf(target),
-          color: this.randomColor()
-        });
+        this.addConnection(source, target, connections, mechanisms);
       }
     });
   }
@@ -419,22 +385,14 @@ export class ConnectionBuilder {
 
       for (let b = 0; b < buttonsForThisGate; b++) {
         if (buttonIndex < buttons.length) {
-          connections.push({
-            from: mechanisms.indexOf(buttons[buttonIndex]),
-            to: mechanisms.indexOf(gates[g]),
-            color: this.randomColor()
-          });
+          this.addConnection(buttons[buttonIndex], gates[g], connections, mechanisms);
           buttonIndex++;
         }
       }
 
       // Gate chaining
       if (buttonsForThisGate < 2 && g > 0) {
-        connections.push({
-          from: mechanisms.indexOf(gates[g - 1]),
-          to: mechanisms.indexOf(gates[g]),
-          color: this.randomColor()
-        });
+        this.addConnection(gates[g - 1], gates[g], connections, mechanisms);
       }
 
       activeGates.push(gates[g]);
@@ -445,21 +403,15 @@ export class ConnectionBuilder {
    * Connect gates to door (possibly through relays)
    */
   connectGatesToDoor(activeGates, relays, door, doorIndex, config, connections, mechanisms) {
+    const doorObj = mechanisms[doorIndex];
+
     if (config.multiConnect && activeGates.length > 1) {
       if (relays.length > 0) {
         // Use ALL relays by distributing them across gates
         for (let i = 0; i < relays.length; i++) {
           const gateIdx = i % activeGates.length; // Cycle through gates
-          connections.push({
-            from: mechanisms.indexOf(activeGates[gateIdx]),
-            to: mechanisms.indexOf(relays[i]),
-            color: this.randomColor()
-          });
-          connections.push({
-            from: mechanisms.indexOf(relays[i]),
-            to: doorIndex,
-            color: this.randomColor()
-          });
+          this.addConnection(activeGates[gateIdx], relays[i], connections, mechanisms);
+          this.addConnection(relays[i], doorObj, connections, mechanisms);
         }
 
         door.requiredSignals = Math.min(relays.length, config.minSignals || relays.length);
@@ -471,11 +423,7 @@ export class ConnectionBuilder {
         );
 
         for (let i = 0; i < targetSignals; i++) {
-          connections.push({
-            from: mechanisms.indexOf(activeGates[i]),
-            to: doorIndex,
-            color: this.randomColor()
-          });
+          this.addConnection(activeGates[i], doorObj, connections, mechanisms);
         }
 
         door.requiredSignals = targetSignals;
@@ -485,22 +433,10 @@ export class ConnectionBuilder {
       const mainGate = activeGates[activeGates.length - 1];
 
       if (relays.length > 0) {
-        connections.push({
-          from: mechanisms.indexOf(mainGate),
-          to: mechanisms.indexOf(relays[0]),
-          color: this.randomColor()
-        });
-        connections.push({
-          from: mechanisms.indexOf(relays[0]),
-          to: doorIndex,
-          color: this.randomColor()
-        });
+        this.addConnection(mainGate, relays[0], connections, mechanisms);
+        this.addConnection(relays[0], doorObj, connections, mechanisms);
       } else {
-        connections.push({
-          from: mechanisms.indexOf(mainGate),
-          to: doorIndex,
-          color: this.randomColor()
-        });
+        this.addConnection(mainGate, doorObj, connections, mechanisms);
       }
 
       door.requiredSignals = 1;
@@ -511,21 +447,15 @@ export class ConnectionBuilder {
    * Connect buttons via relays (no gates)
    */
   connectButtonsViaRelays(buttons, relays, door, doorIndex, connections, mechanisms) {
+    const doorObj = mechanisms[doorIndex];
+
     buttons.forEach((button, i) => {
       const relay = relays[i % relays.length];
-      connections.push({
-        from: mechanisms.indexOf(button),
-        to: mechanisms.indexOf(relay),
-        color: this.randomColor()
-      });
+      this.addConnection(button, relay, connections, mechanisms);
     });
 
     relays.forEach(relay => {
-      connections.push({
-        from: mechanisms.indexOf(relay),
-        to: doorIndex,
-        color: this.randomColor()
-      });
+      this.addConnection(relay, doorObj, connections, mechanisms);
     });
 
     door.requiredSignals = Math.min(buttons.length, relays.length);
