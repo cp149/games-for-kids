@@ -15,6 +15,11 @@ export class Door extends Mechanism {
     this.requiredSignals = 1;
     this.receivedSignals = new Set();
     this.animationFrameId = null; // Store animation frame ID for cleanup
+
+    // Frame-based win check delay
+    this.pendingWinCheck = false;
+    this.winCheckTimer = 0;
+    this.winCheckDelay = 100; // ms
   }
 
   receiveSignal(from) {
@@ -44,25 +49,9 @@ export class Door extends Mechanism {
       this.active = true;
       this.animateOpen();
 
-      // Trigger win check immediately
-      const timerId = setTimeout(() => {
-        // Safety check: prevent execution if already destroyed
-        if (this.isDestroyed) {
-          return;
-        }
-
-        // Remove from active timers after execution
-        const index = this.activeTimers.indexOf(timerId);
-        if (index > -1) {
-          this.activeTimers.splice(index, 1);
-        }
-
-        if (window.ChainReactionLab?.game) {
-          window.ChainReactionLab?.game.checkWinCondition();
-        }
-      }, 100);
-
-      this.activeTimers.push(timerId);
+      // Queue win check with frame-based delay
+      this.pendingWinCheck = true;
+      this.winCheckTimer = 0;
     }
   }
 
@@ -146,7 +135,21 @@ export class Door extends Mechanism {
   }
 
   update(deltaTime) {
-    // Update handled by animation functions
+    // Process pending win check with frame-based delay
+    if (this.pendingWinCheck) {
+      this.winCheckTimer += deltaTime;
+
+      if (this.winCheckTimer >= this.winCheckDelay) {
+        // Trigger win check
+        if (window.ChainReactionLab?.game) {
+          window.ChainReactionLab.game.checkWinCondition();
+        }
+
+        // Clear pending check
+        this.pendingWinCheck = false;
+        this.winCheckTimer = 0;
+      }
+    }
   }
 
   render(ctx) {

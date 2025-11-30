@@ -27,8 +27,12 @@ export class GameStateManager {
     this.showInitialHint = false;
     this.isRandomMode = false;
     this.currentDifficulty = 3;
-    this.activeTimers = []; // Track timers for cleanup
     this.isDestroyed = false; // Prevent race conditions
+
+    // Frame-based delays for visual effects
+    this.rippleEffects = []; // Array of {x, y, timer, index}
+    this.winCheckTimer = 0;
+    this.winCheckPending = false;
 
     // Callbacks (set by Game)
     this.onLevelLoaded = null;
@@ -147,35 +151,21 @@ export class GameStateManager {
     if (this.settings.get('particles')) {
       this.renderer.createExplosion(button.x, button.y, button.active ? '#00ff00' : '#3a4f6c');
 
-      // Triple ripple rings with tracked timers
+      // Queue ripple effects with frame-based delays
       for (let i = 0; i < VISUAL_CONSTANTS.RIPPLE_EFFECT_COUNT; i++) {
-        const timerId = setTimeout(() => {
-          if (this.isDestroyed) return;
-
-          const index = this.activeTimers.indexOf(timerId);
-          if (index > -1) {
-            this.activeTimers.splice(index, 1);
-          }
-
-          const radius = VISUAL_CONSTANTS.RIPPLE_BASE_RADIUS + i * VISUAL_CONSTANTS.RIPPLE_RADIUS_INCREMENT;
-          this.renderer.createRing(button.x, button.y, radius, '#00ff88');
-        }, i * VISUAL_CONSTANTS.RIPPLE_EFFECT_DELAY_MS);
-        this.activeTimers.push(timerId);
+        this.rippleEffects.push({
+          x: button.x,
+          y: button.y,
+          timer: 0,
+          delay: i * VISUAL_CONSTANTS.RIPPLE_EFFECT_DELAY_MS,
+          index: i
+        });
       }
     }
 
-    // Check win condition after signal propagation (tracked timer)
-    const winCheckTimer = setTimeout(() => {
-      if (this.isDestroyed) return;
-
-      const index = this.activeTimers.indexOf(winCheckTimer);
-      if (index > -1) {
-        this.activeTimers.splice(index, 1);
-      }
-
-      this.checkWinCondition();
-    }, VISUAL_CONSTANTS.SIGNAL_PROPAGATION_DELAY_MS);
-    this.activeTimers.push(winCheckTimer);
+    // Queue win check with frame-based delay
+    this.winCheckPending = true;
+    this.winCheckTimer = 0;
   }
 
   /**
@@ -228,9 +218,10 @@ export class GameStateManager {
    * Destroy current level instance
    */
   destroyCurrentLevel() {
-    // Cancel all pending timers from this manager
-    this.activeTimers.forEach(timerId => clearTimeout(timerId));
-    this.activeTimers = [];
+    // Clear frame-based delay states
+    this.rippleEffects = [];
+    this.winCheckPending = false;
+    this.winCheckTimer = 0;
 
     if (this.currentLevelInstance) {
       this.currentLevelInstance.destroy();
@@ -257,6 +248,33 @@ export class GameStateManager {
    * @param {number} timestamp - Current timestamp
    */
   update(deltaTime, timestamp = 0) {
+    // Process ripple effects with frame-based delays
+    for (let i = this.rippleEffects.length - 1; i >= 0; i--) {
+      const effect = this.rippleEffects[i];
+      effect.timer += deltaTime;
+
+      if (effect.timer >= effect.delay) {
+        // Trigger ripple effect
+        const radius = VISUAL_CONSTANTS.RIPPLE_BASE_RADIUS +
+                      effect.index * VISUAL_CONSTANTS.RIPPLE_RADIUS_INCREMENT;
+        this.renderer.createRing(effect.x, effect.y, radius, '#00ff88');
+
+        // Remove processed effect
+        this.rippleEffects.splice(i, 1);
+      }
+    }
+
+    // Process win check with frame-based delay
+    if (this.winCheckPending) {
+      this.winCheckTimer += deltaTime;
+
+      if (this.winCheckTimer >= VISUAL_CONSTANTS.SIGNAL_PROPAGATION_DELAY_MS) {
+        this.winCheckPending = false;
+        this.winCheckTimer = 0;
+        this.checkWinCondition();
+      }
+    }
+
     if (this.currentLevelInstance) {
       this.currentLevelInstance.update(deltaTime, timestamp);
     }
@@ -294,10 +312,6 @@ export class GameStateManager {
   destroy() {
     this.isDestroyed = true;
     this.destroyCurrentLevel();
-
-    // Cancel any remaining timers
-    this.activeTimers.forEach(timerId => clearTimeout(timerId));
-    this.activeTimers = [];
 
     // Clear references
     this.canvas = null;

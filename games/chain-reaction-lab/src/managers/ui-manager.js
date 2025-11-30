@@ -109,19 +109,17 @@ export class UIManager {
     if (indicator) {
       indicator.classList.add('hidden');
 
-      // Remove from DOM after transition to prevent memory leak
-      const timerId = setTimeout(() => {
+      // Remove from DOM after transition (using event instead of setTimeout)
+      const handleTransitionEnd = () => {
         if (this.isDestroyed) return;
-
-        const index = this.activeTimers.indexOf(timerId);
-        if (index > -1) this.activeTimers.splice(index, 1);
 
         if (indicator.parentNode) {
           indicator.parentNode.removeChild(indicator);
         }
-      }, 300); // Match CSS transition duration
+        indicator.removeEventListener('transitionend', handleTransitionEnd);
+      };
 
-      this.activeTimers.push(timerId);
+      indicator.addEventListener('transitionend', handleTransitionEnd, { once: true });
     }
   }
 

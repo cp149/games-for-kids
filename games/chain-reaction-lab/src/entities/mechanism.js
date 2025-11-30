@@ -11,8 +11,7 @@ export class Mechanism {
     this.active = false;
     this.connections = [];
     this.animationProgress = 0;
-    this.activeTimers = []; // Store timer IDs for cleanup
-    this.isDestroyed = false; // Prevent race conditions in setTimeout callbacks
+    this.isDestroyed = false; // Safety flag for cleanup
   }
 
   /**
@@ -87,44 +86,32 @@ export class Mechanism {
 
   /**
    * Propagate activation signal to connected mechanisms
+   * Note: Delay is now handled by individual mechanisms (Relay, LogicGate)
+   * This method executes immediately
    */
-  propagateSignal(delay = 0) {
-    const timerId = setTimeout(() => {
-      // Safety check: prevent execution if already destroyed
-      if (this.isDestroyed) {
-        return;
+  propagateSignal() {
+    // Safety check: prevent execution if already destroyed
+    if (this.isDestroyed) {
+      return;
+    }
+
+    // Propagate to all connected mechanisms
+    this.connections.forEach(({ mechanism, color }) => {
+      mechanism.receiveSignal(this);
+
+      // Trigger visual flow animation
+      if (this.active && window.ChainReactionLab?.renderer) {
+        window.ChainReactionLab.renderer.createEnergyTrail(this.x, this.y, mechanism.x, mechanism.y, color);
       }
-
-      // Remove from active timers after execution
-      const index = this.activeTimers.indexOf(timerId);
-      if (index > -1) {
-        this.activeTimers.splice(index, 1);
-      }
-
-      // Propagate to all connected mechanisms
-      this.connections.forEach(({ mechanism, color }) => {
-        mechanism.receiveSignal(this);
-
-        // Trigger visual flow animation
-        if (this.active && window.ChainReactionLab?.renderer) {
-          window.ChainReactionLab?.renderer.createEnergyTrail(this.x, this.y, mechanism.x, mechanism.y, color);
-        }
-      });
-    }, delay);
-
-    this.activeTimers.push(timerId);
+    });
   }
 
   /**
    * Clean up resources
    */
   destroy() {
-    // Mark as destroyed to prevent race conditions
+    // Mark as destroyed to prevent execution
     this.isDestroyed = true;
-
-    // Cancel all pending timers
-    this.activeTimers.forEach(timerId => clearTimeout(timerId));
-    this.activeTimers = [];
 
     // Clear connections
     this.connections = [];

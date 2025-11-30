@@ -12,34 +12,20 @@ export class Relay extends Mechanism {
     this.size = 35;
     this.pulsePhase = 0;
     this.delay = 200; // ms
+
+    // Frame-based delay system (no setTimeout needed)
+    this.pendingSignal = null; // null | true | false
+    this.signalDelayTimer = 0;
   }
 
   receiveSignal(from) {
-    // Relay activates/deactivates based on input with delay
-    const timerId = setTimeout(() => {
-      // Safety check: prevent execution if already destroyed
-      if (this.isDestroyed) {
-        return;
-      }
-
-      // Remove from active timers after execution
-      const index = this.activeTimers.indexOf(timerId);
-      if (index > -1) {
-        this.activeTimers.splice(index, 1);
-      }
-
-      if (from.active) {
-        this.activate();
-      } else {
-        this.deactivate();
-      }
-    }, this.delay);
-
-    this.activeTimers.push(timerId);
+    // Queue signal for delayed activation
+    this.pendingSignal = from.active;
+    this.signalDelayTimer = 0;
   }
 
   onActivate() {
-    this.propagateSignal(this.delay);
+    this.propagateSignal(0);
   }
 
   onDeactivate() {
@@ -47,6 +33,24 @@ export class Relay extends Mechanism {
   }
 
   update(deltaTime) {
+    // Process pending signal with frame-based delay
+    if (this.pendingSignal !== null) {
+      this.signalDelayTimer += deltaTime;
+
+      if (this.signalDelayTimer >= this.delay) {
+        // Execute delayed signal
+        if (this.pendingSignal) {
+          this.activate();
+        } else {
+          this.deactivate();
+        }
+
+        // Clear pending signal
+        this.pendingSignal = null;
+        this.signalDelayTimer = 0;
+      }
+    }
+
     // Pulse animation when active
     if (this.active) {
       this.pulsePhase += deltaTime * 0.005;

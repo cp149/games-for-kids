@@ -17,6 +17,23 @@ import { Button } from '../src/entities/button.js';
 import { Door } from '../src/entities/door.js';
 import { Relay } from '../src/entities/relay.js';
 
+/**
+ * Simulate frame-based time passing by calling update() on all mechanisms
+ * @param {number} ms - Milliseconds to simulate
+ * @param {Array} mechanisms - Array of mechanisms to update
+ */
+async function simulateTime(ms, mechanisms) {
+  const frameTime = 16; // 60fps = ~16ms per frame
+  const frames = Math.ceil(ms / frameTime);
+
+  for (let i = 0; i < frames; i++) {
+    mechanisms.forEach(m => {
+      if (m.update) m.update(frameTime);
+    });
+    await new Promise(resolve => setTimeout(resolve, 0)); // Allow async operations
+  }
+}
+
 // Test Level 5 logic
 async function testLevel5() {
   console.log('Testing Level 5: Cross Circuit');
@@ -53,17 +70,18 @@ async function testLevel5() {
   console.log('After button A toggle:');
   console.log('  ButtonA active:', buttonA.active);
 
-  // Wait for signal propagation (button 200ms + relay 200ms = 400ms total)
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // Simulate time for signal propagation (relay 200ms delay)
+  const allMechanisms = [buttonA, buttonB, relayR1, relayR2, door1, door2];
+  await simulateTime(250, allMechanisms);
 
-  console.log('After 500ms:');
+  console.log('After 250ms:');
   console.log('  RelayR1 active:', relayR1.active);
   console.log('  RelayR1 connections:', relayR1.connections.length);
 
-  // Wait for relay to door propagation (relay propagates with 200ms delay)
-  await new Promise(resolve => setTimeout(resolve, 300));
+  // Simulate more time for door unlock check delay (100ms)
+  await simulateTime(150, allMechanisms);
 
-  console.log('After another 300ms:');
+  console.log('After another 150ms:');
   console.log('  Door1 locked:', door1.locked);
   console.log('  Door1 receivedSignals size:', door1.receivedSignals.size);
   console.log('  Door1 receivedSignals:', Array.from(door1.receivedSignals).map(m => ({ type: m.type, active: m.active })));
@@ -75,14 +93,14 @@ async function testLevel5() {
   console.log('After button B toggle:');
   console.log('  ButtonB active:', buttonB.active);
 
-  // Wait for signal propagation (button 200ms + relay 200ms = 400ms total)
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // Simulate time for signal propagation (relay 200ms delay)
+  await simulateTime(250, allMechanisms);
 
-  console.log('After 500ms:');
+  console.log('After 250ms:');
   console.log('  RelayR2 active:', relayR2.active);
 
-  // Wait for relay to door propagation
-  await new Promise(resolve => setTimeout(resolve, 300));
+  // Simulate more time for door unlock check delay (100ms)
+  await simulateTime(150, allMechanisms);
 
   console.log('After another 300ms:');
   console.log('  Door2 locked:', door2.locked);
@@ -127,25 +145,27 @@ async function testLevel11() {
   console.log('  Door locked:', door.locked);
   console.log('  Door requires:', door.requiredSignals, 'signals');
 
+  const allMechanisms = [buttonA, buttonB, buttonC, buttonD, door];
+
   // Click all 4 buttons
   console.log('\nClicking button A...');
   buttonA.toggle();
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await simulateTime(150, allMechanisms);
   console.log('  Door signals:', door.receivedSignals.size);
 
   console.log('Clicking button B...');
   buttonB.toggle();
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await simulateTime(150, allMechanisms);
   console.log('  Door signals:', door.receivedSignals.size);
 
   console.log('Clicking button C...');
   buttonC.toggle();
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await simulateTime(150, allMechanisms);
   console.log('  Door signals:', door.receivedSignals.size);
 
   console.log('Clicking button D...');
   buttonD.toggle();
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await simulateTime(150, allMechanisms);
   console.log('  Door signals:', door.receivedSignals.size);
 
   console.log('\nFinal state:');

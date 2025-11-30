@@ -16,6 +16,11 @@ export class LogicGate extends Mechanism {
     this.receivedSignals = new Set();
     this.pulsePhase = 0;
 
+    // Frame-based signal propagation delay
+    this.pendingPropagation = false;
+    this.propagationTimer = 0;
+    this.propagationDelay = 100; // ms
+
     // Get logic function for this gate type
     this.evaluateFunction = LOGIC_GATES[gateType];
     if (!this.evaluateFunction) {
@@ -44,14 +49,32 @@ export class LogicGate extends Mechanism {
   }
 
   onActivate() {
-    this.propagateSignal(100);
+    // Queue signal propagation with delay
+    this.pendingPropagation = true;
+    this.propagationTimer = 0;
   }
 
   onDeactivate() {
-    this.propagateSignal(0);
+    // Immediate propagation on deactivate
+    this.propagateSignal();
   }
 
   update(deltaTime) {
+    // Process pending signal propagation with frame-based delay
+    if (this.pendingPropagation) {
+      this.propagationTimer += deltaTime;
+
+      if (this.propagationTimer >= this.propagationDelay) {
+        // Execute delayed propagation
+        this.propagateSignal();
+
+        // Clear pending propagation
+        this.pendingPropagation = false;
+        this.propagationTimer = 0;
+      }
+    }
+
+    // Pulse animation
     if (this.active) {
       this.pulsePhase += deltaTime * 0.005;
     } else {

@@ -33,8 +33,16 @@ class Game {
     this.resizeHandler = null; // Store resize handler reference
     this.lastUIUpdate = 0; // Throttle UI updates
 
+    // Frame-based delays (no setTimeout)
+    this.initDelayTimer = 0;
+    this.initDelayTarget = 2000; // ms
+    this.initComplete = false;
+
+    this.winOverlayTimer = 0;
+    this.winOverlayPending = false;
+    this.winOverlayData = null;
+
     // Memory leak prevention
-    this.activeTimers = []; // Track all setTimeout/setInterval
     this.isDestroyed = false; // Prevent callbacks after destroy
   }
 
@@ -68,21 +76,8 @@ class Game {
     // Initialize i18n
     i18n.updateUI();
 
-    // Hide loading screen and start
-    const timerId = setTimeout(() => {
-      if (this.isDestroyed) return; // Safety check
-      this.uiManager.hideLoadingScreen();
-
-      // Show tutorial for first time
-      if (!this.uiManager.isTutorialComplete()) {
-        this.uiManager.showTutorial();
-      } else {
-        this.gameState.loadLevel(0);
-        // Start music after user has interacted
-        this.musicManager.play();
-      }
-    }, 2000);
-    this.activeTimers.push(timerId);
+    // Start game loop - initialization delay will be handled in gameLoop()
+    this.startGameLoop();
   }
 
   setupInput() {
@@ -113,8 +108,8 @@ class Game {
         // Show loading indicator
         this.uiManager.showLoadingIndicator();
 
-        // Allow UI to update before heavy computation
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Allow UI to update before heavy computation (using RAF instead of setTimeout)
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
         // Generate level (may take 200-800ms)
         this.gameState.loadRandomLevel(difficulty);
@@ -170,12 +165,9 @@ class Game {
       this.uiManager.showGameComplete();
     } else {
       this.uiManager.updateSuccessOverlay(data.moves, data.time);
-      // Wait for fireworks before showing overlay
-      const timerId = setTimeout(() => {
-        if (this.isDestroyed) return; // Safety check
-        this.uiManager.showSuccess();
-      }, VISUAL_CONSTANTS.WIN_OVERLAY_DELAY_MS);
-      this.activeTimers.push(timerId);
+      // Queue success overlay with frame-based delay
+      this.winOverlayPending = true;
+      this.winOverlayTimer = 0;
     }
   }
 
@@ -207,6 +199,36 @@ class Game {
     const deltaTime = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
 
+    // Handle initialization delay (replaces setTimeout)
+    if (!this.initComplete) {
+      this.initDelayTimer += deltaTime;
+
+      if (this.initDelayTimer >= this.initDelayTarget) {
+        this.initComplete = true;
+        this.uiManager.hideLoadingScreen();
+
+        // Show tutorial for first time
+        if (!this.uiManager.isTutorialComplete()) {
+          this.uiManager.showTutorial();
+        } else {
+          this.gameState.loadLevel(0);
+          // Start music after user has interacted
+          this.musicManager.play();
+        }
+      }
+    }
+
+    // Handle win overlay delay (replaces setTimeout)
+    if (this.winOverlayPending) {
+      this.winOverlayTimer += deltaTime;
+
+      if (this.winOverlayTimer >= VISUAL_CONSTANTS.WIN_OVERLAY_DELAY_MS) {
+        this.winOverlayPending = false;
+        this.winOverlayTimer = 0;
+        this.uiManager.showSuccess();
+      }
+    }
+
     // Update (pass timestamp for animations)
     this.gameState.update(deltaTime, timestamp);
     this.renderer.updateParticles();
@@ -236,11 +258,7 @@ class Game {
     // Prevent callbacks after destroy
     this.isDestroyed = true;
 
-    // Clear all pending timers
-    this.activeTimers.forEach(timerId => clearTimeout(timerId));
-    this.activeTimers = [];
-
-    // Stop game loop
+    // Stop game loop (frame-based delays will stop automatically)
     this.stopGameLoop();
 
     // Clean up managers

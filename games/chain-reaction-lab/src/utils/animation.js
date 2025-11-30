@@ -103,13 +103,6 @@ export class AnimationManager {
   lerp(start, end, t) {
     return start + (end - start) * t;
   }
-
-  /**
-   * Wait for specified milliseconds
-   */
-  wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
 }
 
 /**
