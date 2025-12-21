@@ -2,6 +2,7 @@ import { GameEngine } from './core/GameEngine.js';
 import { DragDropHandler } from './ui/DragDropHandler.js';
 import { TimelineUI } from './ui/TimelineUI.js';
 import { BlockUI } from './ui/BlockUI.js';
+import { AudioVisualizer } from './ui/AudioVisualizer.js';
 
 /**
  * Main Application
@@ -46,24 +47,105 @@ class MusicFactoryApp {
         this.dragDropHandler
       );
 
-      // Initialize game engine (loads audio)
-      await this.gameEngine.initialize();
+      // Fast initialization: AudioContext only (no audio loading yet)
+      await this.gameEngine.audioEngine.initialize();
+      this.gameEngine.blockLibrary.initialize();
 
-      // Setup UI
+      // Setup UI immediately (before audio loads)
       this.setupUI();
 
-      // Setup controls
+      // Setup controls (play button will be disabled until ready)
       this.setupControls();
 
-      // Try to load autosave
-      this.loadAutosave();
+      // Disable play controls until audio is loaded
+      this.disablePlayControls();
 
-      this.isInitialized = true;
+      // Hide loading screen - UI is ready!
       this.hideLoading();
+
+      // Load audio in background with progress
+      this.loadAudioInBackground();
 
     } catch (error) {
       console.error('Initialization failed:', error);
       this.showError('Failed to load Music Factory. Please refresh the page.');
+    }
+  }
+
+  /**
+   * Load audio files in background with progress indicator
+   */
+  async loadAudioInBackground() {
+    try {
+      // Show loading message
+      this.showMessage('Loading audio... 0%');
+
+      // Create progress callback
+      const onProgress = (loaded, total) => {
+        const percent = Math.floor((loaded / total) * 100);
+        this.showMessage(`Loading audio... ${percent}%`);
+      };
+
+      // Load all audio files with progress tracking
+      await this.gameEngine.blockLibrary.loadAll(
+        this.gameEngine.audioEngine.audioContext,
+        onProgress
+      );
+
+      // Initialize visualizer after audio is loaded
+      this.gameEngine.visualizer = new AudioVisualizer(this.gameEngine.audioEngine);
+      this.gameEngine.visualizer.initialize();
+
+      // Mark as ready
+      this.gameEngine.isReady = true;
+      this.isInitialized = true;
+
+      // Enable play controls
+      this.enablePlayControls();
+
+      // Try to load autosave
+      this.loadAutosave();
+
+      // Show success message
+      this.showMessage('✅ Ready to play!');
+
+    } catch (error) {
+      console.error('Audio loading failed:', error);
+      this.showError('Failed to load audio files. Some features may not work.');
+    }
+  }
+
+  /**
+   * Disable play controls during loading
+   */
+  disablePlayControls() {
+    const playBtn = document.getElementById('play-btn');
+    const randomBtn = document.getElementById('random-btn');
+
+    if (playBtn) {
+      playBtn.disabled = true;
+      playBtn.style.opacity = '0.5';
+    }
+    if (randomBtn) {
+      randomBtn.disabled = true;
+      randomBtn.style.opacity = '0.5';
+    }
+  }
+
+  /**
+   * Enable play controls after loading
+   */
+  enablePlayControls() {
+    const playBtn = document.getElementById('play-btn');
+    const randomBtn = document.getElementById('random-btn');
+
+    if (playBtn) {
+      playBtn.disabled = false;
+      playBtn.style.opacity = '1';
+    }
+    if (randomBtn) {
+      randomBtn.disabled = false;
+      randomBtn.style.opacity = '1';
     }
   }
 

@@ -580,6 +580,7 @@ When agents work on this project, they must:
 
 **代码用英文，交流用中文，游戏支持多语言！**
 **对代码进行优秀的管理，单个js文件不超过550行**
+**不要执行git**
 ---
 
 **This is a critical guideline. All agents and developers must follow these standards.**

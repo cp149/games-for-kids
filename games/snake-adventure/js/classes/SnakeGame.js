@@ -28,16 +28,47 @@ class SnakeGame {
         this.scoreMultiplierTimer = 0;
         this.speedBoostTimer = 0;
         this.originalSpeed = 0;
+        this.magnetTimer = 0;
+        this.magnetRange = 0;
+
+        // Combo system
+        this.comboCount = 0;
+        this.comboTimer = 0;
+        this.comboTimeWindow = 2.0; // 2 seconds to maintain combo
+
+        // Achievement tracking
+        this.lastScoreMilestone = 0;
 
         // Mouse tracking for continuous following
         this.mouseX = window.innerWidth / 2;
         this.mouseY = window.innerHeight / 2;
+
+        // Background stars for visual effect
+        this.stars = this.generateStars(150);
 
         // Initialize
         this.setupCanvas();
         this.createManagers();
         this.setupControls();
         this.showMenu();
+    }
+
+    /**
+     * Generate background stars
+     */
+    generateStars(count) {
+        const stars = [];
+        for (let i = 0; i < count; i++) {
+            stars.push({
+                x: Math.random() * CONFIG.GAME.CANVAS_SIZE,
+                y: Math.random() * CONFIG.GAME.CANVAS_SIZE,
+                size: Math.random() * 2 + 0.5,
+                opacity: Math.random() * 0.5 + 0.3,
+                twinkleSpeed: Math.random() * 2 + 1,
+                twinklePhase: Math.random() * Math.PI * 2
+            });
+        }
+        return stars;
     }
 
     /**
@@ -115,7 +146,8 @@ class SnakeGame {
                 x: x,
                 y: y,
                 angle: Math.random() * Math.PI * 2,
-                color: aiColors[i % aiColors.length]
+                color: aiColors[i % aiColors.length],
+                speed: CONFIG.SNAKE.INITIAL_SPEED * CONFIG.AI.INITIAL_SPEED_MULTIPLIER
             });
 
             const StrategyClass = strategies[i % strategies.length];
@@ -183,11 +215,44 @@ class SnakeGame {
         this.canvas.addEventListener('click', handleMouseClick);
         this.canvas.addEventListener('mousemove', handleMouseMove);
 
+        // Home button
+        const homeBtn = document.getElementById('home-btn');
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => {
+                window.location.href = '../../index.html';
+            });
+        }
+
         // Pause button
         const pauseBtn = document.getElementById('pause-btn');
         if (pauseBtn) {
             pauseBtn.addEventListener('click', () => this.togglePause());
         }
+
+        // Language button
+        const langBtn = document.getElementById('lang-btn');
+        if (langBtn) {
+            langBtn.addEventListener('click', () => {
+                this.uiManager.showLanguageSelector();
+            });
+        }
+
+        // Language change callback
+        this.uiManager.onLanguageChange = () => {
+            this.refreshUI();
+        };
+
+        // Right-click to pause/resume
+        const handleContextMenu = (e) => {
+            e.preventDefault(); // Prevent default context menu
+
+            if (this.state === 'playing' || this.state === 'paused') {
+                this.togglePause();
+            }
+        };
+
+        this.canvas.addEventListener('contextmenu', handleContextMenu);
+        this.eventListeners.set('contextmenu', { element: this.canvas, event: 'contextmenu', handler: handleContextMenu });
     }
 
     /**
@@ -211,6 +276,13 @@ class SnakeGame {
         this.scoreMultiplierTimer = 0;
         this.speedBoostTimer = 0;
         this.originalSpeed = 0;
+        this.magnetTimer = 0;
+        this.magnetRange = 0;
+
+        // Reset combo and achievements
+        this.comboCount = 0;
+        this.comboTimer = 0;
+        this.lastScoreMilestone = 0;
 
         // Reset all snakes
         this.snakeManager.clear();
@@ -258,7 +330,7 @@ class SnakeGame {
      * Game loop
      */
     gameLoop() {
-        if (this.state !== 'playing') return;
+        if (this.state !== 'playing' && this.state !== 'paused') return;
 
         // Begin performance measurement
         if (this.perfMonitor) {
@@ -269,7 +341,12 @@ class SnakeGame {
         const deltaTime = Math.min((currentTime - this.lastTime) / 1000, CONFIG.PERFORMANCE.MAX_DELTA_TIME);
         this.lastTime = currentTime;
 
-        this.update(deltaTime);
+        // Only update game state when playing (not paused)
+        if (this.state === 'playing') {
+            this.update(deltaTime);
+        }
+
+        // Always render to show pause overlay
         this.render();
 
         // End performance measurement
@@ -289,13 +366,18 @@ class SnakeGame {
             this.logger.warn('⚠️ High delta time detected:', deltaTime.toFixed(3), 's');
         }
 
+        // Update star twinkle animation
+        this.stars.forEach(star => {
+            star.twinklePhase += deltaTime * star.twinkleSpeed;
+        });
+
         // Update player snake target angle to follow mouse
         if (this.playerSnake && this.playerSnake.isAlive) {
             const head = this.playerSnake.getHead();
 
             // Convert snake head world position to screen position
-            const headScreenX = head.x - this.cameraManager.x;
-            const headScreenY = head.y - this.cameraManager.y;
+            const headScreenX = head.x - this.cameraManager.getX();
+            const headScreenY = head.y - this.cameraManager.getY();
 
             // Calculate angle from snake head to mouse
             const dx = this.mouseX - headScreenX;
@@ -330,6 +412,9 @@ class SnakeGame {
         this.particleManager.update(deltaTime);
         this.foodManager.update(deltaTime);
 
+        // Update camera shake
+        this.cameraManager.update(deltaTime);
+
         // Update leaderboard
         this.leaderboardManager.update(this.snakeManager.snakes, this.playerSnake);
 
@@ -362,6 +447,40 @@ class SnakeGame {
                 this.playerSnake.speed = this.originalSpeed;
                 this.originalSpeed = 0;
                 this.logger.log('⚡ Speed boost expired');
+            }
+        }
+
+        if (this.magnetTimer > 0) {
+            this.magnetTimer -= deltaTime;
+            if (this.magnetTimer <= 0) {
+                this.magnetRange = 0;
+                this.logger.log('🧲 Magnet expired');
+            } else {
+                // Magnet effect - pull nearby food towards player
+                if (this.playerSnake && this.playerSnake.isAlive) {
+                    const head = this.playerSnake.getHead();
+                    for (const food of this.foodManager.foods) {
+                        const dist = MathUtils.distance(head.x, head.y, food.x, food.y);
+                        if (dist < this.magnetRange && dist > CONFIG.FOOD.COLLECTION_RADIUS) {
+                            // Pull food towards player
+                            const angle = Math.atan2(head.y - food.y, head.x - food.x);
+                            const pullSpeed = 300 * deltaTime; // Pull speed
+                            food.x += Math.cos(angle) * pullSpeed;
+                            food.y += Math.sin(angle) * pullSpeed;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update combo timer
+        if (this.comboTimer > 0) {
+            this.comboTimer -= deltaTime;
+            if (this.comboTimer <= 0) {
+                if (this.comboCount >= 3) {
+                    this.uiManager.showToast('🔥 ' + I18N.t('combo_ended', { count: this.comboCount }));
+                }
+                this.comboCount = 0;
             }
         }
 
@@ -405,7 +524,8 @@ class SnakeGame {
                     x: x,
                     y: y,
                     angle: Math.random() * Math.PI * 2,
-                    color: respawn.color
+                    color: respawn.color,
+                    speed: CONFIG.SNAKE.INITIAL_SPEED * CONFIG.AI.INITIAL_SPEED_MULTIPLIER
                 });
 
                 const strategy = respawn.strategyType === 'aggressive'
@@ -464,14 +584,15 @@ class SnakeGame {
             x: x,
             y: y,
             angle: Math.random() * Math.PI * 2,
-            color: aiColors[this.aiSpawnedCount % aiColors.length]
+            color: aiColors[this.aiSpawnedCount % aiColors.length],
+            speed: CONFIG.SNAKE.INITIAL_SPEED * CONFIG.AI.INITIAL_SPEED_MULTIPLIER
         });
 
         const StrategyClass = strategies[this.aiSpawnedCount % strategies.length];
         this.aiController.registerAI(aiSnake, new StrategyClass());
         this.aiSpawnedCount++;
 
-        this.uiManager.showToast('🚨 New AI Challenger!');
+        this.uiManager.showToast('🚨 ' + I18N.t('new_ai'));
         this.audioManager.play('achievement');
         this.logger.info('🤖 New AI spawned! Total AI:', currentAICount + 1);
     }
@@ -486,11 +607,30 @@ class SnakeGame {
         const foodType = collectedFood.type;
         const isPlayer = snake.type === 'player';
 
-        // Player-only: Calculate and add score
+        // Spawn collection particles
+        this.particleManager.spawnFoodCollect(collectedFood.x, collectedFood.y, foodConfig.COLOR);
+
+        // Player-only: Calculate and add score + subtle screen shake + combo
         if (isPlayer) {
+            // Combo system
+            this.comboCount++;
+            this.comboTimer = this.comboTimeWindow;
+
+            // Calculate score with combo multiplier
             const baseScore = foodConfig.SCORE;
-            const earnedScore = Math.floor(baseScore * this.scoreMultiplier);
+            const comboMultiplier = Math.min(1 + (this.comboCount - 1) * 0.1, 2.5); // Max 2.5x at 15 combo
+            const earnedScore = Math.floor(baseScore * this.scoreMultiplier * comboMultiplier);
             this.score += earnedScore;
+
+            // Show combo notification
+            if (this.comboCount >= 5 && this.comboCount % 5 === 0) {
+                this.uiManager.showToast('🔥 ' + I18N.t('combo', { count: this.comboCount }));
+                this.cameraManager.shake(5, 0.15);
+            }
+
+            // Subtle screen shake for feedback (stronger for special food)
+            const shakeIntensity = foodType !== 'NORMAL' ? 3 : 1.5;
+            this.cameraManager.shake(shakeIntensity, 0.1);
         }
 
         // Handle special food effects
@@ -501,9 +641,12 @@ class SnakeGame {
                     if (this.speedBoostTimer <= 0) {
                         this.originalSpeed = snake.speed;
                     }
-                    this.uiManager.showToast('⚡ Speed Boost!');
+                    this.uiManager.showToast('⚡ ' + I18N.t('speed_boost'));
+                    this.uiManager.showBuffIndicator('speed', foodConfig.BOOST_DURATION);
                     this.audioManager.play('speedBoost');
                     this.logger.info('⚡ Speed boost activated!');
+                    // Power-up particles
+                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR);
                 }
                 snake.speed = Math.min(
                     snake.speed + foodConfig.SPEED_BOOST,
@@ -517,9 +660,12 @@ class SnakeGame {
                 if (isPlayer) {
                     this.scoreMultiplier = foodConfig.SCORE_MULTIPLIER;
                     this.scoreMultiplierTimer = foodConfig.MULTIPLIER_DURATION / 1000;
-                    this.uiManager.showToast('💎 2x Score!');
+                    this.uiManager.showToast('💎 ' + I18N.t('score_multiplier'));
+                    this.uiManager.showBuffIndicator('bonus', foodConfig.MULTIPLIER_DURATION);
                     this.audioManager.play('bonus');
                     this.logger.info('💎 Score multiplier activated!');
+                    // Power-up particles
+                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR);
                 }
                 break;
 
@@ -529,9 +675,25 @@ class SnakeGame {
                     snake.grow();
                 }
                 if (isPlayer) {
-                    this.uiManager.showToast('⭐ Golden Food +3!');
+                    this.uiManager.showToast('⭐ ' + I18N.t('golden_food'));
                     this.audioManager.play('golden');
                     this.logger.info('⭐ Golden food! Grew', foodConfig.GROW_AMOUNT, 'segments');
+                    // Power-up particles
+                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR, 40);
+                }
+                break;
+
+            case 'MAGNET':
+                // Magnet effect - attract nearby food
+                if (isPlayer) {
+                    this.magnetRange = foodConfig.MAGNET_RANGE;
+                    this.magnetTimer = foodConfig.MAGNET_DURATION / 1000;
+                    this.uiManager.showToast('🧲 ' + I18N.t('magnet_power'));
+                    this.uiManager.showBuffIndicator('magnet', foodConfig.MAGNET_DURATION);
+                    this.audioManager.play('bonus');
+                    this.logger.info('🧲 Magnet activated! Range:', this.magnetRange);
+                    // Power-up particles
+                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR, 35);
                 }
                 break;
 
@@ -570,13 +732,25 @@ class SnakeGame {
                 this.logger.info('🚀 Natural speed increase! Current speed:', snake.speed);
             }
 
-            // Achievement milestones
+            // Length achievement milestones
             if (CONFIG.PROGRESSION.LENGTH_MILESTONES.includes(snake.getLength())) {
                 this.uiManager.showToast(
                     I18N.t('achievement', { length: snake.getLength() })
                 );
                 this.audioManager.play('achievement');
                 this.logger.info('🏆 Achievement! Length milestone:', snake.getLength());
+            }
+
+            // Score achievement milestones
+            for (const milestone of CONFIG.PROGRESSION.SCORE_MILESTONES) {
+                if (this.score >= milestone && this.lastScoreMilestone < milestone) {
+                    this.lastScoreMilestone = milestone;
+                    this.uiManager.showToast(`💯 ${milestone} Points!`);
+                    this.audioManager.play('achievement');
+                    this.cameraManager.shake(8, 0.3);
+                    this.logger.info('🏆 Score milestone:', milestone);
+                    break;
+                }
             }
         } else {
             // AI snake - just log
@@ -592,6 +766,9 @@ class SnakeGame {
         this.ctx.fillStyle = CONFIG.GAME.BACKGROUND_COLOR;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Render animated stars
+        this.renderStars();
+
         // Draw boundary (visible part)
         this.renderBoundary();
 
@@ -600,19 +777,164 @@ class SnakeGame {
         this.snakeManager.render(this.ctx, this.cameraManager);
         this.foodManager.render(this.ctx, this.cameraManager);
 
+        // Render magnet range indicator if active
+        if (this.magnetTimer > 0 && this.playerSnake && this.playerSnake.isAlive) {
+            const head = this.playerSnake.getHead();
+            const screenX = head.x - this.cameraManager.getX();
+            const screenY = head.y - this.cameraManager.getY();
+
+            // Draw pulsing magnet range circle
+            const pulse = Math.sin(performance.now() / 200) * 0.1 + 0.9;
+            const gradient = this.ctx.createRadialGradient(
+                screenX, screenY, 0,
+                screenX, screenY, this.magnetRange * pulse
+            );
+            gradient.addColorStop(0, 'rgba(138, 43, 226, 0)');
+            gradient.addColorStop(0.7, 'rgba(138, 43, 226, 0.15)');
+            gradient.addColorStop(1, 'rgba(138, 43, 226, 0.3)');
+
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, screenY, this.magnetRange * pulse, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw range circle outline
+            this.ctx.strokeStyle = 'rgba(138, 43, 226, 0.5)';
+            this.ctx.lineWidth = 2;
+            this.ctx.setLineDash([10, 5]);
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, screenY, this.magnetRange, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.setLineDash([]);
+        }
+
+        // Render combo counter if active
+        if (this.comboCount >= 3 && this.comboTimer > 0) {
+            const centerX = this.canvas.width / 2;
+            const centerY = 180;
+
+            // Combo background
+            const pulseSize = 1 + Math.sin(performance.now() / 100) * 0.05;
+            this.ctx.save();
+            this.ctx.translate(centerX, centerY);
+            this.ctx.scale(pulseSize, pulseSize);
+
+            // Glow effect
+            this.ctx.shadowBlur = 20;
+            this.ctx.shadowColor = '#ff6600';
+
+            // Combo text
+            this.ctx.font = 'bold 48px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+
+            // Outline
+            const comboText = I18N.t('combo', { count: this.comboCount });
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 6;
+            this.ctx.strokeText(comboText, 0, 0);
+
+            // Fill with gradient
+            const gradient = this.ctx.createLinearGradient(0, -30, 0, 30);
+            gradient.addColorStop(0, '#ffff00');
+            gradient.addColorStop(0.5, '#ff8800');
+            gradient.addColorStop(1, '#ff3300');
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillText(comboText, 0, 0);
+
+            this.ctx.shadowBlur = 0;
+            this.ctx.restore();
+        }
+
         // Render UI overlays (in screen space, not world space)
         this.leaderboardManager.render(this.ctx, this.canvas);
         this.killFeedManager.render(this.ctx);
+
+        // Render pause overlay
+        if (this.state === 'paused') {
+            this.renderPauseOverlay();
+        }
+    }
+
+    /**
+     * Render pause overlay
+     */
+    renderPauseOverlay() {
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+
+        // Semi-transparent dark overlay
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // "PAUSED" text with glow effect
+        this.ctx.save();
+        this.ctx.shadowBlur = 30;
+        this.ctx.shadowColor = '#00ffff';
+
+        // Main text
+        this.ctx.font = 'bold 80px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        // Outline
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 8;
+        this.ctx.strokeText(I18N.t('paused'), centerX, centerY - 50);
+
+        // Fill with gradient
+        const gradient = this.ctx.createLinearGradient(0, centerY - 100, 0, centerY);
+        gradient.addColorStop(0, '#00ffff');
+        gradient.addColorStop(1, '#0088ff');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillText(I18N.t('paused'), centerX, centerY - 50);
+
+        // Instruction text
+        this.ctx.shadowBlur = 15;
+        this.ctx.font = 'bold 28px Arial';
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 5;
+        this.ctx.strokeText(I18N.t('right_click_to_resume'), centerX, centerY + 40);
+
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText(I18N.t('right_click_to_resume'), centerX, centerY + 40);
+
+        this.ctx.restore();
+    }
+
+    /**
+     * Render animated stars in background
+     */
+    renderStars() {
+        this.stars.forEach(star => {
+            const x = star.x - this.cameraManager.getX();
+            const y = star.y - this.cameraManager.getY();
+
+            // Calculate twinkle opacity
+            const twinkle = Math.sin(star.twinklePhase) * 0.3 + 0.7;
+            const opacity = star.opacity * twinkle;
+
+            // Render star with glow
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, star.size * 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
     }
 
     /**
      * Render world boundary with spikes
      */
     renderBoundary() {
-        const left = -this.cameraManager.x;
-        const top = -this.cameraManager.y;
-        const right = CONFIG.GAME.CANVAS_SIZE - this.cameraManager.x;
-        const bottom = CONFIG.GAME.CANVAS_SIZE - this.cameraManager.y;
+        const left = -this.cameraManager.getX();
+        const top = -this.cameraManager.getY();
+        const right = CONFIG.GAME.CANVAS_SIZE - this.cameraManager.getX();
+        const bottom = CONFIG.GAME.CANVAS_SIZE - this.cameraManager.getY();
 
         // Base boundary line
         this.ctx.strokeStyle = CONFIG.GAME.BOUNDARY_COLOR;
@@ -628,7 +950,7 @@ class SnakeGame {
 
         // Top spikes (pointing down)
         for (let x = 0; x < CONFIG.GAME.CANVAS_SIZE; x += spikeSpacing) {
-            const sx = x - this.cameraManager.x;
+            const sx = x - this.cameraManager.getX();
             const sy = top;
             this.ctx.beginPath();
             this.ctx.moveTo(sx, sy);
@@ -640,7 +962,7 @@ class SnakeGame {
 
         // Bottom spikes (pointing up)
         for (let x = 0; x < CONFIG.GAME.CANVAS_SIZE; x += spikeSpacing) {
-            const sx = x - this.cameraManager.x;
+            const sx = x - this.cameraManager.getX();
             const sy = bottom;
             this.ctx.beginPath();
             this.ctx.moveTo(sx, sy);
@@ -653,7 +975,7 @@ class SnakeGame {
         // Left spikes (pointing right)
         for (let y = 0; y < CONFIG.GAME.CANVAS_SIZE; y += spikeSpacing) {
             const sx = left;
-            const sy = y - this.cameraManager.y;
+            const sy = y - this.cameraManager.getY();
             this.ctx.beginPath();
             this.ctx.moveTo(sx, sy);
             this.ctx.lineTo(sx + spikeSize, sy + spikeSize / 2);
@@ -665,7 +987,7 @@ class SnakeGame {
         // Right spikes (pointing left)
         for (let y = 0; y < CONFIG.GAME.CANVAS_SIZE; y += spikeSpacing) {
             const sx = right;
-            const sy = y - this.cameraManager.y;
+            const sy = y - this.cameraManager.getY();
             this.ctx.beginPath();
             this.ctx.moveTo(sx, sy);
             this.ctx.lineTo(sx - spikeSize, sy + spikeSize / 2);
@@ -710,7 +1032,7 @@ class SnakeGame {
     }
 
     /**
-     * Handle snake death - turn body into food
+     * Handle snake death - turn body into food with visual effects
      */
     handleSnakeDeath(snake, killer = null) {
         if (!snake || !snake.isAlive) return;
@@ -718,6 +1040,17 @@ class SnakeGame {
         const isPlayer = snake.type === 'player';
 
         this.logger.log(isPlayer ? '💀 Player died!' : '🤖 AI snake died!', 'Length:', snake.getLength());
+
+        // Spawn explosion particles at head
+        const head = snake.getHead();
+        this.particleManager.spawnExplosion(head.x, head.y, snake.color.start, 30);
+
+        // Camera shake on death
+        if (isPlayer) {
+            this.cameraManager.shake(15, 0.4);
+        } else {
+            this.cameraManager.shake(8, 0.2);
+        }
 
         // Play death sound
         if (isPlayer) {
@@ -729,10 +1062,13 @@ class SnakeGame {
         // Add to kill feed
         this.killFeedManager.addDeath(snake, killer);
 
-        // Turn snake body into food (every 3rd segment to avoid too much food)
+        // Turn snake body into food with mini explosions (every 3rd segment)
         const segments = snake.segments;
         for (let i = 0; i < segments.length; i += 3) {
             const seg = segments[i];
+
+            // Spawn smaller explosion for each food spawn
+            this.particleManager.spawnExplosion(seg.x, seg.y, snake.color.end, 8);
 
             // Create food at segment position
             const foodTypes = Object.keys(CONFIG.FOOD.TYPES);
@@ -784,6 +1120,17 @@ class SnakeGame {
         this.logger.warn('💀 Game Over! Final score:', this.score, 'Length:', this.playerSnake ? this.playerSnake.getLength() : 0);
         this.state = 'gameover';
         this.uiManager.showGameOver(this.score, () => this.start());
+    }
+
+    /**
+     * Refresh UI after language change
+     */
+    refreshUI() {
+        // Update score and length displays
+        this.uiManager.updateScore(this.score);
+        if (this.playerSnake) {
+            this.uiManager.updateLength(this.playerSnake.getLength());
+        }
     }
 
     /**

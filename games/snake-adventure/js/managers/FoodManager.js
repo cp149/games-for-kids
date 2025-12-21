@@ -74,7 +74,8 @@ class FoodManager {
             x,
             y,
             type: foodType.name,
-            config: foodType.config
+            config: foodType.config,
+            pulsePhase: Math.random() * Math.PI * 2  // Random initial pulse phase
         };
 
         this.foods.push(newFood);
@@ -102,44 +103,184 @@ class FoodManager {
     }
 
     /**
-     * Render all food with type-specific colors
+     * Render all food with enhanced visuals and type-specific effects
      */
     render(ctx, camera) {
         for (const food of this.foods) {
-            const x = food.x - camera.x;
-            const y = food.y - camera.y;
-            const pulse = 1 + Math.sin(this.pulsePhase) * CONFIG.FOOD.PULSE_AMOUNT;
+            const x = food.x - camera.getX();
+            const y = food.y - camera.getY();
+            const pulse = 1 + Math.sin(this.pulsePhase + food.pulsePhase) * CONFIG.FOOD.PULSE_AMOUNT;
             const radius = CONFIG.FOOD.SPAWN_RADIUS * pulse;
             const config = food.config;
 
-            // Glow
-            const glow = ctx.createRadialGradient(x, y, 0, x, y, CONFIG.FOOD.GLOW_RADIUS);
-            glow.addColorStop(0, config.COLOR);
-            glow.addColorStop(0.5, config.GLOW_COLOR);
-            glow.addColorStop(1, 'transparent');
+            // Outer glow (larger for special foods)
+            const glowSize = food.type !== 'NORMAL' ? CONFIG.FOOD.GLOW_RADIUS * 1.5 : CONFIG.FOOD.GLOW_RADIUS;
+            const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
+            outerGlow.addColorStop(0, config.GLOW_COLOR);
+            outerGlow.addColorStop(0.4, config.GLOW_COLOR);
+            outerGlow.addColorStop(1, 'transparent');
 
-            ctx.fillStyle = glow;
+            ctx.fillStyle = outerGlow;
             ctx.beginPath();
-            ctx.arc(x, y, CONFIG.FOOD.GLOW_RADIUS, 0, Math.PI * 2);
+            ctx.arc(x, y, glowSize, 0, Math.PI * 2);
             ctx.fill();
 
-            // Food body
-            ctx.fillStyle = config.COLOR;
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = config.COLOR;
+            // Middle glow layer
+            const midGlow = ctx.createRadialGradient(x, y, 0, x, y, radius * 2);
+            midGlow.addColorStop(0, config.COLOR);
+            midGlow.addColorStop(0.5, config.GLOW_COLOR);
+            midGlow.addColorStop(1, 'transparent');
+
+            ctx.fillStyle = midGlow;
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Food body with gradient
+            const bodyGrad = ctx.createRadialGradient(
+                x - radius * 0.4,
+                y - radius * 0.4,
+                0,
+                x,
+                y,
+                radius
+            );
+            bodyGrad.addColorStop(0, '#ffffff');
+            bodyGrad.addColorStop(0.3, config.COLOR);
+            bodyGrad.addColorStop(1, config.COLOR);
+
+            ctx.fillStyle = bodyGrad;
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fill();
-            ctx.shadowBlur = 0;
 
-            // Type indicator (inner circle for special foods)
-            if (food.type !== 'NORMAL') {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            // Type-specific indicators
+            if (food.type === 'SPEED') {
+                // Lightning bolt effect
+                this.renderLightningIcon(ctx, x, y, radius * 0.6);
+            } else if (food.type === 'BONUS') {
+                // Star effect
+                this.renderStarIcon(ctx, x, y, radius * 0.7);
+            } else if (food.type === 'GOLDEN') {
+                // Crown/sparkle effect
+                this.renderCrownIcon(ctx, x, y, radius * 0.7);
+            } else if (food.type === 'MAGNET') {
+                // Magnet effect
+                this.renderMagnetIcon(ctx, x, y, radius * 0.7);
+            } else {
+                // Normal food - simple shine
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
                 ctx.beginPath();
-                ctx.arc(x, y, radius * 0.4, 0, Math.PI * 2);
+                ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
                 ctx.fill();
             }
+
+            // Rotating aura for special foods
+            if (food.type !== 'NORMAL') {
+                const rotation = this.pulsePhase * 2;
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rotation);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI * 2 / 6) * i;
+                    const sx = Math.cos(angle) * radius * 1.5;
+                    const sy = Math.sin(angle) * radius * 1.5;
+                    const ex = Math.cos(angle) * radius * 2;
+                    const ey = Math.sin(angle) * radius * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy);
+                    ctx.lineTo(ex, ey);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
         }
+    }
+
+    /**
+     * Render lightning icon for speed food
+     */
+    renderLightningIcon(ctx, x, y, size) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x - size * 0.3, y);
+        ctx.lineTo(x + size * 0.2, y);
+        ctx.lineTo(x, y + size);
+        ctx.lineTo(x + size * 0.3, y - size * 0.2);
+        ctx.lineTo(x - size * 0.2, y - size * 0.2);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    /**
+     * Render star icon for bonus food
+     */
+    renderStarIcon(ctx, x, y, size) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+            const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+            const outerX = x + Math.cos(angle) * size;
+            const outerY = y + Math.sin(angle) * size;
+            const innerAngle = angle + Math.PI / 5;
+            const innerX = x + Math.cos(innerAngle) * size * 0.4;
+            const innerY = y + Math.sin(innerAngle) * size * 0.4;
+
+            if (i === 0) ctx.moveTo(outerX, outerY);
+            else ctx.lineTo(outerX, outerY);
+            ctx.lineTo(innerX, innerY);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    /**
+     * Render crown icon for golden food
+     */
+    renderCrownIcon(ctx, x, y, size) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        // Crown base
+        ctx.moveTo(x - size, y + size * 0.3);
+        ctx.lineTo(x - size * 0.6, y - size * 0.3);
+        ctx.lineTo(x - size * 0.2, y);
+        ctx.lineTo(x, y - size);
+        ctx.lineTo(x + size * 0.2, y);
+        ctx.lineTo(x + size * 0.6, y - size * 0.3);
+        ctx.lineTo(x + size, y + size * 0.3);
+        ctx.closePath();
+        ctx.fill();
+
+        // Crown jewels
+        ctx.fillStyle = '#ffff00';
+        ctx.beginPath();
+        ctx.arc(x, y - size * 0.5, size * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    /**
+     * Render magnet icon for magnet food
+     */
+    renderMagnetIcon(ctx, x, y, size) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = size * 0.25;
+        ctx.lineCap = 'round';
+
+        // Horseshoe magnet shape
+        ctx.beginPath();
+        ctx.arc(x, y - size * 0.2, size * 0.6, 0, Math.PI, true);
+        ctx.stroke();
+
+        // North pole
+        ctx.fillStyle = '#ff3366';
+        ctx.fillRect(x - size * 0.7, y - size * 0.3, size * 0.3, size * 0.6);
+
+        // South pole
+        ctx.fillStyle = '#3366ff';
+        ctx.fillRect(x + size * 0.4, y - size * 0.3, size * 0.3, size * 0.6);
     }
 
     /**

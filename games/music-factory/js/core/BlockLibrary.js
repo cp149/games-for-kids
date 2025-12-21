@@ -434,13 +434,15 @@ export class BlockLibrary {
   /**
    * Load all audio files with error handling and concurrency control
    * @param {AudioContext} audioContext
+   * @param {Function} [onProgress] - Optional callback (loaded, total) => void
    * @param {number} [concurrency=5] - Max concurrent loads to prevent browser throttling
    * @returns {Promise<{loaded: number, failed: number, errors: Array}>}
    */
-  async loadAll(audioContext, concurrency = 5) {
+  async loadAll(audioContext, onProgress = null, concurrency = 5) {
     let loaded = 0;
     let failed = 0;
     const errors = [];
+    const total = this.blocks.length;
 
     // Process blocks in batches to limit concurrent requests
     const blocks = [...this.blocks];
@@ -454,10 +456,16 @@ export class BlockLibrary {
         try {
           await block.load(audioContext);
           loaded++;
+          if (onProgress) {
+            onProgress(loaded, total);
+          }
         } catch (error) {
           failed++;
           errors.push({ blockId: block.id, error: error.message });
           console.warn(`Failed to load block ${block.id}:`, error.message);
+          if (onProgress) {
+            onProgress(loaded, total);
+          }
         }
       });
 

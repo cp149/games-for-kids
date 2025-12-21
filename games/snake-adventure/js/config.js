@@ -22,11 +22,12 @@ const CONFIG = {
         SEGMENT_RADIUS: 14,
         SEGMENT_SPACING: 3,
         HEAD_RADIUS_MULTIPLIER: 1.3,    // Head slightly larger
-        INITIAL_SPEED: 200,             // Faster initial speed
-        SPEED_INCREMENT: 25,            // More noticeable speed increase
-        MAX_SPEED: 500,                 // Higher top speed
-        TURN_RATE: 0.12,                // Smoothness of turning (0-1)
+        INITIAL_SPEED: 220,             // Snappier initial speed
+        SPEED_INCREMENT: 20,            // Gradual speed increase
+        MAX_SPEED: 480,                 // Balanced top speed
+        TURN_RATE: 0.15,                // More responsive turning (0-1)
         MIN_TURN_ANGLE: Math.PI / 180 * 5, // Minimum turn per frame
+        BOOST_MULTIPLIER: 1.4,          // Sprint boost multiplier
 
         // Visual
         GRADIENT_START: '#00ffff',      // Cyan
@@ -46,48 +47,56 @@ const CONFIG = {
 
     // Food settings
     FOOD: {
-        MAX_COUNT: 15,                  // Maximum food on screen (more for competition)
+        MAX_COUNT: 20,                  // More food for better gameplay
         SPAWN_RADIUS: 18,
-        GLOW_RADIUS: 30,
-        COLLECTION_RADIUS: 30,          // Distance for collection
-        MIN_DISTANCE_FROM_SNAKE: 100,
-        MIN_DISTANCE_FROM_BOUNDARY: 100,
+        GLOW_RADIUS: 35,
+        COLLECTION_RADIUS: 32,          // Slightly larger collection radius
+        MIN_DISTANCE_FROM_SNAKE: 120,
+        MIN_DISTANCE_FROM_BOUNDARY: 120,
 
-        // Food types
+        // Food types with balanced spawn rates
         TYPES: {
             NORMAL: {
                 COLOR: '#ffd700',               // Golden
-                GLOW_COLOR: 'rgba(255, 215, 0, 0.6)',
+                GLOW_COLOR: 'rgba(255, 215, 0, 0.7)',
                 SCORE: 10,
-                SPAWN_WEIGHT: 70                // 70% chance
+                SPAWN_WEIGHT: 55                // 55% chance (more variety)
             },
             SPEED: {
                 COLOR: '#ff0066',               // Red
-                GLOW_COLOR: 'rgba(255, 0, 102, 0.6)',
-                SCORE: 15,
-                SPEED_BOOST: 30,                // Temporary speed boost
-                BOOST_DURATION: 3000,           // 3 seconds
-                SPAWN_WEIGHT: 15                // 15% chance
+                GLOW_COLOR: 'rgba(255, 0, 102, 0.7)',
+                SCORE: 20,
+                SPEED_BOOST: 50,                // More noticeable speed boost
+                BOOST_DURATION: 5000,           // 5 seconds
+                SPAWN_WEIGHT: 20                // 20% chance
             },
             BONUS: {
                 COLOR: '#00ff00',               // Green
-                GLOW_COLOR: 'rgba(0, 255, 0, 0.6)',
+                GLOW_COLOR: 'rgba(0, 255, 0, 0.7)',
                 SCORE: 50,
-                SCORE_MULTIPLIER: 2,            // Double points for 5 seconds
-                MULTIPLIER_DURATION: 5000,      // 5 seconds
-                SPAWN_WEIGHT: 10                // 10% chance
+                SCORE_MULTIPLIER: 2,            // Double points
+                MULTIPLIER_DURATION: 7000,      // 7 seconds
+                SPAWN_WEIGHT: 15                // 15% chance
             },
             GOLDEN: {
                 COLOR: '#ffff00',               // Yellow
-                GLOW_COLOR: 'rgba(255, 255, 0, 0.8)',
-                SCORE: 100,
-                GROW_AMOUNT: 3,                 // Grow 3 segments instead of 1
+                GLOW_COLOR: 'rgba(255, 255, 0, 0.9)',
+                SCORE: 200,                     // Higher reward
+                GROW_AMOUNT: 3,                 // Grow 3 segments
                 SPAWN_WEIGHT: 5                 // 5% chance (rare)
+            },
+            MAGNET: {
+                COLOR: '#8a2be2',               // Blue Violet
+                GLOW_COLOR: 'rgba(138, 43, 226, 0.8)',
+                SCORE: 30,
+                MAGNET_RANGE: 250,              // Attract food within range
+                MAGNET_DURATION: 6000,          // 6 seconds
+                SPAWN_WEIGHT: 5                 // 5% chance (rare power-up)
             }
         },
 
-        PULSE_SPEED: 3,
-        PULSE_AMOUNT: 0.2
+        PULSE_SPEED: 3.5,
+        PULSE_AMOUNT: 0.25
     },
 
     // Camera follow system
@@ -169,8 +178,9 @@ const CONFIG = {
 
     // Scoring & progression
     PROGRESSION: {
-        FOOD_FOR_SPEED_UP: [10, 25, 50, 100], // Food counts for speed increases
-        LENGTH_MILESTONES: [20, 50, 100, 200, 500] // Achievement lengths
+        FOOD_FOR_SPEED_UP: [20, 40, 70, 110, 160], // Gradual speed increases
+        LENGTH_MILESTONES: [15, 30, 50, 75, 100, 150, 200, 300], // More frequent rewards
+        SCORE_MILESTONES: [500, 1000, 2500, 5000, 10000] // Score-based achievements
     },
 
     // Performance
@@ -182,11 +192,13 @@ const CONFIG = {
 
     // AI settings
     AI: {
-        INITIAL_COUNT: 3,               // Start with 3 AI snakes
-        MAX_COUNT: 5,                   // Max 5 AI snakes at once
+        INITIAL_COUNT: 2,               // Start with 2 AI snakes for easier beginning
+        MAX_COUNT: 5,                   // Max 5 AI snakes (balanced challenge)
         RESPAWN_DELAY_FRAMES: 180,      // 3 seconds at 60 FPS
-        SPAWN_ON_MILESTONE: [50, 100, 200], // Spawn new AI at these player lengths
-        DIFFICULTY_INCREASE_INTERVAL: 10 // Increase AI speed every N food collected
+        SPAWN_ON_MILESTONE: [50, 100, 180], // Spawn new AI at these player lengths
+        DIFFICULTY_INCREASE_INTERVAL: 20, // Increase AI speed every 20 food collected
+        INITIAL_SPEED_MULTIPLIER: 0.85, // AI starts slightly slower than player
+        MAX_SPEED_MULTIPLIER: 0.95      // AI max speed slightly below player
     },
 
     // Kill feed settings

@@ -14,6 +14,7 @@ const I18N = {
             score: "Score: {score}",
             length: "Length: {length}",
             pause: "Pause",
+            paused: "PAUSED",
             resume: "Resume",
             restart: "Restart",
             game_over: "Game Over!",
@@ -26,7 +27,15 @@ const I18N = {
             settings: "Settings",
             music: "Music",
             sfx: "Sound Effects",
-            language: "Language"
+            language: "Language",
+            right_click_to_resume: "Right-click to resume",
+            combo: "{count}x COMBO",
+            combo_ended: "{count}x Combo Ended!",
+            score_multiplier: "2x Score!",
+            new_ai: "New AI Challenger!",
+            speed_boost: "Speed Boost!",
+            golden_food: "Golden Food +3!",
+            magnet_power: "Magnet Power!"
         },
 
         zh: {
@@ -34,6 +43,7 @@ const I18N = {
             score: "分数: {score}",
             length: "长度: {length}",
             pause: "暂停",
+            paused: "已暂停",
             resume: "继续",
             restart: "重新开始",
             game_over: "游戏结束！",
@@ -46,7 +56,15 @@ const I18N = {
             settings: "设置",
             music: "音乐",
             sfx: "音效",
-            language: "语言"
+            language: "语言",
+            right_click_to_resume: "右键点击继续",
+            combo: "{count}连击",
+            combo_ended: "{count}连击结束！",
+            score_multiplier: "双倍分数！",
+            new_ai: "新的AI挑战者！",
+            speed_boost: "速度提升！",
+            golden_food: "金色食物 +3！",
+            magnet_power: "磁铁能力！"
         },
 
         ja: {
@@ -54,6 +72,7 @@ const I18N = {
             score: "スコア: {score}",
             length: "長さ: {length}",
             pause: "一時停止",
+            paused: "一時停止中",
             resume: "再開",
             restart: "リスタート",
             game_over: "ゲームオーバー！",
@@ -66,7 +85,15 @@ const I18N = {
             settings: "設定",
             music: "音楽",
             sfx: "効果音",
-            language: "言語"
+            language: "言語",
+            right_click_to_resume: "右クリックで再開",
+            combo: "{count}コンボ",
+            combo_ended: "{count}コンボ終了！",
+            score_multiplier: "2倍スコア！",
+            new_ai: "新しいAI挑戦者！",
+            speed_boost: "スピードブースト！",
+            golden_food: "ゴールド食品 +3！",
+            magnet_power: "マグネットパワー！"
         }
     },
 

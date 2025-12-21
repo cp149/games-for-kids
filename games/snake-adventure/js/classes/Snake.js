@@ -96,72 +96,163 @@ class Snake {
     }
 
     /**
-     * Render snake
+     * Render snake with enhanced visuals
      */
     render(ctx, camera) {
         if (this.segments.length === 0 || !this.isAlive) return;
 
         const pulse = 1 + Math.sin(this.pulsePhase) * CONFIG.SNAKE.PULSE_AMOUNT;
 
-        // Render body segments (skip head)
+        // Draw trail connections between segments for smoother appearance with gradient
+        ctx.lineWidth = CONFIG.SNAKE.SEGMENT_RADIUS * 1.8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Create gradient along snake body
+        if (this.segments.length >= 2) {
+            const headScreen = {
+                x: this.segments[0].x - camera.getX(),
+                y: this.segments[0].y - camera.getY()
+            };
+            const tailScreen = {
+                x: this.segments[this.segments.length - 1].x - camera.getX(),
+                y: this.segments[this.segments.length - 1].y - camera.getY()
+            };
+
+            const trailGradient = ctx.createLinearGradient(
+                headScreen.x, headScreen.y,
+                tailScreen.x, tailScreen.y
+            );
+            trailGradient.addColorStop(0, this.color.start);
+            trailGradient.addColorStop(1, this.addAlpha(this.color.end, 0.6));
+
+            ctx.strokeStyle = trailGradient;
+
+            ctx.beginPath();
+            for (let i = 0; i < this.segments.length; i++) {
+                const seg = this.segments[i];
+                const screenX = seg.x - camera.getX();
+                const screenY = seg.y - camera.getY();
+
+                if (i === 0) {
+                    ctx.moveTo(screenX, screenY);
+                } else {
+                    ctx.lineTo(screenX, screenY);
+                }
+            }
+            ctx.stroke();
+        }
+
+        // Render body segments with enhanced glow
         for (let i = 1; i < this.segments.length; i++) {
             const seg = this.segments[i];
-            const screenX = seg.x - camera.x;
-            const screenY = seg.y - camera.y;
+            const screenX = seg.x - camera.getX();
+            const screenY = seg.y - camera.getY();
 
             // Gradient from start to end color
             const t = i / this.segments.length;
+            const segmentColor = this.interpolateColor(this.color.start, this.color.end, t);
+
+            // Outer glow
+            const outerGlow = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, seg.radius * pulse * 2);
+            outerGlow.addColorStop(0, segmentColor);
+            outerGlow.addColorStop(0.5, this.addAlpha(segmentColor, 0.3));
+            outerGlow.addColorStop(1, 'transparent');
+
+            ctx.fillStyle = outerGlow;
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, seg.radius * pulse * 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Core segment
             const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, seg.radius * pulse);
-            gradient.addColorStop(0, this.interpolateColor(this.color.start, this.color.end, t));
-            gradient.addColorStop(1, 'transparent');
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.3, segmentColor);
+            gradient.addColorStop(1, this.addAlpha(segmentColor, 0.8));
 
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.arc(screenX, screenY, seg.radius * pulse, 0, Math.PI * 2);
             ctx.fill();
-
-            // Glow effect
-            ctx.shadowBlur = CONFIG.SNAKE.BODY_GLOW_RADIUS;
-            ctx.shadowColor = this.color.glow;
         }
 
-        ctx.shadowBlur = 0;
-
-        // Render head
+        // Render head with enhanced effects
         const head = this.segments[0];
-        const headX = head.x - camera.x;
-        const headY = head.y - camera.y;
+        const headX = head.x - camera.getX();
+        const headY = head.y - camera.getY();
         const headRadius = CONFIG.SNAKE.SEGMENT_RADIUS * CONFIG.SNAKE.HEAD_RADIUS_MULTIPLIER * pulse;
 
-        // Head glow
-        const headGlow = ctx.createRadialGradient(headX, headY, 0, headX, headY, headRadius + 10);
+        // Head outer glow (larger)
+        const headGlow = ctx.createRadialGradient(headX, headY, 0, headX, headY, headRadius * 2.5);
         headGlow.addColorStop(0, this.color.start);
-        headGlow.addColorStop(0.7, this.color.start);
+        headGlow.addColorStop(0.4, this.addAlpha(this.color.start, 0.5));
         headGlow.addColorStop(1, 'transparent');
 
         ctx.fillStyle = headGlow;
         ctx.beginPath();
-        ctx.arc(headX, headY, headRadius + 10, 0, Math.PI * 2);
+        ctx.arc(headX, headY, headRadius * 2.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Head body
-        ctx.fillStyle = this.color.start;
+        // Head middle glow
+        const midGlow = ctx.createRadialGradient(headX, headY, 0, headX, headY, headRadius * 1.5);
+        midGlow.addColorStop(0, '#ffffff');
+        midGlow.addColorStop(0.5, this.color.start);
+        midGlow.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = midGlow;
+        ctx.beginPath();
+        ctx.arc(headX, headY, headRadius * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head body with shine
+        const headGrad = ctx.createRadialGradient(
+            headX - headRadius * 0.3,
+            headY - headRadius * 0.3,
+            0,
+            headX,
+            headY,
+            headRadius
+        );
+        headGrad.addColorStop(0, '#ffffff');
+        headGrad.addColorStop(0.2, this.color.start);
+        headGrad.addColorStop(1, this.addAlpha(this.color.start, 0.9));
+
+        ctx.fillStyle = headGrad;
         ctx.beginPath();
         ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Eyes
+        // Eyes with whites
         const eyeOffset = CONFIG.SNAKE.EYE_OFFSET;
         const eye1X = headX + Math.cos(this.angle + Math.PI / 4) * eyeOffset;
         const eye1Y = headY + Math.sin(this.angle + Math.PI / 4) * eyeOffset;
         const eye2X = headX + Math.cos(this.angle - Math.PI / 4) * eyeOffset;
         const eye2Y = headY + Math.sin(this.angle - Math.PI / 4) * eyeOffset;
 
-        ctx.fillStyle = CONFIG.SNAKE.EYE_COLOR;
+        // Eye whites
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(eye1X, eye1Y, CONFIG.SNAKE.EYE_SIZE * 1.5, 0, Math.PI * 2);
+        ctx.arc(eye2X, eye2Y, CONFIG.SNAKE.EYE_SIZE * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye pupils
+        ctx.fillStyle = '#000000';
         ctx.beginPath();
         ctx.arc(eye1X, eye1Y, CONFIG.SNAKE.EYE_SIZE, 0, Math.PI * 2);
         ctx.arc(eye2X, eye2Y, CONFIG.SNAKE.EYE_SIZE, 0, Math.PI * 2);
         ctx.fill();
+    }
+
+    /**
+     * Add alpha channel to hex color
+     */
+    addAlpha(hexColor, alpha) {
+        const c = parseInt(hexColor.slice(1), 16);
+        const r = (c >> 16) & 255;
+        const g = (c >> 8) & 255;
+        const b = c & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
     /**
