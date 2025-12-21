@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐍 Snake Adventure - Modern Snake Game</title>
+    <meta name="description" content="A visually stunning Snake game with smooth 360° movement and beautiful effects">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="hud">
+            <div id="score">Score: 0</div>
+            <div id="length">Length: 10</div>
+        </div>
+        <div id="controls">
+            <button id="pause-btn" class="control-btn">⏸</button>
+        </div>
+        <div id="joystick-container"></div>
+    </div>
+
+    <!-- Load in order: stats → Logger → config → i18n → utils → classes → ai → managers → game -->
+    <script src="../lib/stats.min.js"></script>
+    <script src="../lib/utils/Logger.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/utils/MathUtils.js"></script>
+    <script src="js/classes/Snake.js"></script>
+    <!-- AI Strategy System -->
+    <script src="js/ai/AIStrategy.js"></script>
+    <script src="js/ai/AggressiveStrategy.js"></script>
+    <script src="js/ai/CautiousStrategy.js"></script>
+    <script src="js/ai/ExplorerStrategy.js"></script>
+    <script src="js/ai/AIController.js"></script>
+    <!-- Managers -->
+    <script src="js/managers/UIManager.js"></script>
+    <script src="js/managers/SnakeManager.js"></script>
+    <script src="js/managers/FoodManager.js"></script>
+    <script src="js/managers/CameraManager.js"></script>
+    <script src="js/managers/ParticleManager.js"></script>
+    <script src="js/managers/AudioManager.js"></script>
+    <script src="js/managers/LeaderboardManager.js"></script>
+    <script src="js/managers/KillFeedManager.js"></script>
+    <script src="js/classes/SnakeGame.js"></script>
+
+    <!-- Initialize -->
+    <script type="module">
+        import { PerformanceMonitor } from '../lib/performance-monitor.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Access Logger from global scope
+            const Logger = window.Logger;
+
+            Logger.info('🌟 Snake Adventure initializing...');
+            Logger.log('Environment:', Logger.getEnvironment());
+
+            // Initialize performance monitor
+            const perfMonitor = new PerformanceMonitor({
+                position: 'top-left',
+                logger: Logger
+            });
+            perfMonitor.init();
+
+            const game = new SnakeGame('game-canvas');
+
+            // Attach performance monitor to game
+            game.perfMonitor = perfMonitor;
+
+            // Cleanup on unload
+            window.addEventListener('beforeunload', () => {
+                Logger.info('🔄 Cleaning up game resources');
+                game.destroy();
+            });
+        });
+    </script>
+</body>
+</html>
