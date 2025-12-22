@@ -59,7 +59,7 @@ class LeaderboardManager {
         if (this.rankings.length === 0) return;
 
         const x = canvas.width - 200;
-        const y = 80;
+        const y = 150;
         const lineHeight = 30;
         const padding = 15;
 
@@ -79,21 +79,24 @@ class LeaderboardManager {
 
         // Rankings
         ctx.font = '14px Arial';
+        ctx.textAlign = 'left';
+
         this.rankings.forEach((ranking, index) => {
             const rankY = y + padding + 30 + (index * lineHeight);
 
-            // Rank number
+            // Rank number (fixed width column)
             ctx.fillStyle = index === 0 ? '#ffd700' : (index === 1 ? '#c0c0c0' : (index === 2 ? '#cd7f32' : '#ffffff'));
             ctx.fillText(`${index + 1}.`, x + padding, rankY);
 
-            // Snake type indicator
+            // Snake type indicator (fixed position)
             const indicator = ranking.isPlayer ? '👤' : '🤖';
-            ctx.fillText(indicator, x + padding + 25, rankY);
+            ctx.fillText(indicator, x + padding + 30, rankY);
 
-            // Length
+            // Length (right-aligned in fixed column)
             ctx.fillStyle = ranking.isPlayer ? '#00ff88' : '#ffffff';
             ctx.textAlign = 'right';
             ctx.fillText(`${ranking.length}`, x + 180 - padding, rankY);
+            ctx.textAlign = 'left';
 
             // Highlight player
             if (ranking.isPlayer) {
@@ -102,8 +105,6 @@ class LeaderboardManager {
                 ctx.strokeRect(x + 5, rankY - 16, 170, 22);
             }
         });
-
-        ctx.textAlign = 'left';
     }
 
     /**
