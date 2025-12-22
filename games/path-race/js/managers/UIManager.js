@@ -8,6 +8,7 @@ class UIManager {
         this.game = game;
         this.elements = {};
         this.particles = new ParticleSystem();
+        this.currentTime = 0; // Track current time for RAF optimization
         this.init();
     }
 
@@ -21,6 +22,7 @@ class UIManager {
         this.elements.playerTime = document.getElementById('player-time');
         this.elements.aiStatus = document.getElementById('ai-status');
         this.elements.aiProgress = document.getElementById('ai-progress');
+        this.elements.announcements = document.getElementById('game-announcements');
 
         // Add animation classes to interactive elements
         this.setupAnimations();
@@ -79,6 +81,7 @@ class UIManager {
      * @param {number} seconds - Elapsed seconds
      */
     updatePlayerTime(seconds) {
+        this.currentTime = seconds;
         this.elements.playerTime.textContent = `${seconds}s`;
     }
 
@@ -205,6 +208,26 @@ class UIManager {
         } else if (!show && spinner) {
             spinner.remove();
         }
+    }
+
+    /**
+     * Announce message to screen readers
+     * @param {string} message - Message to announce
+     * @param {string} priority - 'polite' or 'assertive'
+     */
+    announce(message, priority = 'polite') {
+        if (!this.elements.announcements) return;
+
+        // Clear previous announcement
+        this.elements.announcements.textContent = '';
+
+        // Set priority
+        this.elements.announcements.setAttribute('aria-live', priority);
+
+        // Announce with slight delay for screen reader pickup
+        setTimeout(() => {
+            this.elements.announcements.textContent = message;
+        }, 100);
     }
 
     /**

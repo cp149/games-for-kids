@@ -15,7 +15,6 @@ class AIManager {
         this.iterationDelay = CONFIG.ACO.ITERATION_DELAY;
         this.startTime = null;
         this.finishTime = null;
-        this.intervalId = null;
         this.pathTimeouts = []; // Track setTimeout IDs for path animation
 
         // Early stopping mechanism
@@ -60,12 +59,8 @@ class AIManager {
     async runACO() {
         if (!this.isRunning) return;
 
-        this.intervalId = setInterval(async () => {
-            if (!this.isRunning || this.currentIteration >= this.maxIterations) {
-                this.finishSolving();
-                return;
-            }
-
+        // Main loop - much cleaner than setInterval
+        while (this.isRunning && this.currentIteration < this.maxIterations) {
             // Run one iteration
             const bestPath = await this.antColony.runIteration();
             this.currentIteration++;
@@ -87,8 +82,7 @@ class AIManager {
             // Quick fail: if ACO can't find ANY path in first 10 iterations, give up
             if (this.currentIteration === 10 && !bestPath) {
                 this.logger.warn('AIManager: ACO failed to find any path in 10 iterations, switching to greedy');
-                this.finishSolving();
-                return;
+                break;
             }
 
             // Early stopping: if no improvement after threshold and past minimum iterations
@@ -96,23 +90,27 @@ class AIManager {
                 const noImprovement = this.currentIteration - this.lastImprovementIteration;
                 if (noImprovement >= this.noImprovementThreshold) {
                     this.logger.info(`AIManager: Early stop - no improvement for ${noImprovement} iterations`);
-                    this.finishSolving();
-                    return;
+                    break;
                 }
             }
 
             // If found complete path, validate and execute it
             if (bestPath && this.antColony.isValidPath(bestPath)) {
                 this.logger.info(`AIManager: Found valid solution at iteration ${this.currentIteration}`);
-                // Update progress to 100% before executing path
                 if (this.game.uiManager) {
                     this.game.uiManager.updateAIProgress(100);
                     this.game.uiManager.updateAIStatus('found_solution');
                 }
                 this.executePath(bestPath);
+                return; // Exit - path animation in progress
             }
 
-        }, this.iterationDelay);
+            // Wait before next iteration (simulate delay)
+            await new Promise(resolve => setTimeout(resolve, this.iterationDelay));
+        }
+
+        // Loop ended without finding solution - try fallback
+        this.finishSolving();
     }
 
     /**
@@ -125,9 +123,8 @@ class AIManager {
 
         this.logger.info(`AIManager: Executing path - ${path.length} dots from (${path[0].gridX},${path[0].gridY}) to (${path[path.length-1].gridX},${path[path.length-1].gridY})`);
 
-        if (this.game.uiManager) {
-            this.game.uiManager.updateAIStatus('racing');
-        }
+        // Don't change status - keep 'found_solution' or let it transition naturally
+        // Status will be updated to 'finished' when path animation completes
 
         // Clear any existing path timeouts
         this.pathTimeouts.forEach(id => clearTimeout(id));
@@ -149,7 +146,7 @@ class AIManager {
                 if (this.game.renderBothCanvases) {
                     this.game.renderBothCanvases();
                 }
-            }, index * 200); // Animate path step by step
+            }, index * 1000); // Animate path step by step (1000ms per dot)
 
             this.pathTimeouts.push(timeoutId);
         });
@@ -273,10 +270,7 @@ class AIManager {
      */
     stop() {
         this.isRunning = false;
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
+        // No need to clear interval - using while loop now
     }
 
     /**

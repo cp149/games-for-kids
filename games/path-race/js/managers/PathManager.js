@@ -182,6 +182,12 @@ class PathManager {
     }
 }
 
+// Export for both browser and Node.js
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PathManager;
+}
+
+// Make available globally for browser
+if (typeof window !== 'undefined') {
+    window.PathManager = PathManager;
 }

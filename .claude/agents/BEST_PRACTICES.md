@@ -67,6 +67,65 @@ class PuzzleGame {
 
 ---
 
+## 2.5. Module Export Pattern (CRITICAL)
+
+**Problem**: ES6 `export` breaks browser `<script>` tag loading.
+
+**Solution**: Dual export pattern for browser + Node.js tests.
+
+### Standard Export Template
+
+```javascript
+class ClassName {
+    // Implementation
+}
+
+// Export for Node.js tests (npm test)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ClassName;
+}
+
+// Export for browser (REQUIRED for <script> tags)
+if (typeof window !== 'undefined') {
+    window.ClassName = ClassName;
+}
+```
+
+### Common Mistakes
+
+```javascript
+// ❌ WRONG - ES6 module (not supported by <script> tags)
+export default ClassName;
+export { ClassName };
+
+// ❌ WRONG - Only Node.js (browser gets "ClassName is not defined")
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ClassName;
+}
+// Missing: window.ClassName = ClassName;
+
+// ✅ CORRECT - Works in both environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ClassName;
+}
+if (typeof window !== 'undefined') {
+    window.ClassName = ClassName;
+}
+```
+
+### Why This Matters
+- **Browser**: Needs `window.ClassName` for `<script>` tag loading
+- **Tests**: Needs `module.exports` for Node.js/Vitest imports
+- **Forgotten window export** = Runtime error: "ClassName is not defined"
+
+### Checklist
+- [ ] Every class/manager file has dual export
+- [ ] Browser export: `window.ClassName = ClassName`
+- [ ] Node.js export: `module.exports = ClassName`
+- [ ] No ES6 `export default` or `export { }`
+
+---
+
 ## 3. Centralized Configuration (MANDATORY)
 
 ALL magic numbers and settings in `config.js`:

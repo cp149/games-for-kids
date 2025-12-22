@@ -1,704 +1,233 @@
 # Claude Development Guidelines
 
-This file contains important guidelines for Claude when working on this project.
-
 ## ⚡ Output Policy - CRITICAL
-所有路径都用相对路径，不许出现/home的字眼
+
+**所有路径都用相对路径，不许出现/home的字眼**
 **BE CONCISE. MINIMIZE TOKEN USAGE.**
 
 ### 报告长度限制
 - **默认**: 不输出报告，除非明确需要
-- **必要时**: 最多200字（~100个汉字）
-- **格式**: 使用项目符号，不用段落
+- **必要时**: 最多200字（~100个汉字），使用项目符号
 - **例外**: 仅在用户明确要求详细信息时超出限制
 
-**示例**:
-- ✅ "修复3个问题。分数:8.5→8.7/10"
-- ❌ 冗长的修复说明和原因分析
-
 ### 通用规则
-- 简短直接，无多余前言/结语
-- 无冗长解释（除非被问到）
-- 无重复总结
-- 直接回答问题，不展开
+- 简短直接，无多余前言/结语/重复总结
 - 仅在明确请求时提供细节
 - 优先使用项目符号而非段落
-- 跳过显而易见的陈述
+
+---
 
 ## Language Policy 🌍
 
-### Communication: Chinese (中文)
-- All conversations with users are in Chinese
-- Team discussions are in Chinese
-- Design documents can be in Chinese
+| 元素 | 语言 | 示例 |
+|------|------|------|
+| **代码** | 英文 | `class GameManager` |
+| **注释** | 英文 | `// Update player score` |
+| **变量/函数** | 英文 | `playerScore`, `calculateScore()` |
+| **文件名** | 英文 | `game-manager.js` |
+| **Git提交** | 英文 | `feat: add scoring system` |
+| **用户界面** | 多语言(i18n) | `i18n.t('welcome_message')` |
+| **对话/文档** | 中文 | (当前对话) |
 
-### Code: English
-- **ALL code must be written in English**
-- **ALL comments must be in English**
-- **ALL identifiers (variables, functions, classes) must be in English**
-- **ALL commit messages must be in English**
-- **ALL file names must be in English**
+**关键规则**:
+- **代码**: 100%英文（类/函数/变量/注释/文件名）
+- **UI文本**: 禁止硬编码，必须用i18n系统
+- **Git**: 全英文提交信息
 
-### User-Facing Content: Multilingual (I18n)
-- Games must support multiple languages (至少支持中英文)
-- **Never hardcode text strings** - always use i18n system
-- All UI text must go through internationalization
-- Provide language switching functionality
+---
 
 ## Project Structure 📁
 
-### Game Directory Structure
-
-**IMPORTANT: Each game MUST have its own directory under `games/`**
+### 游戏目录结构
 
 ```
 games/
-├── game-name/                    # Each game has its own directory
-│   ├── index.html               # Main game file
-│   ├── styles.css               # Game styles (optional, can be inline)
-│   ├── script.js                # Game logic (optional, can be inline)
-│   ├── README.md                # Game-specific README
-│   ├── assets/                  # Game assets
-│   │   ├── images/             # Images for this game
-│   │   └── sounds/             # Sounds for this game
-│   └── docs/                    # Game-specific documentation
-│       ├── design.md           # Game design document
-│       ├── decisions.md        # Architecture decisions for this game
-│       └── user-guide.md       # How to play (multi-language)
+├── game-name/                    # 每个游戏独立目录
+│   ├── index.html               # 主游戏文件
+│   ├── js/                      # 游戏逻辑
+│   ├── css/                     # 游戏样式
+│   ├── assets/                  # 游戏资源
+│   │   ├── images/
+│   │   └── sounds/
+│   ├── docs/                    # 游戏专属文档
+│   │   ├── design.md
+│   │   ├── decisions.md
+│   │   └── user-guide.md
+│   └── README.md
 ```
 
-### Documentation Rules
+### 文档规则
 
-**Project-level docs:** `/docs/` (shared knowledge, lessons learned, best practices)
-```
-docs/
-├── development-logs/           # Overall project progress
-├── lessons-learned/            # Project-wide lessons
-├── architecture/               # Shared architecture decisions
-├── best-practices/             # Team-wide best practices
-└── knowledge-base/             # Shared knowledge
-```
+| 类型 | 位置 | 内容 |
+|------|------|------|
+| **游戏文档** | `games/[game-name]/docs/` | 设计/决策/用户指南 |
+| **项目文档** | `docs/` | 开发日志/经验教训/最佳实践 |
+| **通用组件** | `games/lib/` | 共享代码/工具库 |
 
-**Game-specific docs:** `games/[game-name]/docs/` (only for that specific game)
+**错误位置** ❌:
 ```
-games/memory-match/docs/
-├── design.md                   # This game's design
-├── decisions.md                # This game's technical decisions
-└── user-guide.md               # How to play this game
+❌ docs/memory-match-design.md         # 游戏文档放项目docs
+❌ games/memory-match.html             # 游戏文件直接在games/
+❌ .claude/docs/game-design.md         # 游戏文档放agent目录
 ```
 
-### File Location Rules
-
-When creating a new game:
-
-1. **Create game directory:** `games/[game-name]/`
-2. **All game files go in that directory:** HTML, CSS, JS, assets
-3. **Game documentation goes in:** `games/[game-name]/docs/`
-4. **NOT in:** `.claude/`, `/docs/`, or project root
-
-### Example: Memory Match Game
-
+**正确位置** ✅:
 ```
-games/memory-match/
-├── index.html                          # The game
-├── README.md                           # What this game is
-├── assets/
-│   ├── images/
-│   │   ├── cat.png                    # Animal card images
-│   │   ├── dog.png
-│   │   └── ...
-│   └── sounds/
-│       ├── flip.mp3                   # Game sounds
-│       └── match.mp3
-└── docs/
-    ├── design.md                      # Game design for memory match
-    ├── decisions.md                   # Why we chose certain approaches
-    └── user-guide.md                  # How to play memory match
+✅ games/memory-match/index.html       # 游戏在其目录
+✅ games/memory-match/docs/design.md   # 游戏文档跟游戏
+✅ docs/lessons-learned/2025-01-05.md  # 项目级文档
 ```
 
-### Wrong Locations ❌
+---
 
-```
-❌ .claude/docs/game-design.md         # Wrong: game docs in agent directory
-❌ docs/memory-match-design.md         # Wrong: game docs in project docs
-❌ memory-match.html                   # Wrong: game in project root
-❌ games/memory-match.html             # Wrong: game file directly in games/
-```
+## Code Standards 💻
 
-### Correct Locations ✅
-
-```
-✅ games/memory-match/index.html       # Correct: game in its directory
-✅ games/memory-match/docs/design.md   # Correct: game docs with game
-✅ games/memory-match/assets/cat.png   # Correct: assets with game
-✅ docs/lessons-learned/2025-01-05.md  # Correct: project-wide lessons
-```
-
-## Code Examples
-
-### ✅ CORRECT
+### 代码示例
 
 ```javascript
-// Good: English code and comments
+// ✅ 正确
 class GameManager {
   constructor() {
     this.score = 0;
-    this.level = 1;
   }
 
-  // Update the player's score based on achievements
+  // Update score based on achievements
   updateScore(points) {
     this.score += points;
+    // Use i18n for UI text
+    element.textContent = i18n.t('score', { score: this.score });
   }
 }
 
-// Use i18n for user-facing text
-const message = i18n.t('welcome');  // ✅
-```
-
-### ❌ WRONG
-
-```javascript
-// Bad: Chinese in code
-class 游戏管理器 {  // ❌ Chinese class name
+// ❌ 错误
+class 游戏管理器 {           // 中文类名
   constructor() {
-    this.分数 = 0;  // ❌ Chinese variable
+    this.分数 = 0;          // 中文变量
   }
-
-  // 更新分数  // ❌ Chinese comment
-  更新分数(点数) {  // ❌ Chinese function name
-    this.分数 += 点数;
+  更新分数(点数) {          // 中文函数
+    element.textContent = "分数：" + this.分数;  // 硬编码文本
   }
 }
-
-// Bad: Hardcoded Chinese text
-element.textContent = "欢迎！";  // ❌ No i18n
 ```
 
-## Internationalization (I18n) Requirements
-
-### Always Use I18n System
+### I18n 结构
 
 ```javascript
-// Structure for i18n
 const messages = {
-  en: {
-    game_title: "Magic Chef Academy",
-    start_game: "Start Game",
-    score: "Score: {score}"
-  },
-  zh: {
-    game_title: "魔法厨师学院",
-    start_game: "开始游戏",
-    score: "分数: {score}"
-  },
-  ja: {
-    game_title: "マジックシェフアカデミー",
-    start_game: "ゲーム開始",
-    score: "スコア: {score}"
-  }
+  en: { game_title: "Magic Chef", score: "Score: {score}" },
+  zh: { game_title: "魔法厨师", score: "分数: {score}" }
 };
 
-// Usage
+// 使用
 title.textContent = i18n.t('game_title');
-button.textContent = i18n.t('start_game');
-scoreDisplay.textContent = i18n.t('score', { score: playerScore });
+scoreDisplay.textContent = i18n.t('score', { score: 100 });
 ```
 
-### I18n Best Practices
+---
 
-1. **Use descriptive keys in English**
-   ```javascript
-   i18n.t('player_lives_remaining')  // ✅ Good
-   i18n.t('msg1')  // ❌ Bad
-   ```
+## Path Standards 🔗
 
-2. **Support parameters**
-   ```javascript
-   i18n.t('score_message', { score: 100, level: 5 })
-   ```
+**关键**: 永远使用相对路径，绝不使用绝对路径
 
-3. **Organize keys by feature**
-   ```javascript
-   {
-     menu: {
-       start: "Start",
-       options: "Options"
-     },
-     game: {
-       pause: "Pause",
-       resume: "Resume"
-     }
-   }
-   ```
+### 正确路径 ✅
 
-## Git Commit Standards
+```html
+<!-- 游戏内资源 -->
+<img src="assets/images/cat.png">
+<script src="js/game.js"></script>
 
-### Use English for ALL commits
-
-```bash
-# ✅ CORRECT
-git commit -m "Add level progression system"
-git commit -m "Fix collision detection in maze game"
-git commit -m "Optimize rendering for mobile devices"
-
-# ❌ WRONG
-git commit -m "添加关卡系统"
-git commit -m "修复碰撞检测"
+<!-- 跨游戏导航 -->
+<a href="../other-game/index.html">Other Game</a>
+<a href="../../index.html">Home</a>
 ```
 
-### Commit Message Format
+```javascript
+// ES6 模块
+import { Player } from './entities/player.js';
+import { Engine } from '../core/engine.js';
+
+// 资源加载
+bgImage.src = 'assets/images/bg.png';
+```
+
+### 错误路径 ❌
+
+```html
+<!-- 不许出现这些 -->
+<img src="/home/wxcd/mgame/games/...">          ❌
+<img src="/games/memory-match/assets/...">      ❌
+<script src="C:\Projects\mgame\js\...">         ❌
+```
+
+**原因**: 部署到GitHub Pages后会失效
+
+---
+
+## Git Commit Format
 
 ```
 <type>: <description>
 
-[optional body]
-
-[optional footer]
+Types: feat, fix, docs, style, refactor, perf, test, chore
 ```
 
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks
+```bash
+# ✅ 正确
+git commit -m "feat: add level progression system"
+git commit -m "fix: collision detection in maze game"
 
-## File Naming Conventions
-
-### ✅ CORRECT (English)
+# ❌ 错误
+git commit -m "添加关卡系统"
+git commit -m "修复碰撞检测"
 ```
-game-manager.js
-player-controller.js
-level-config.json
-magic-chef-sprite.png
-main-menu.html
-game-styles.css
-```
-
-### ❌ WRONG (Chinese)
-```
-游戏管理器.js
-玩家控制器.js
-关卡配置.json
-魔法厨师.png
-```
-
-## Path Usage Standards 🔗
-
-### CRITICAL: Always Use Relative Paths
-
-**NEVER use absolute paths in code** - they will break when deployed to GitHub Pages or other hosting platforms.
-
-### ✅ CORRECT (Relative Paths)
-
-```html
-<!-- In games/memory-match/index.html -->
-<img src="assets/images/cat.png">
-<script src="js/game.js"></script>
-<link rel="stylesheet" href="styles/main.css">
-<audio src="assets/sounds/bgm.mp3"></audio>
-
-<!-- Linking to another game from homepage -->
-<a href="games/memory-match/index.html">Play Memory Match</a>
-
-<!-- In games/runner-adventure/index.html -->
-<img src="assets/images/character.png">
-<script src="src/core/engine.js" type="module"></script>
-```
-
-```javascript
-// In JavaScript - relative paths
-const bgImage = new Image();
-bgImage.src = 'assets/images/background.png';  // ✅ Relative
-
-// Loading modules
-import { GameEngine } from './core/engine.js';  // ✅ Relative
-import { Player } from '../entities/player.js';  // ✅ Relative
-
-// Loading JSON data
-fetch('data/levels.json')  // ✅ Relative
-  .then(response => response.json());
-```
-
-```css
-/* In CSS files */
-.background {
-  background-image: url('../images/bg.png');  /* ✅ Relative */
-}
-
-@font-face {
-  src: url('../fonts/game-font.woff2');  /* ✅ Relative */
-}
-```
-
-### ❌ WRONG (Absolute Paths)
-
-```html
-<!-- These will BREAK when published -->
-<img src="/games/memory-match/assets/images/cat.png">  ❌
-<script src="/Users/dev/projects/mgame/js/game.js"></script>  ❌
-<link href="C:\Projects\mgame\styles\main.css">  ❌
-
-<!-- Wrong: absolute path from server root -->
-<a href="/games/memory-match/index.html">  ❌ Breaks on GitHub Pages
-```
-
-```javascript
-// WRONG - absolute paths
-const bgImage = new Image();
-bgImage.src = '/assets/bg.png';  // ❌ Will break
-
-// WRONG - absolute from root
-fetch('/data/levels.json')  // ❌ May break on subpath deployments
-```
-
-### Path Examples by Location
-
-**From `games/memory-match/index.html`:**
-```html
-<!-- Assets in same game -->
-<img src="assets/images/cat.png">              <!-- ✅ Same game assets -->
-<audio src="assets/sounds/flip.mp3">           <!-- ✅ Same game sounds -->
-
-<!-- Back to homepage -->
-<a href="../../index.html">Home</a>            <!-- ✅ Navigate up -->
-
-<!-- Other game -->
-<a href="../runner-adventure/index.html">      <!-- ✅ Sibling game -->
-```
-
-**From `games/runner-adventure/src/entities/player.js`:**
-```javascript
-// Importing from other modules
-import { GameEngine } from '../core/engine.js';     // ✅ Up one, then core
-import { Vector2D } from '../../utils/math.js';      // ✅ Up two, then utils
-import { CONSTANTS } from '../config/constants.js';  // ✅ Sibling directory
-
-// Loading assets
-const sprite = new Image();
-sprite.src = '../../assets/images/player.png';       // ✅ Up to game root
-```
-
-**From `index.html` (homepage):**
-```html
-<!-- Linking to games -->
-<a href="games/memory-match/index.html">       <!-- ✅ Down into games -->
-<a href="games/runner-adventure/index.html">   <!-- ✅ Down into games -->
-
-<!-- Assets in root -->
-<link rel="stylesheet" href="styles/main.css"> <!-- ✅ Root level assets -->
-```
-
-### GitHub Pages Deployment
-
-When deployed to GitHub Pages at `https://username.github.io/games-for-kids/`:
-
-**✅ Relative paths work perfectly:**
-```html
-<!-- In games/memory-match/index.html -->
-<img src="assets/images/cat.png">
-<!-- Resolves to: https://username.github.io/games-for-kids/games/memory-match/assets/images/cat.png -->
-```
-
-**❌ Absolute paths break:**
-```html
-<img src="/assets/images/cat.png">
-<!-- Tries: https://username.github.io/assets/images/cat.png -->
-<!-- WRONG! Missing /games-for-kids/ prefix -->
-```
-
-### Module Imports (ES6)
-
-```javascript
-// ✅ CORRECT - Always use relative paths with ./ or ../
-import { Player } from './entities/player.js';
-import { GameEngine } from '../core/engine.js';
-import { utils } from '../../utils/helpers.js';
-
-// ❌ WRONG - Absolute or bare imports
-import { Player } from '/src/entities/player.js';  // ❌
-import { GameEngine } from 'core/engine.js';       // ❌ (needs ./ prefix)
-```
-
-### Path Best Practices
-
-1. **Always start with `./` or `../`** for relative paths
-2. **Test paths work from file's actual location**
-3. **Use consistent depth** - don't mix `../../` with absolute
-4. **Avoid going up too many levels** - restructure if needed
-5. **No hardcoded domain names** - use relative for portability
-
-### Path Testing Checklist
-
-Before committing, verify:
-- [ ] No absolute file system paths (`/home/`, `C:\`, etc.)
-- [ ] No absolute web paths starting with `/` (unless intentional)
-- [ ] All asset references use relative paths
-- [ ] All module imports use `./` or `../` prefix
-- [ ] Paths work when opened locally (file://)
-- [ ] Paths will work on GitHub Pages (https://)
-
-## Documentation Standards
-
-### Code Documentation (JSDoc) - English
-
-```javascript
-/**
- * Calculates the player's final score
- * @param {number} baseScore - The base score earned
- * @param {number} timeBonus - Bonus points for completion time
- * @param {number} accuracy - Accuracy percentage (0-100)
- * @returns {number} The final calculated score
- */
-function calculateFinalScore(baseScore, timeBonus, accuracy) {
-  return Math.floor(baseScore + timeBonus * (accuracy / 100));
-}
-```
-
-### Project Documentation
-- Technical docs: English (for sharing globally)
-- Team communication docs: Chinese is acceptable
-- README.md: Can have both Chinese and English sections
-
-## Console Logging
-
-### Development
-```javascript
-// Acceptable during development
-console.log('Game initialized');
-console.error('Failed to load asset:', assetPath);
-
-// Temporary debug (must be removed before production)
-console.log('临时调试:', value);  // OK for quick debug, remove later
-```
-
-### Production
-- **Remove ALL console.log statements**
-- Use proper error handling and logging systems
-- Production logs should be minimal and in English
-
-## Code Quality Standards
-
-### Always Follow
-1. Use English for all code elements
-2. Use i18n for all user-facing text
-3. Write meaningful comments in English
-4. Use descriptive variable/function names
-5. Follow consistent code style
-6. Remove debug logs before committing
-
-### Code Review Checklist
-- [ ] All code in English
-- [ ] All comments in English
-- [ ] All identifiers in English
-- [ ] No hardcoded text (using i18n)
-- [ ] All text has translations
-- [ ] No console.logs in production code
-- [ ] Commit message in English
-- [ ] File names in English
 
 ---
 
-## Universal Components (games/lib/) 🔧
+## Universal Components 🔧
 
-### Component Extraction Guidelines
+### 共享代码位置: `games/lib/`
 
-**When to Extract:**
-- Logic repeated across 3+ games
-- 100+ lines of reusable code
-- Clear single responsibility
-- Standalone functionality
+**提取标准**:
+- 3+游戏重复使用
+- 100+行可复用代码
+- 清晰单一职责
+- 独立功能
 
-**Benefits:**
-- ✅ Reduce code duplication (27.5% reduction per game)
-- ✅ Consistent behavior across games
-- ✅ Single source of truth for fixes
-- ✅ Faster new game development
-
-### Component Structure
-
-```
-games/lib/
-├── component-name.js              # Implementation (250-300 lines max)
-├── component-name-README.md       # Full API documentation
-└── utils/                         # Small utilities
-    └── helper-name.js
-```
-
-**Required Documentation:**
-- Installation instructions
-- Basic usage examples
-- API reference
-- Integration examples
-- Browser compatibility
-
-### Module Compatibility Pattern
-
-**Support both ES6 modules and global browser usage:**
-
+**模块兼容模式**:
 ```javascript
 class ComponentName {
   // Implementation
 }
 
-// Export for CommonJS (Node.js tests)
+// 支持CommonJS (Node.js测试)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { ComponentName };
 }
 
-// Export for global browser usage
+// 支持浏览器全局
 if (typeof window !== 'undefined') {
   window.ComponentName = ComponentName;
 }
 ```
 
-**HTML Loading:**
-```html
-<!-- Load before components that use it -->
-<script src="../lib/component-name.js"></script>
-<script src="js/managers/SomeManager.js"></script>
-```
-
-**Test Import:**
-```javascript
-import { ComponentName } from '../../lib/component-name.js';
-globalThis.ComponentName = ComponentName; // Make available globally
-```
-
-### Integration Pattern
-
-**Before Extraction (in game code):**
-```javascript
-class AudioManager {
-  constructor() {
-    this.tracks = [...];
-    this.currentTrack = null;
-    // ... 115 lines of music logic
-  }
-
-  playNextTrack() { /* complex logic */ }
-  handleError() { /* error handling */ }
-  // ... many methods
-}
-```
-
-**After Extraction:**
-```javascript
-class AudioManager {
-  constructor() {
-    this.bgMusic = new BackgroundMusicManager({
-      tracks: [...],
-      volume: 0.3
-    });
-  }
-
-  startBackgroundMusic() { this.bgMusic.start(); }
-  stopBackgroundMusic() { this.bgMusic.stop(); }
-  toggleMusic() { return this.bgMusic.toggle(); }
-}
-```
-
-**Result:** 115 lines → 5 lines delegation
-
-### Existing Universal Components
-
-1. **PerformanceMonitor** (`performance-monitor.js`)
-   - FPS/MS/MB monitoring
-   - 12 games using
-
-2. **Logger** (`utils/Logger.js`)
-   - Structured logging
-   - 12 games using
-
-3. **BackgroundMusicManager** (`background-music.js`)
-   - Random looping music
-   - Error handling
-   - Tab auto-pause
-
----
-
-## User Experience Patterns 🎮
-
-### Audio Management Best Practices
-
-**Tab Visibility Auto-Pause:**
-```javascript
-// In game initialization
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    // Tab hidden - pause audio
-    if (this.audioManager.isEnabled()) {
-      this.audioManager.pause();
-      this.musicWasPausedByTab = true;
-    }
-  } else {
-    // Tab visible - resume if was paused by tab
-    if (this.musicWasPausedByTab && this.audioManager.isEnabled()) {
-      this.audioManager.resume();
-      this.musicWasPausedByTab = false;
-    }
-  }
-});
-```
-
-**Key Points:**
-- Pause regardless of game state (menu/playing/paused)
-- Track pause source (user vs. tab)
-- Only resume if paused by tab AND still enabled by user
-
-**Music Control UI:**
-```html
-<!-- Add to control bar -->
-<button id="music-btn" class="control-btn">🔊</button>
-```
-
-```javascript
-// Toggle with instant feedback
-musicBtn.addEventListener('click', () => {
-  const isEnabled = audioManager.toggleMusic();
-  musicBtn.textContent = isEnabled ? '🔊' : '🔇';
-});
-```
-
-### Responsive Controls
-
-**Mobile Detection:**
-```javascript
-const isMobile = 'ontouchstart' in window;
-const controls = isMobile ? 'Tap and swipe' : 'Arrow keys';
-```
-
-**Touch vs Mouse:**
-- Mobile: Show joystick overlay
-- Desktop: Hide joystick, use keyboard
+**已有组件**:
+1. `PerformanceMonitor` - FPS/MS/MB监控
+2. `Logger` - 结构化日志
+3. `BackgroundMusicManager` - 背景音乐管理
 
 ---
 
 ## Testing Standards 🧪
 
-### Contract Tests
+### 测试要求
+- **单元测试**: 80%+覆盖率
+- **契约测试**: 所有公共API
+- **集成测试**: 关键用户流程
 
-**Purpose:** Catch method signature errors between components
-
-**When to Use:**
-- After major refactoring (God Object split)
-- Manager/controller integration
-- Public API changes
-
-**Pattern:**
+### 契约测试模式
 ```javascript
 // tests/api-contract.test.js
-describe('AudioManager - Methods called by SnakeGame', () => {
-  let manager;
-
-  beforeEach(() => {
-    manager = new AudioManager();
-  });
-
+describe('AudioManager - Methods called by Game', () => {
   test('should have play method', () => {
     expect(typeof manager.play).toBe('function');
   });
@@ -709,106 +238,80 @@ describe('AudioManager - Methods called by SnakeGame', () => {
 });
 ```
 
-**Value:** Catches 11 integration errors that unit tests missed
+**价值**: 捕获重构后的集成错误
 
-### Test Coverage Requirements
+---
 
-- **Unit Tests:** 80%+ coverage
-- **Contract Tests:** All public APIs
-- **Integration Tests:** Critical user flows
-- **Manual QA:** UI/UX validation
+## User Experience Patterns 🎮
 
-### Testing Checklist
+### Tab可见性自动暂停
 
-- [ ] All managers have contract tests
-- [ ] Public methods tested
-- [ ] Error handling covered
-- [ ] Edge cases validated
-- [ ] Cross-browser compatibility
+```javascript
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (this.audioManager.isEnabled()) {
+      this.audioManager.pause();
+      this.musicWasPausedByTab = true;
+    }
+  } else {
+    if (this.musicWasPausedByTab && this.audioManager.isEnabled()) {
+      this.audioManager.resume();
+      this.musicWasPausedByTab = false;
+    }
+  }
+});
+```
+
+### 响应式控制
+
+```javascript
+const isMobile = 'ontouchstart' in window;
+const controls = isMobile ? 'Tap and swipe' : 'Arrow keys';
+```
+
+---
+
+## Code Quality Checklist
+
+**提交前检查**:
+- [ ] 所有代码英文
+- [ ] 所有注释英文
+- [ ] 无硬编码文本(用i18n)
+- [ ] 所有文本有翻译
+- [ ] 无console.log
+- [ ] Git提交信息英文
+- [ ] 文件名英文
+- [ ] 相对路径
 
 ---
 
 ## Agent Instructions
 
-When agents work on this project, they must:
+**所有agent必须**:
+- 代码100%英文
+- UI文本100%使用i18n
+- Git提交100%英文
+- 文件名100%英文
+- 路径100%相对路径
 
-1. **@frontend-developer**
-   - Write all HTML/CSS/JS in English
-   - Use semantic, descriptive class names
-   - Implement i18n for all text content
-
-2. **@game-mechanics-engineer**
-   - Write game logic in English
-   - Comment complex algorithms
-   - Use i18n for any user messages
-
-3. **@ui-ux-designer**
-   - Design with multilingual support in mind
-   - Ensure text areas can expand for longer translations
-   - Use i18n keys in mockups
-
-4. **@qa-tester**
-   - Test with multiple languages
-   - Verify i18n coverage
-   - Check for hardcoded text
-
-5. **@project-chronicler**
-   - Documentation can be in Chinese or English
-   - Code examples must be in English
-   - Ensure consistency across docs
-
-6. **@game-director**
-   - Enforce language standards across all phases
-   - Ensure i18n implementation in planning
-   - Verify standards in code reviews
-
-## Quick Reference
-
-| Element | Language | Example |
-|---------|----------|---------|
-| Code | English | `class GameManager` |
-| Comments | English | `// Update player score` |
-| Variables | English | `playerScore`, `currentLevel` |
-| Functions | English | `calculateScore()`, `updateUI()` |
-| Classes | English | `GameEngine`, `PlayerController` |
-| File names | English | `game-manager.js` |
-| Commit messages | English | `feat: add scoring system` |
-| User-facing text | I18n | `i18n.t('welcome_message')` |
-| Conversations | Chinese | (当前对话) |
-| Team docs | Chinese/English | (flexible) |
-
-## Why These Standards?
-
-### English Code
-- Universal understanding
-- Better tool support
-- Industry best practice
-- Easier debugging
-- Open source friendly
-
-### I18n for Content
-- Reach wider audience
-- Better user experience
-- Market expansion
-- Professional quality
-- Accessibility
-
-### Chinese Communication
-- Natural for team
-- Faster discussion
-- Clear understanding
-- Comfortable workflow
+**专项要求**:
+- `@frontend-developer`: 语义化HTML，i18n文本
+- `@game-mechanics-engineer`: 算法注释英文，i18n消息
+- `@ui-ux-designer`: 多语言设计，文本扩展空间
+- `@qa-tester`: 多语言测试，i18n覆盖检查
 
 ---
 
-## Summary
+## Quick Reference
 
-**Write code in English, communicate in Chinese, serve users in multiple languages!**
+**核心原则**: 代码英文，交流中文，游戏多语言
 
-**代码用英文，交流用中文，游戏支持多语言！**
-**对代码进行优秀的管理，单个js文件不超过550行**
-**不要执行git**
-**用write而不是cat写代码和文档**
+**关键限制**:
+- 单个JS文件 ≤550行
+- 报告长度 ≤200字
+- 不执行git命令
+- 用Write而不是cat
+
 ---
 
 **This is a critical guideline. All agents and developers must follow these standards.**

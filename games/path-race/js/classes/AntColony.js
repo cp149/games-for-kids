@@ -14,7 +14,10 @@ class AntColony {
         this.beta = CONFIG.ACO.BETA;
         this.rho = CONFIG.ACO.RHO;
         this.Q = CONFIG.ACO.Q;
-        this.numAnts = CONFIG.ACO.NUM_ANTS;
+
+        // Scale ant count with grid size for better coverage
+        const gridSize = grid.size || Math.sqrt(grid.dots.length);
+        this.numAnts = Math.max(CONFIG.ACO.NUM_ANTS, Math.floor(gridSize * 2));
 
         // State
         this.pheromones = new Map();
@@ -180,23 +183,74 @@ class AntColony {
 
     /**
      * Calculate heuristic value for a dot
-     * Simplified robust heuristic for Hamiltonian path
+     * Enhanced multi-factor heuristic for Hamiltonian path
      * @param {Object} dot - Candidate dot
      * @param {Set} visited - Visited dots
      * @returns {number} Heuristic value (higher is better)
      */
     calculateHeuristic(dot, visited) {
-        // Primary: Distance to end (closer is better)
+        const totalDots = this.grid.dots.length;
+        const remainingDots = totalDots - visited.size;
+
+        // Factor 1: Progress toward goal (distance to end)
         const distToEnd = Math.abs(dot.gridX - this.grid.endDot.gridX) +
                           Math.abs(dot.gridY - this.grid.endDot.gridY);
         const h1 = 1.0 / (1.0 + distToEnd);
 
-        // Secondary: Connectivity (more unvisited neighbors is better)
-        const unvisitedNeighbors = dot.neighbors.filter(n => !visited.has(n.index)).length;
-        const h2 = (unvisitedNeighbors + 1) / 5.0; // +1 to avoid zero, normalize by max+1
+        // Factor 2: Dead-end avoidance (unvisited neighbor count)
+        const unvisitedNeighbors = dot.neighbors.filter(n => !visited.has(n.index));
+        const neighborCount = unvisitedNeighbors.length;
 
-        // Simple weighted sum (bias toward reaching end)
-        return h1 * 0.7 + h2 * 0.3;
+        // Heavily penalize dead ends (0 unvisited neighbors) unless at end
+        let h2;
+        if (dot.index === this.grid.endDot.index) {
+            h2 = remainingDots === 1 ? 1.0 : 0.0; // Only good if all visited
+        } else if (neighborCount === 0) {
+            h2 = 0.0; // Dead end - very bad
+        } else {
+            h2 = Math.min(1.0, neighborCount / 4.0);
+        }
+
+        // Factor 3: Future connectivity - check neighbor's neighbors
+        let h3 = 0;
+        if (neighborCount > 0) {
+            let totalFutureOptions = 0;
+            unvisitedNeighbors.forEach(neighbor => {
+                const futureOptions = neighbor.neighbors.filter(
+                    nn => !visited.has(nn.index) && nn.index !== dot.index
+                ).length;
+                totalFutureOptions += futureOptions;
+            });
+            h3 = Math.min(1.0, totalFutureOptions / (neighborCount * 3.0));
+        }
+
+        // Factor 4: Center preference early, edge preference late
+        const progressRatio = visited.size / totalDots;
+        const gridSize = this.grid.size || Math.sqrt(this.grid.dots.length);
+        const centerX = (gridSize - 1) / 2;
+        const centerY = (gridSize - 1) / 2;
+        const distFromCenter = Math.abs(dot.gridX - centerX) + Math.abs(dot.gridY - centerY);
+        const maxDistFromCenter = centerX + centerY;
+
+        let h4;
+        if (progressRatio < 0.5) {
+            // Early game: prefer center exploration
+            h4 = 1.0 - (distFromCenter / maxDistFromCenter);
+        } else {
+            // Late game: move toward end
+            h4 = h1; // Reuse end-distance heuristic
+        }
+
+        // Weighted combination
+        // Early game: balance all factors
+        // Late game: prioritize reaching end and avoiding dead ends
+        if (remainingDots > totalDots * 0.5) {
+            // Early/mid game: balanced exploration
+            return h1 * 0.25 + h2 * 0.35 + h3 * 0.25 + h4 * 0.15;
+        } else {
+            // Late game: focus on goal and avoiding traps
+            return h1 * 0.4 + h2 * 0.4 + h3 * 0.2;
+        }
     }
 
     /**

@@ -1,0 +1,14 @@
+{
+  "gridSize": "3x3",
+  "runs": 10,
+  "successRate": "100.0%",
+  "avgIterations": "5.6",
+  "avgDuration": "0ms",
+  "pathOptimality": "100%",
+  "parameters": {
+    "alpha": 0.8,
+    "beta": 3,
+    "rho": 0.1,
+    "numAnts": 10
+  }
+}

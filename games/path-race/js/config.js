@@ -69,13 +69,13 @@ const CONFIG = {
 
     // Ant Colony Optimization parameters
     ACO: {
-        NUM_ANTS: 10,                   // Number of virtual ants (more attempts per iteration)
-        MAX_ITERATIONS: 100,            // Maximum ACO iterations (give enough chances)
+        NUM_ANTS: 10,                   // Base number of ants (scaled by grid size)
+        MAX_ITERATIONS: 150,            // Maximum ACO iterations (increased for harder grids)
         ITERATION_DELAY: 150,           // ms between iterations (faster visual feedback)
 
-        // Algorithm parameters (favor heuristic over pheromone for reliability)
-        ALPHA: 0.8,                     // Pheromone importance (reduced)
-        BETA: 3.0,                      // Heuristic importance (increased - follow logic more)
+        // Algorithm parameters (balanced exploration vs exploitation)
+        ALPHA: 1.2,                     // Pheromone importance (increased - trust trails more)
+        BETA: 2.0,                      // Heuristic importance (reduced - allow more exploration)
         RHO: 0.1,                       // Evaporation rate (slower - preserve good trails)
         Q: 100,                         // Pheromone deposit constant
         INITIAL_PHEROMONE: 1.0,         // Starting pheromone level

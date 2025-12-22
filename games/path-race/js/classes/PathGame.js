@@ -14,12 +14,19 @@ class PathGame {
         this.playerCtx = this.playerCanvas.getContext('2d');
         this.aiCtx = this.aiCanvas.getContext('2d');
 
+        // Canvas sizing (must be before managers)
+        this.canvasSize = 500;
+        this.cellSize = 0;
+        this.dotRadius = CONFIG.GRID.DOT_RADIUS;
+
         // Managers
+        this.renderManager = new RenderManager(this.canvasSize, CONFIG);
         this.uiManager = new UIManager(this);
         this.audioManager = new AudioManager();
         this.levelManager = new LevelManager();
         this.pathManager = new PathManager();
         this.aiManager = new AIManager(this);
+        this.inputManager = new InputManager(this);
 
         // Game state
         this.gameState = 'menu';
@@ -29,18 +36,11 @@ class PathGame {
         this.playerStartTime = null;
         this.playerFinishTime = null;
 
-        // Animation
+        // Animation & RAF optimization
         this.lastTime = 0;
         this.animationId = null;
         this.countdownValue = 3;
-
-        // Canvas sizing
-        this.canvasSize = 500;
-        this.cellSize = 0;
-        this.dotRadius = CONFIG.GRID.DOT_RADIUS;
-
-        // Event listeners
-        this.eventListeners = new Map();
+        this.needsRender = true; // Dirty flag for rendering
 
         this.init();
     }
@@ -50,7 +50,7 @@ class PathGame {
      */
     init() {
         this.setupCanvases();
-        this.setupEventListeners();
+        this.inputManager.setupListeners();
 
         if (!localStorage.getItem(CONFIG.STORAGE.TUTORIAL_COMPLETED)) {
             this.showInstructions();
@@ -78,38 +78,14 @@ class PathGame {
         this.aiCanvas.style.width = size + 'px';
         this.aiCanvas.style.height = size + 'px';
 
+        // Update RenderManager with new canvas size
+        if (this.renderManager) {
+            this.renderManager.canvasSize = size;
+        }
+
         this.logger.info(`PathGame: Canvas size ${size}x${size}`);
     }
 
-    /**
-     * Setup event listeners
-     */
-    setupEventListeners() {
-        this.addListener('#start-game-btn', 'click', () => this.startGame());
-        this.addListener('#home-btn', 'click', () => this.goHome());
-        this.addListener('#restart-btn', 'click', () => this.restartLevel());
-        this.addListener('#undo-btn', 'click', () => this.handleUndo());
-        this.addListener('#music-btn', 'click', () => this.audioManager.toggleMusic());
-        this.addListener('#lang-btn', 'click', () => I18N.cycleLanguage());
-        this.addListener('#retry-btn', 'click', () => this.retryLevel());
-        this.addListener('#next-level-btn', 'click', () => this.nextLevel());
-        this.addListener('#player-canvas', 'click', (e) => this.handlePlayerClick(e));
-        this.addListener(document, 'keydown', (e) => this.handleKeyboard(e));
-    }
-
-    /**
-     * Add event listener and track for cleanup
-     */
-    addListener(target, event, handler) {
-        const element = typeof target === 'string' ? document.querySelector(target) : target;
-        if (element) {
-            element.addEventListener(event, handler);
-            if (!this.eventListeners.has(element)) {
-                this.eventListeners.set(element, []);
-            }
-            this.eventListeners.get(element).push({ event, handler });
-        }
-    }
 
     /**
      * Show instructions
@@ -143,13 +119,14 @@ class PathGame {
         // Generate grid
         this.grid = GridGenerator.generateLevel(levelNum);
         this.pathManager.setGrid(this.grid);
+        this.renderManager.setGrid(this.grid);
 
         // Reset AI
         if (this.aiManager) {
             this.aiManager.reset();
         }
 
-        // Calculate cell size
+        // Calculate cell size (kept for backwards compatibility)
         this.cellSize = (this.canvasSize - CONFIG.GRID.GRID_PADDING * 2) / this.grid.size;
 
         // Update UI
@@ -202,6 +179,9 @@ class PathGame {
         this.playerStartTime = Date.now();
         this.undoCount = 0;
 
+        // Announce to screen readers
+        this.uiManager.announce(`Level ${this.currentLevel} started. Race against the AI!`, 'assertive');
+
         // Start AI
         this.aiManager.start(this.grid, this.currentLevel);
 
@@ -214,7 +194,7 @@ class PathGame {
     }
 
     /**
-     * Start game loop
+     * Start game loop with RAF optimization
      */
     startGameLoop() {
         const loop = (timestamp) => {
@@ -223,7 +203,12 @@ class PathGame {
                 this.lastTime = timestamp;
 
                 this.update(deltaTime);
-                this.renderBothCanvases();
+
+                // Only render if something changed (dirty flag pattern)
+                if (this.needsRender) {
+                    this.renderBothCanvases();
+                    this.needsRender = false;
+                }
             }
 
             this.animationId = requestAnimationFrame(loop);
@@ -233,18 +218,31 @@ class PathGame {
     }
 
     /**
+     * Mark that rendering is needed (dirty flag)
+     */
+    setNeedsRender() {
+        this.needsRender = true;
+    }
+
+    /**
      * Update game state
      */
     update(deltaTime) {
         if (this.gameState !== 'racing') return;
 
-        // Update player time
+        // Update player time (triggers render on second change)
         if (this.playerStartTime && !this.playerFinishTime) {
             const elapsed = Math.floor((Date.now() - this.playerStartTime) / 1000);
+            const previousTime = this.uiManager.currentTime || 0;
             this.uiManager.updatePlayerTime(elapsed);
+
+            // Mark render needed if time changed (once per second)
+            if (elapsed !== previousTime) {
+                this.needsRender = true;
+            }
         }
 
-        // Update player moves
+        // Update player moves (UI only, no render trigger)
         this.uiManager.updatePlayerMoves(this.pathManager.getPathLength());
     }
 
@@ -261,252 +259,35 @@ class PathGame {
      */
     renderCanvas(ctx, side) {
         // Clear
-        ctx.fillStyle = CONFIG.COLORS.CANVAS_BG;
-        ctx.fillRect(0, 0, this.canvasSize, this.canvasSize);
+        this.renderManager.clearCanvas(ctx);
 
         if (!this.grid) return;
 
         // Draw grid lines
-        this.drawGridLines(ctx);
+        this.renderManager.drawGridLines(ctx);
 
         // Draw connections
-        this.drawConnections(ctx);
+        this.renderManager.drawConnections(ctx);
 
         // Draw pheromones (AI side only)
         if (side === 'ai' && this.aiManager.antColony) {
-            this.drawPheromones(ctx);
+            const pheromones = this.aiManager.getPheromones();
+            const getEdgeKey = (from, to) => this.aiManager.antColony.getEdgeKey(from, to);
+            this.renderManager.drawPheromones(ctx, pheromones, getEdgeKey);
         }
 
         // Draw path
         if (side === 'player') {
-            this.drawPath(ctx, this.pathManager.getPath(), CONFIG.COLORS.PLAYER_PATH);
+            this.renderManager.drawPath(ctx, this.pathManager.getPath(), CONFIG.COLORS.PLAYER_PATH);
         } else {
-            this.drawPath(ctx, this.aiManager.getPath(), CONFIG.COLORS.AI_PATH);
+            this.renderManager.drawPath(ctx, this.aiManager.getPath(), CONFIG.COLORS.AI_PATH);
         }
 
         // Draw dots
-        this.drawDots(ctx, side);
+        this.renderManager.drawDots(ctx, side);
     }
 
-    /**
-     * Draw grid lines
-     */
-    drawGridLines(ctx) {
-        ctx.strokeStyle = CONFIG.COLORS.GRID_LINE;
-        ctx.lineWidth = 1;
 
-        const padding = CONFIG.GRID.GRID_PADDING;
-        const gridSize = this.grid.size * this.cellSize;
-
-        for (let i = 0; i <= this.grid.size; i++) {
-            // Vertical lines
-            ctx.beginPath();
-            ctx.moveTo(padding + i * this.cellSize, padding);
-            ctx.lineTo(padding + i * this.cellSize, padding + gridSize);
-            ctx.stroke();
-
-            // Horizontal lines
-            ctx.beginPath();
-            ctx.moveTo(padding, padding + i * this.cellSize);
-            ctx.lineTo(padding + gridSize, padding + i * this.cellSize);
-            ctx.stroke();
-        }
-    }
-
-    /**
-     * Draw connections (possible edges)
-     */
-    drawConnections(ctx) {
-        ctx.strokeStyle = CONFIG.COLORS.GRID_LINE;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-
-        this.grid.edges.forEach(edge => {
-            const from = this.getDotScreenPos(edge.from);
-            const to = this.getDotScreenPos(edge.to);
-
-            ctx.beginPath();
-            ctx.moveTo(from.x, from.y);
-            ctx.lineTo(to.x, to.y);
-            ctx.stroke();
-        });
-
-        ctx.setLineDash([]);
-    }
-
-    /**
-     * Draw pheromones (AI visualization)
-     */
-    drawPheromones(ctx) {
-        const pheromones = this.aiManager.getPheromones();
-        if (!pheromones) return;
-
-        ctx.lineWidth = 4;
-
-        this.grid.edges.forEach(edge => {
-            const key = this.aiManager.antColony.getEdgeKey(edge.from, edge.to);
-            const level = pheromones.get(key) || 0;
-
-            // Map pheromone level to alpha
-            const alpha = MathUtils.clamp(level * 0.1, 0.1, 0.6);
-
-            ctx.strokeStyle = `rgba(255, 152, 0, ${alpha})`;
-
-            const from = this.getDotScreenPos(edge.from);
-            const to = this.getDotScreenPos(edge.to);
-
-            ctx.beginPath();
-            ctx.moveTo(from.x, from.y);
-            ctx.lineTo(to.x, to.y);
-            ctx.stroke();
-        });
-    }
-
-    /**
-     * Draw path
-     */
-    drawPath(ctx, path, color) {
-        if (path.length < 2) return;
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = CONFIG.GRID.LINE_WIDTH;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        ctx.beginPath();
-        const start = this.getDotScreenPos(path[0]);
-        ctx.moveTo(start.x, start.y);
-
-        for (let i = 1; i < path.length; i++) {
-            const pos = this.getDotScreenPos(path[i]);
-            ctx.lineTo(pos.x, pos.y);
-        }
-
-        ctx.stroke();
-    }
-
-    /**
-     * Draw dots
-     */
-    drawDots(ctx, side) {
-        this.grid.dots.forEach(dot => {
-            const pos = this.getDotScreenPos(dot);
-            let radius = this.dotRadius;
-            let fillColor = CONFIG.COLORS.NORMAL_DOT;
-            let strokeColor = CONFIG.COLORS.NORMAL_DOT_BORDER;
-
-            // Determine color based on type and state
-            if (dot.type === CONFIG.DOT_TYPES.START) {
-                fillColor = CONFIG.COLORS.START_DOT;
-                strokeColor = CONFIG.COLORS.START_DOT;
-                radius = this.dotRadius * 1.3;
-            } else if (dot.type === CONFIG.DOT_TYPES.END) {
-                fillColor = CONFIG.COLORS.END_DOT;
-                strokeColor = CONFIG.COLORS.END_DOT;
-                radius = this.dotRadius * 1.3;
-            } else if (side === 'player' && dot.playerVisited) {
-                fillColor = CONFIG.COLORS.VISITED_DOT;
-                strokeColor = CONFIG.COLORS.VISITED_DOT;
-            } else if (side === 'ai' && dot.aiVisited) {
-                fillColor = CONFIG.COLORS.AI_VISITED_DOT;
-                strokeColor = CONFIG.COLORS.AI_VISITED_DOT;
-            }
-
-            // Draw dot
-            ctx.fillStyle = fillColor;
-            ctx.strokeStyle = strokeColor;
-            ctx.lineWidth = 3;
-
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-        });
-    }
-
-    /**
-     * Get dot screen position
-     */
-    getDotScreenPos(dot) {
-        const padding = CONFIG.GRID.GRID_PADDING;
-        return {
-            x: padding + (dot.gridX + 0.5) * this.cellSize,
-            y: padding + (dot.gridY + 0.5) * this.cellSize
-        };
-    }
-
-    /**
-     * Handle player click
-     */
-    handlePlayerClick(event) {
-        if (this.gameState !== 'racing') {
-            this.logger.warn(`PathGame: Click ignored - state is ${this.gameState}`);
-            return;
-        }
-
-        const rect = this.playerCanvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        this.logger.info(`PathGame: Click at (${x.toFixed(0)}, ${y.toFixed(0)})`);
-
-        const dot = this.getClickedDot(x, y);
-
-        if (dot) {
-            this.logger.info(`PathGame: Clicked dot at (${dot.gridX}, ${dot.gridY}) type=${dot.type}`);
-            const success = this.pathManager.addMove(dot);
-
-            if (success) {
-                this.audioManager.playSound('click_valid');
-                this.renderBothCanvases();
-
-                // Check if complete
-                if (this.pathManager.isPathComplete()) {
-                    this.playerFinish();
-                }
-            } else {
-                this.logger.warn('PathGame: Move rejected by PathManager');
-                this.audioManager.playSound('click_invalid');
-                // Flash error animation
-                this.playerCanvas.classList.add('flash-error');
-                setTimeout(() => this.playerCanvas.classList.remove('flash-error'), 500);
-            }
-        } else {
-            this.logger.info('PathGame: No dot found at click position');
-        }
-    }
-
-    /**
-     * Get clicked dot
-     */
-    getClickedDot(x, y) {
-        const clickRadius = CONFIG.PLAYER.CLICK_RADIUS;
-
-        for (const dot of this.grid.dots) {
-            const pos = this.getDotScreenPos(dot);
-            const dist = MathUtils.distance({ x, y }, pos);
-
-            if (dist <= clickRadius) {
-                return dot;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Handle undo
-     */
-    handleUndo() {
-        if (this.gameState !== 'racing') return;
-
-        const undone = this.pathManager.undo();
-        if (undone) {
-            this.undoCount++;
-            this.audioManager.playSound('undo');
-            this.renderBothCanvases();
-        }
-    }
 
     /**
      * Player finish
@@ -615,15 +396,19 @@ class PathGame {
         const movesEl = document.getElementById('result-moves');
         const undosEl = document.getElementById('result-undos');
 
+        let announcement = '';
         if (winner === 'player') {
             title.textContent = I18N.t('you_win');
             starsEl.textContent = '⭐'.repeat(stars);
+            announcement = `Congratulations! You won with ${stars} star${stars > 1 ? 's' : ''}!`;
         } else if (winner === 'ai') {
             title.textContent = I18N.t('ai_wins');
             starsEl.textContent = '⭐';
+            announcement = 'The AI won this round. Try again!';
         } else {
             title.textContent = 'Tie! 🤝';
             starsEl.textContent = '⭐⭐';
+            announcement = 'It\'s a tie! Well played!';
         }
 
         const playerTime = this.playerFinishTime ?
@@ -632,7 +417,11 @@ class PathGame {
         movesEl.textContent = this.pathManager.getPathLength();
         undosEl.textContent = this.undoCount;
 
+        // Announce result
+        this.uiManager.announce(announcement, 'assertive');
+
         modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
     }
 
     /**
@@ -675,24 +464,6 @@ class PathGame {
         window.location.href = '../../index.html';
     }
 
-    /**
-     * Handle keyboard
-     */
-    handleKeyboard(event) {
-        switch(event.key) {
-            case 'Escape':
-                this.goHome();
-                break;
-            case 'r':
-            case 'R':
-                this.restartLevel();
-                break;
-            case 'u':
-            case 'U':
-                this.handleUndo();
-                break;
-        }
-    }
 
     /**
      * Render AI (called by AIManager)
@@ -711,18 +482,13 @@ class PathGame {
             cancelAnimationFrame(this.animationId);
         }
 
-        this.eventListeners.forEach((listeners, element) => {
-            listeners.forEach(({ event, handler }) => {
-                element.removeEventListener(event, handler);
-            });
-        });
-        this.eventListeners.clear();
-
+        if (this.renderManager) this.renderManager.destroy();
         if (this.uiManager) this.uiManager.destroy();
         if (this.audioManager) this.audioManager.destroy();
         if (this.levelManager) this.levelManager.destroy();
         if (this.pathManager) this.pathManager.destroy();
         if (this.aiManager) this.aiManager.destroy();
+        if (this.inputManager) this.inputManager.destroy();
     }
 }
 

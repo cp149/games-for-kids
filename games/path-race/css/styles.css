@@ -10,6 +10,19 @@
     box-sizing: border-box;
 }
 
+/* Screen Reader Only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 body {
     font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
     background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);

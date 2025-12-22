@@ -26,7 +26,10 @@
                     <h2 class="panel-title" data-i18n="ai_opponent">AI Opponent</h2>
                 </div>
                 <div class="canvas-wrapper">
-                    <canvas id="ai-canvas"></canvas>
+                    <canvas id="ai-canvas"
+                            role="img"
+                            aria-label="AI opponent game board"
+                            aria-describedby="ai-status"></canvas>
                 </div>
                 <div class="panel-stats">
                     <div class="stat-item">
@@ -52,7 +55,14 @@
                     <h2 class="panel-title" data-i18n="player">Player</h2>
                 </div>
                 <div class="canvas-wrapper">
-                    <canvas id="player-canvas"></canvas>
+                    <canvas id="player-canvas"
+                            role="application"
+                            aria-label="Player game board - click dots to create path"
+                            tabindex="0"
+                            aria-describedby="player-instructions"></canvas>
+                    <div id="player-instructions" class="sr-only">
+                        Use mouse or touch to click dots and create a path from green to red. Press U to undo, R to restart, or Escape to go home.
+                    </div>
                 </div>
                 <div class="panel-stats">
                     <div class="stat-item">
@@ -68,17 +78,24 @@
         </div>
 
         <!-- Controls -->
-        <div id="controls">
-            <button id="home-btn" class="control-btn" title="Home">🏠</button>
-            <button id="restart-btn" class="control-btn" title="Restart">🔄</button>
-            <button id="undo-btn" class="control-btn player-only" title="Undo">↶</button>
-            <button id="music-btn" class="control-btn" title="Music">🔊</button>
-            <button id="lang-btn" class="control-btn" title="Language">🌐</button>
+        <div id="controls" role="toolbar" aria-label="Game controls">
+            <button id="home-btn" class="control-btn" title="Home" aria-label="Go to home page">🏠</button>
+            <button id="restart-btn" class="control-btn" title="Restart" aria-label="Restart current level">🔄</button>
+            <button id="undo-btn" class="control-btn player-only" title="Undo" aria-label="Undo last move">↶</button>
+            <button id="music-btn" class="control-btn" title="Music" aria-label="Toggle background music">🔊</button>
+            <button id="lang-btn" class="control-btn" title="Language" aria-label="Change language">🌐</button>
         </div>
 
+        <!-- Live Region for Screen Readers -->
+        <div id="game-announcements"
+             role="status"
+             aria-live="polite"
+             aria-atomic="true"
+             class="sr-only"></div>
+
         <!-- Countdown Overlay -->
-        <div id="countdown-overlay" class="overlay hidden">
-            <div class="countdown-text">3</div>
+        <div id="countdown-overlay" class="overlay hidden" aria-hidden="true">
+            <div class="countdown-text" aria-label="Countdown">3</div>
         </div>
 
         <!-- Win/Lose Modal -->
@@ -144,6 +161,8 @@
     <script src="js/managers/AudioManager.js"></script>
     <script src="js/managers/LevelManager.js"></script>
     <script src="js/managers/PathManager.js"></script>
+    <script src="js/managers/RenderManager.js"></script>
+    <script src="js/managers/InputManager.js"></script>
     <script src="js/managers/AIManager.js"></script>
     <script src="js/classes/PathGame.js"></script>
 
