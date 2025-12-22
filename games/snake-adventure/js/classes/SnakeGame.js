@@ -267,6 +267,9 @@ class SnakeGame {
         this.uiManager.updateScore(this.score);
         this.uiManager.updateLength(this.playerSnake.getLength());
 
+        // Start background music
+        this.audioManager.startBackgroundMusic();
+
         // Start game loop
         requestAnimationFrame((time) => this.gameLoop(time));
     }

@@ -17,6 +17,18 @@ class AudioManager {
             console.warn('Web Audio API not supported');
         }
 
+        // Background music system
+        this.backgroundMusicFiles = [
+            'assets/sounds/1.mp3',
+            'assets/sounds/2.mp3',
+            'assets/sounds/3.mp3',
+            'assets/sounds/4.mp3',
+            'assets/sounds/5.mp3'
+        ];
+        this.backgroundMusic = null;
+        this.currentTrackIndex = -1;
+        this.musicEnabled = true;
+
         this.createSounds();
     }
 
@@ -223,9 +235,103 @@ class AudioManager {
     }
 
     /**
+     * Start background music (random looping)
+     */
+    startBackgroundMusic() {
+        if (!this.musicEnabled || this.backgroundMusicFiles.length === 0) {
+            return;
+        }
+
+        this.playNextTrack();
+    }
+
+    /**
+     * Play next random track
+     */
+    playNextTrack() {
+        if (!this.musicEnabled || this.backgroundMusicFiles.length === 0) {
+            return;
+        }
+
+        // Stop current track if playing
+        if (this.backgroundMusic) {
+            this.backgroundMusic.pause();
+            this.backgroundMusic.currentTime = 0;
+            this.backgroundMusic.removeEventListener('ended', this.handleTrackEnd);
+        }
+
+        // Select random track (avoid repeating same track)
+        let nextIndex;
+        if (this.backgroundMusicFiles.length === 1) {
+            nextIndex = 0;
+        } else {
+            do {
+                nextIndex = Math.floor(Math.random() * this.backgroundMusicFiles.length);
+            } while (nextIndex === this.currentTrackIndex);
+        }
+
+        this.currentTrackIndex = nextIndex;
+
+        // Create and play new track
+        this.backgroundMusic = new Audio(this.backgroundMusicFiles[nextIndex]);
+        this.backgroundMusic.volume = this.musicVolume;
+
+        // Handle track end - play next random track
+        this.handleTrackEnd = () => this.playNextTrack();
+        this.backgroundMusic.addEventListener('ended', this.handleTrackEnd);
+
+        // Play (handle autoplay policy)
+        const playPromise = this.backgroundMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.warn('Background music autoplay blocked:', error);
+            });
+        }
+    }
+
+    /**
+     * Stop background music
+     */
+    stopBackgroundMusic() {
+        if (this.backgroundMusic) {
+            this.backgroundMusic.pause();
+            this.backgroundMusic.currentTime = 0;
+            this.backgroundMusic.removeEventListener('ended', this.handleTrackEnd);
+            this.backgroundMusic = null;
+        }
+    }
+
+    /**
+     * Toggle background music on/off
+     */
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+
+        if (this.musicEnabled) {
+            this.startBackgroundMusic();
+        } else {
+            this.stopBackgroundMusic();
+        }
+
+        return this.musicEnabled;
+    }
+
+    /**
+     * Set music volume
+     */
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+        if (this.backgroundMusic) {
+            this.backgroundMusic.volume = this.musicVolume;
+        }
+    }
+
+    /**
      * Cleanup
      */
     destroy() {
+        this.stopBackgroundMusic();
+
         if (this.audioContext) {
             this.audioContext.close();
             this.audioContext = null;
