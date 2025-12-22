@@ -4,6 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { BackgroundMusicManager } from '../../lib/background-music.js';
 import { ParticleManager } from '../js/managers/ParticleManager.js';
 import { FoodManager } from '../js/managers/FoodManager.js';
 import { SnakeManager } from '../js/managers/SnakeManager.js';
@@ -16,6 +17,9 @@ import { RenderManager } from '../js/managers/RenderManager.js';
 import { LeaderboardManager } from '../js/managers/LeaderboardManager.js';
 import { KillFeedManager } from '../js/managers/KillFeedManager.js';
 import { AIController } from '../js/ai/AIController.js';
+
+// Make BackgroundMusicManager available globally for AudioManager
+globalThis.BackgroundMusicManager = BackgroundMusicManager;
 
 describe('API Contract Tests', () => {
     describe('ParticleManager - Methods called by SnakeGame', () => {

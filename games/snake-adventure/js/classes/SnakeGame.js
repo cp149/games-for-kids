@@ -38,6 +38,9 @@ class SnakeGame {
         this.mouseX = window.innerWidth / 2;
         this.mouseY = window.innerHeight / 2;
 
+        // Tab visibility music control
+        this.musicWasPausedByTab = false;
+
         // Initialize
         this.setupCanvas();
         this.createManagers();
@@ -198,6 +201,15 @@ class SnakeGame {
             pauseBtn.addEventListener('click', () => this.togglePause());
         }
 
+        // Music button
+        const musicBtn = document.getElementById('music-btn');
+        if (musicBtn) {
+            musicBtn.addEventListener('click', () => {
+                const isEnabled = this.audioManager.toggleMusic();
+                musicBtn.textContent = isEnabled ? '🔊' : '🔇';
+            });
+        }
+
         // Language button
         const langBtn = document.getElementById('lang-btn');
         if (langBtn) {
@@ -221,6 +233,28 @@ class SnakeGame {
 
         this.canvas.addEventListener('contextmenu', handleContextMenu);
         this.eventListeners.set('contextmenu', { element: this.canvas, event: 'contextmenu', handler: handleContextMenu });
+
+        // Tab visibility change - auto pause/resume music
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // Tab is hidden - pause music unconditionally if enabled
+                if (this.audioManager.bgMusic.isEnabled()) {
+                    this.audioManager.bgMusic.stop();
+                    this.musicWasPausedByTab = true;
+                    this.logger.log('🔇 Music paused (tab hidden)');
+                }
+            } else {
+                // Tab is visible - resume music if it was paused by tab and still enabled
+                if (this.musicWasPausedByTab && this.audioManager.bgMusic.isEnabled()) {
+                    this.audioManager.bgMusic.start();
+                    this.musicWasPausedByTab = false;
+                    this.logger.log('🔊 Music resumed (tab visible)');
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        this.eventListeners.set('visibilitychange', { element: document, event: 'visibilitychange', handler: handleVisibilityChange });
     }
 
     /**

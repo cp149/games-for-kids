@@ -17,19 +17,18 @@ class AudioManager {
             console.warn('Web Audio API not supported');
         }
 
-        // Background music system
-        this.backgroundMusicFiles = [
-            'assets/sounds/1.mp3',
-            'assets/sounds/2.mp3',
-            'assets/sounds/3.mp3',
-            'assets/sounds/4.mp3',
-            'assets/sounds/5.mp3'
-        ];
-        this.backgroundMusic = null;
-        this.currentTrackIndex = -1;
-        this.musicEnabled = true;
-        this.failedTracks = new Set(); // Track failed music files
-        this.loadAttempts = 0; // Prevent infinite retry loops
+        // Background music system using lib component
+        this.bgMusic = new BackgroundMusicManager({
+            tracks: [
+                'assets/sounds/1.mp3',
+                'assets/sounds/2.mp3',
+                'assets/sounds/3.mp3',
+                'assets/sounds/4.mp3',
+                'assets/sounds/5.mp3'
+            ],
+            volume: CONFIG.AUDIO.MUSIC_VOLUME,
+            logger: window.Logger || console
+        });
 
         this.createSounds();
     }
@@ -240,144 +239,35 @@ class AudioManager {
      * Start background music (random looping)
      */
     startBackgroundMusic() {
-        if (!this.musicEnabled || this.backgroundMusicFiles.length === 0) {
-            return;
-        }
-
-        this.playNextTrack();
-    }
-
-    /**
-     * Play next random track
-     */
-    playNextTrack() {
-        if (!this.musicEnabled || this.backgroundMusicFiles.length === 0) {
-            return;
-        }
-
-        // Check if all tracks have failed
-        if (this.failedTracks.size >= this.backgroundMusicFiles.length) {
-            console.warn('All background music tracks failed to load. Disabling music.');
-            this.musicEnabled = false;
-            return;
-        }
-
-        // Prevent infinite loops
-        this.loadAttempts++;
-        if (this.loadAttempts > this.backgroundMusicFiles.length * 2) {
-            console.warn('Too many music load attempts. Disabling music.');
-            this.musicEnabled = false;
-            return;
-        }
-
-        // Stop current track if playing
-        if (this.backgroundMusic) {
-            this.backgroundMusic.pause();
-            this.backgroundMusic.currentTime = 0;
-            this.backgroundMusic.removeEventListener('ended', this.handleTrackEnd);
-            this.backgroundMusic.removeEventListener('error', this.handleTrackError);
-        }
-
-        // Select random track (avoid repeating same track and failed tracks)
-        let nextIndex;
-        let attempts = 0;
-        const maxAttempts = this.backgroundMusicFiles.length * 2;
-
-        do {
-            if (this.backgroundMusicFiles.length === 1) {
-                nextIndex = 0;
-            } else {
-                nextIndex = Math.floor(Math.random() * this.backgroundMusicFiles.length);
-            }
-            attempts++;
-
-            // Break if we've tried too many times
-            if (attempts > maxAttempts) {
-                console.warn('Cannot find valid music track. Disabling music.');
-                this.musicEnabled = false;
-                return;
-            }
-        } while (
-            (nextIndex === this.currentTrackIndex || this.failedTracks.has(nextIndex)) &&
-            this.failedTracks.size < this.backgroundMusicFiles.length
-        );
-
-        this.currentTrackIndex = nextIndex;
-
-        // Create and play new track
-        const trackPath = this.backgroundMusicFiles[nextIndex];
-        this.backgroundMusic = new Audio(trackPath);
-        this.backgroundMusic.volume = this.musicVolume;
-
-        // Handle track end - play next random track
-        this.handleTrackEnd = () => {
-            this.loadAttempts = 0; // Reset on successful playback
-            this.playNextTrack();
-        };
-        this.backgroundMusic.addEventListener('ended', this.handleTrackEnd);
-
-        // Handle track load error
-        this.handleTrackError = () => {
-            console.warn(`Failed to load music track: ${trackPath}`);
-            this.failedTracks.add(nextIndex);
-            this.playNextTrack(); // Try next track
-        };
-        this.backgroundMusic.addEventListener('error', this.handleTrackError);
-
-        // Play (handle autoplay policy)
-        const playPromise = this.backgroundMusic.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                console.warn('Background music autoplay blocked:', error.message);
-                // Don't mark as failed - autoplay block is browser policy, not file error
-            });
-        }
+        this.bgMusic.start();
     }
 
     /**
      * Stop background music
      */
     stopBackgroundMusic() {
-        if (this.backgroundMusic) {
-            this.backgroundMusic.pause();
-            this.backgroundMusic.currentTime = 0;
-            this.backgroundMusic.removeEventListener('ended', this.handleTrackEnd);
-            this.backgroundMusic.removeEventListener('error', this.handleTrackError);
-            this.backgroundMusic = null;
-        }
-        this.loadAttempts = 0; // Reset load attempts
+        this.bgMusic.stop();
     }
 
     /**
      * Toggle background music on/off
      */
     toggleMusic() {
-        this.musicEnabled = !this.musicEnabled;
-
-        if (this.musicEnabled) {
-            this.startBackgroundMusic();
-        } else {
-            this.stopBackgroundMusic();
-        }
-
-        return this.musicEnabled;
+        return this.bgMusic.toggle();
     }
 
     /**
      * Set music volume
      */
     setMusicVolume(volume) {
-        this.musicVolume = Math.max(0, Math.min(1, volume));
-        if (this.backgroundMusic) {
-            this.backgroundMusic.volume = this.musicVolume;
-        }
+        this.bgMusic.setVolume(volume);
     }
 
     /**
      * Cleanup
      */
     destroy() {
-        this.stopBackgroundMusic();
+        this.bgMusic.destroy();
 
         if (this.audioContext) {
             this.audioContext.close();
