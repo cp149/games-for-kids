@@ -294,6 +294,11 @@ class SnakeGame {
     gameLoop(currentTime) {
         if (this.state !== 'playing') return;
 
+        // Performance monitoring
+        if (this.perfMonitor) {
+            this.perfMonitor.begin();
+        }
+
         // Calculate delta time
         const deltaTime = this.lastTime ? Math.min((currentTime - this.lastTime) / 1000, 0.1) : 0;
         this.lastTime = currentTime;
@@ -303,6 +308,11 @@ class SnakeGame {
 
         // Render
         this.render();
+
+        // Performance monitoring
+        if (this.perfMonitor) {
+            this.perfMonitor.end();
+        }
 
         // Continue loop
         requestAnimationFrame((time) => this.gameLoop(time));

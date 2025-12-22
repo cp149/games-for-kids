@@ -105,10 +105,16 @@ class BuffManager {
             if (!food || typeof food.x !== 'number' || typeof food.y !== 'number') continue;
             if (!isFinite(food.x) || !isFinite(food.y)) continue;
 
-            const dist = MathUtils.distance(head.x, head.y, food.x, food.y);
-            if (!isFinite(dist)) continue;
+            // Use squared distance to avoid expensive sqrt
+            const dx = food.x - head.x;
+            const dy = food.y - head.y;
+            const distSq = dx * dx + dy * dy;
+            if (!isFinite(distSq)) continue;
 
-            if (dist < this.magnetRange && dist > CONFIG.FOOD.COLLECTION_RADIUS) {
+            const magnetRangeSq = this.magnetRange * this.magnetRange;
+            const collectionRadiusSq = CONFIG.FOOD.COLLECTION_RADIUS * CONFIG.FOOD.COLLECTION_RADIUS;
+
+            if (distSq < magnetRangeSq && distSq > collectionRadiusSq) {
                 // Pull food towards player
                 const angle = Math.atan2(head.y - food.y, head.x - food.x);
                 const pullSpeed = 300 * deltaTime; // Pull speed

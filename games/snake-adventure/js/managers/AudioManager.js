@@ -28,6 +28,8 @@ class AudioManager {
         this.backgroundMusic = null;
         this.currentTrackIndex = -1;
         this.musicEnabled = true;
+        this.failedTracks = new Set(); // Track failed music files
+        this.loadAttempts = 0; // Prevent infinite retry loops
 
         this.createSounds();
     }
@@ -253,38 +255,81 @@ class AudioManager {
             return;
         }
 
+        // Check if all tracks have failed
+        if (this.failedTracks.size >= this.backgroundMusicFiles.length) {
+            console.warn('All background music tracks failed to load. Disabling music.');
+            this.musicEnabled = false;
+            return;
+        }
+
+        // Prevent infinite loops
+        this.loadAttempts++;
+        if (this.loadAttempts > this.backgroundMusicFiles.length * 2) {
+            console.warn('Too many music load attempts. Disabling music.');
+            this.musicEnabled = false;
+            return;
+        }
+
         // Stop current track if playing
         if (this.backgroundMusic) {
             this.backgroundMusic.pause();
             this.backgroundMusic.currentTime = 0;
             this.backgroundMusic.removeEventListener('ended', this.handleTrackEnd);
+            this.backgroundMusic.removeEventListener('error', this.handleTrackError);
         }
 
-        // Select random track (avoid repeating same track)
+        // Select random track (avoid repeating same track and failed tracks)
         let nextIndex;
-        if (this.backgroundMusicFiles.length === 1) {
-            nextIndex = 0;
-        } else {
-            do {
+        let attempts = 0;
+        const maxAttempts = this.backgroundMusicFiles.length * 2;
+
+        do {
+            if (this.backgroundMusicFiles.length === 1) {
+                nextIndex = 0;
+            } else {
                 nextIndex = Math.floor(Math.random() * this.backgroundMusicFiles.length);
-            } while (nextIndex === this.currentTrackIndex);
-        }
+            }
+            attempts++;
+
+            // Break if we've tried too many times
+            if (attempts > maxAttempts) {
+                console.warn('Cannot find valid music track. Disabling music.');
+                this.musicEnabled = false;
+                return;
+            }
+        } while (
+            (nextIndex === this.currentTrackIndex || this.failedTracks.has(nextIndex)) &&
+            this.failedTracks.size < this.backgroundMusicFiles.length
+        );
 
         this.currentTrackIndex = nextIndex;
 
         // Create and play new track
-        this.backgroundMusic = new Audio(this.backgroundMusicFiles[nextIndex]);
+        const trackPath = this.backgroundMusicFiles[nextIndex];
+        this.backgroundMusic = new Audio(trackPath);
         this.backgroundMusic.volume = this.musicVolume;
 
         // Handle track end - play next random track
-        this.handleTrackEnd = () => this.playNextTrack();
+        this.handleTrackEnd = () => {
+            this.loadAttempts = 0; // Reset on successful playback
+            this.playNextTrack();
+        };
         this.backgroundMusic.addEventListener('ended', this.handleTrackEnd);
+
+        // Handle track load error
+        this.handleTrackError = () => {
+            console.warn(`Failed to load music track: ${trackPath}`);
+            this.failedTracks.add(nextIndex);
+            this.playNextTrack(); // Try next track
+        };
+        this.backgroundMusic.addEventListener('error', this.handleTrackError);
 
         // Play (handle autoplay policy)
         const playPromise = this.backgroundMusic.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                console.warn('Background music autoplay blocked:', error);
+                console.warn('Background music autoplay blocked:', error.message);
+                // Don't mark as failed - autoplay block is browser policy, not file error
             });
         }
     }
@@ -297,8 +342,10 @@ class AudioManager {
             this.backgroundMusic.pause();
             this.backgroundMusic.currentTime = 0;
             this.backgroundMusic.removeEventListener('ended', this.handleTrackEnd);
+            this.backgroundMusic.removeEventListener('error', this.handleTrackError);
             this.backgroundMusic = null;
         }
+        this.loadAttempts = 0; // Reset load attempts
     }
 
     /**

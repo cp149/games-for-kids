@@ -25,9 +25,9 @@ class ParticleManager {
             type: 'trail'
         });
 
-        // Limit particle count
+        // Limit particle count - truncate from end (O(1) instead of shift O(n))
         if (this.particles.length > CONFIG.PARTICLES.POOL_SIZE) {
-            this.particles.shift();
+            this.particles.length = CONFIG.PARTICLES.POOL_SIZE;
         }
     }
 
@@ -137,85 +137,163 @@ class ParticleManager {
      * Render particles with enhanced effects
      */
     render(ctx, camera) {
-        this.particles.forEach(p => {
-            const alpha = p.life / p.maxLife;
-            const x = p.x - camera.getX();
-            const y = p.y - camera.getY();
+        // Batch particles by type for fewer save/restore calls
+        const trailParticles = [];
+        const explosionParticles = [];
+        const sparkleParticles = [];
+        const simpleParticles = [];
 
-            ctx.save();
-
-            if (p.type === 'explosion') {
-                // Explosion particles with glow
-                const glow = ctx.createRadialGradient(x, y, 0, x, y, p.size * 2);
-                glow.addColorStop(0, this.addAlpha(p.color, alpha));
-                glow.addColorStop(1, 'transparent');
-
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(x, y, p.size * 2, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = this.addAlpha(p.color, alpha);
-                ctx.beginPath();
-                ctx.arc(x, y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (p.type === 'collect' || p.type === 'powerup') {
-                // Sparkle particles
-                if (p.sparkle) {
-                    ctx.translate(x, y);
-                    if (p.rotation !== undefined) {
-                        ctx.rotate(p.rotation);
-                    }
-
-                    // Glow
-                    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size * 3);
-                    glow.addColorStop(0, this.addAlpha(p.color, alpha * 0.8));
-                    glow.addColorStop(1, 'transparent');
-
-                    ctx.fillStyle = glow;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 3, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Star shape
-                    ctx.fillStyle = this.addAlpha('#ffffff', alpha);
-                    ctx.beginPath();
-                    for (let i = 0; i < 4; i++) {
-                        const angle = (Math.PI / 2) * i;
-                        const outerDist = p.size;
-                        if (i === 0) {
-                            ctx.moveTo(Math.cos(angle) * outerDist, Math.sin(angle) * outerDist);
-                        } else {
-                            ctx.lineTo(Math.cos(angle) * outerDist, Math.sin(angle) * outerDist);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                } else {
-                    ctx.fillStyle = this.addAlpha(p.color, alpha);
-                    ctx.beginPath();
-                    ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+        // Categorize particles
+        for (const p of this.particles) {
+            if (p.type === 'trail') {
+                trailParticles.push(p);
+            } else if (p.type === 'explosion') {
+                explosionParticles.push(p);
+            } else if ((p.type === 'collect' || p.type === 'powerup') && p.sparkle) {
+                sparkleParticles.push(p);
             } else {
-                // Trail particles (original style)
-                const glow = ctx.createRadialGradient(x, y, 0, x, y, p.size * 2);
-                glow.addColorStop(0, this.addAlpha(p.color, alpha * 0.8));
-                glow.addColorStop(1, 'transparent');
-
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(x, y, p.size * 2, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = this.addAlpha(p.color, alpha);
-                ctx.beginPath();
-                ctx.arc(x, y, p.size, 0, Math.PI * 2);
-                ctx.fill();
+                simpleParticles.push(p);
             }
+        }
 
+        // Render trail particles (batched)
+        if (trailParticles.length > 0) {
+            ctx.save();
+            for (const p of trailParticles) {
+                this.renderTrailParticle(ctx, p, camera);
+            }
             ctx.restore();
-        });
+        }
+
+        // Render explosion particles (batched)
+        if (explosionParticles.length > 0) {
+            ctx.save();
+            for (const p of explosionParticles) {
+                this.renderExplosionParticle(ctx, p, camera);
+            }
+            ctx.restore();
+        }
+
+        // Render sparkle particles (batched, needs individual save/restore for transforms)
+        if (sparkleParticles.length > 0) {
+            for (const p of sparkleParticles) {
+                ctx.save();
+                this.renderSparkleParticle(ctx, p, camera);
+                ctx.restore();
+            }
+        }
+
+        // Render simple particles (batched)
+        if (simpleParticles.length > 0) {
+            ctx.save();
+            for (const p of simpleParticles) {
+                this.renderSimpleParticle(ctx, p, camera);
+            }
+            ctx.restore();
+        }
+    }
+
+    /**
+     * Render trail particle
+     */
+    renderTrailParticle(ctx, p, camera) {
+        const alpha = p.life / p.maxLife;
+        const x = p.x - camera.getX();
+        const y = p.y - camera.getY();
+
+        // Glow
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, p.size * 2);
+        glow.addColorStop(0, this.addAlpha(p.color, alpha * 0.8));
+        glow.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, p.size * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core
+        ctx.fillStyle = this.addAlpha(p.color, alpha);
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    /**
+     * Render explosion particle
+     */
+    renderExplosionParticle(ctx, p, camera) {
+        const alpha = p.life / p.maxLife;
+        const x = p.x - camera.getX();
+        const y = p.y - camera.getY();
+
+        // Glow
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, p.size * 2);
+        glow.addColorStop(0, this.addAlpha(p.color, alpha));
+        glow.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, p.size * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core
+        ctx.fillStyle = this.addAlpha(p.color, alpha);
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    /**
+     * Render sparkle particle (with transform)
+     */
+    renderSparkleParticle(ctx, p, camera) {
+        const alpha = p.life / p.maxLife;
+        const x = p.x - camera.getX();
+        const y = p.y - camera.getY();
+
+        ctx.translate(x, y);
+        if (p.rotation !== undefined) {
+            ctx.rotate(p.rotation);
+        }
+
+        // Glow
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size * 3);
+        glow.addColorStop(0, this.addAlpha(p.color, alpha * 0.8));
+        glow.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Star shape
+        ctx.fillStyle = this.addAlpha('#ffffff', alpha);
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI / 2) * i;
+            const outerDist = p.size;
+            if (i === 0) {
+                ctx.moveTo(Math.cos(angle) * outerDist, Math.sin(angle) * outerDist);
+            } else {
+                ctx.lineTo(Math.cos(angle) * outerDist, Math.sin(angle) * outerDist);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    /**
+     * Render simple particle
+     */
+    renderSimpleParticle(ctx, p, camera) {
+        const alpha = p.life / p.maxLife;
+        const x = p.x - camera.getX();
+        const y = p.y - camera.getY();
+
+        ctx.fillStyle = this.addAlpha(p.color, alpha);
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     /**
