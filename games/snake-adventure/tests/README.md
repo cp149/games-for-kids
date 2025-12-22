@@ -5,7 +5,7 @@
 ## 安装依赖
 
 ```bash
-cd /home/wxcd/mgame/games/snake-adventure
+cd /games/snake-adventure
 npm install
 ```
 

@@ -31,7 +31,7 @@ KAPLAY is our core game engine. This guide shows how to integrate it into our pr
 
 ```bash
 # Download KAPLAY
-cd /home/wxcd/mgame/lib
+cd /lib
 curl -O https://unpkg.com/kaplay@3001.0.0/dist/kaplay.mjs
 ```
 
@@ -465,7 +465,7 @@ k.add([
 
 ## Complete Example: Simple Runner
 
-See: `/home/wxcd/mgame/games/runner-adventure/` (to be created)
+See: `/games/runner-adventure/` (to be created)
 
 ## Resources
 

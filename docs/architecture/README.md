@@ -98,7 +98,7 @@ None yet - currently in design phase.
 ## Directory Structure
 
 ```
-/home/wxcd/mgame/
+/
 │
 ├── lib/                           # Shared Framework (to be implemented)
 │   ├── core/                      # Game loop, scenes, entities
@@ -443,9 +443,9 @@ A: Check FRAMEWORK_DESIGN_SUMMARY.md for current status and roadmap.
 ## Resources
 
 ### Internal Documentation
-- [Main README](/home/wxcd/mgame/README.md)
-- [Memory Match Game](/home/wxcd/mgame/games/memory-match/README.md)
-- [Development Guides](/home/wxcd/mgame/docs/guides/)
+- [Main README](/README.md)
+- [Memory Match Game](/games/memory-match/README.md)
+- [Development Guides](/docs/guides/)
 
 ### External References
 - [Game Programming Patterns](https://gameprogrammingpatterns.com/)

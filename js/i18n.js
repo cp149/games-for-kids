@@ -55,12 +55,18 @@ const translations = {
         duration8: "Endless",
         age8: "6-12",
         difficulty8: "Medium",
+        // Game 9: Path Race
+        game9_title: "Path Race",
+        game9_desc: "Race against AI to find the perfect path! Learn algorithms while having fun.",
+        duration9: "2-5 min",
+        age9: "5-8",
+        difficulty9: "Easy-Medium",
         // Badges
         new_badge: "NEW",
         hot_badge: "HOT",
         // Footer
         footer_text: "Made with love for kids around the world",
-        footer_count: "8 games available, more coming soon!",
+        footer_count: "9 games available, more coming soon!",
         footer_credits: "Images by",
         footer_music: "Music by"
     },
@@ -115,12 +121,18 @@ const translations = {
         duration8: "无限",
         age8: "6-12岁",
         difficulty8: "中等",
+        // Game 9: Path Race
+        game9_title: "路径竞速",
+        game9_desc: "与AI竞速寻找完美路径！在游戏中学习算法。",
+        duration9: "2-5分钟",
+        age9: "5-8岁",
+        difficulty9: "简单-中等",
         // Badges
         new_badge: "新",
         hot_badge: "热门",
         // Footer
         footer_text: "用爱为全世界的孩子们制作",
-        footer_count: "8个游戏可玩，更多即将推出！",
+        footer_count: "9个游戏可玩，更多即将推出！",
         footer_credits: "图片来自",
         footer_music: "音乐来自"
     },
@@ -175,12 +187,18 @@ const translations = {
         duration8: "無限",
         age8: "6-12歳",
         difficulty8: "普通",
+        // Game 9: Path Race
+        game9_title: "パスレース",
+        game9_desc: "AIと競争して完璧なパスを見つけよう！遊びながらアルゴリズムを学ぼう。",
+        duration9: "2-5分",
+        age9: "5-8歳",
+        difficulty9: "簡単-普通",
         // Badges
         new_badge: "新作",
         hot_badge: "人気",
         // Footer
         footer_text: "世界中の子供たちのために愛を込めて作りました",
-        footer_count: "8ゲームプレイ可能、もっと近日公開！",
+        footer_count: "9ゲームプレイ可能、もっと近日公開！",
         footer_credits: "画像:",
         footer_music: "音楽:"
     }

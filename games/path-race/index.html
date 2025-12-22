@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🏁 Path Race - AI vs Player Puzzle Game</title>
+    <meta name="description" content="Race against AI using Ant Colony Optimization! Plan your path wisely.">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Header -->
+        <header id="game-header">
+            <h1 id="game-title">Path Race</h1>
+            <div id="level-info">
+                <span id="level-display">Level 1</span>
+            </div>
+        </header>
+
+        <!-- Main Game Area: Dual Display -->
+        <div id="dual-display">
+            <!-- AI Side (Left) -->
+            <div class="game-panel ai-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">🤖</span>
+                    <h2 class="panel-title" data-i18n="ai_opponent">AI Opponent</h2>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="ai-canvas"></canvas>
+                </div>
+                <div class="panel-stats">
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="status">Status</span>
+                        <span class="stat-value" id="ai-status">Ready</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="progress">Progress</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="ai-progress"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="divider">VS</div>
+
+            <!-- Player Side (Right) -->
+            <div class="game-panel player-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">👤</span>
+                    <h2 class="panel-title" data-i18n="player">Player</h2>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="player-canvas"></canvas>
+                </div>
+                <div class="panel-stats">
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="moves">Moves</span>
+                        <span class="stat-value" id="player-moves">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="time">Time</span>
+                        <span class="stat-value" id="player-time">0s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls">
+            <button id="home-btn" class="control-btn" title="Home">🏠</button>
+            <button id="restart-btn" class="control-btn" title="Restart">🔄</button>
+            <button id="undo-btn" class="control-btn player-only" title="Undo">↶</button>
+            <button id="music-btn" class="control-btn" title="Music">🔊</button>
+            <button id="lang-btn" class="control-btn" title="Language">🌐</button>
+        </div>
+
+        <!-- Countdown Overlay -->
+        <div id="countdown-overlay" class="overlay hidden">
+            <div class="countdown-text">3</div>
+        </div>
+
+        <!-- Win/Lose Modal -->
+        <div id="result-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="result-title">You Win!</h2>
+                <div id="result-stars" class="stars">⭐⭐⭐</div>
+                <div class="result-stats">
+                    <p><span data-i18n="your_time">Your Time:</span> <span id="result-time">0s</span></p>
+                    <p><span data-i18n="your_moves">Your Moves:</span> <span id="result-moves">0</span></p>
+                    <p><span data-i18n="undo_used">Undos Used:</span> <span id="result-undos">0</span></p>
+                </div>
+                <div class="modal-buttons">
+                    <button id="retry-btn" class="btn btn-secondary" data-i18n="retry">Retry</button>
+                    <button id="next-level-btn" class="btn btn-primary" data-i18n="next_level">Next Level</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Overlay (First Time) -->
+        <div id="instructions-overlay" class="overlay">
+            <div class="instructions-content">
+                <h2 data-i18n="how_to_play">How to Play</h2>
+                <div class="instruction-list">
+                    <div class="instruction-item">
+                        <span class="instruction-icon">🟢</span>
+                        <p data-i18n="rule_start">Click the green dot to start</p>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">⬜</span>
+                        <p data-i18n="rule_visit">Visit every dot exactly once</p>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">↕️</span>
+                        <p data-i18n="rule_direction">Only move up/down/left/right</p>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">🔴</span>
+                        <p data-i18n="rule_end">Reach the red dot to finish</p>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">🏁</span>
+                        <p data-i18n="rule_race">Beat the AI to win!</p>
+                    </div>
+                </div>
+                <button id="start-game-btn" class="btn btn-large btn-primary" data-i18n="start_race">Start Race</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts in order -->
+    <script src="../lib/utils/Logger.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/utils/MathUtils.js"></script>
+    <script src="js/utils/GridGenerator.js"></script>
+    <script src="js/utils/ParticleSystem.js"></script>
+    <script src="js/classes/Dot.js"></script>
+    <script src="js/classes/Grid.js"></script>
+    <script src="js/classes/AntColony.js"></script>
+    <script src="../lib/background-music.js"></script>
+    <script src="js/managers/UIManager.js"></script>
+    <script src="js/managers/AudioManager.js"></script>
+    <script src="js/managers/LevelManager.js"></script>
+    <script src="js/managers/PathManager.js"></script>
+    <script src="js/managers/AIManager.js"></script>
+    <script src="js/classes/PathGame.js"></script>
+
+    <!-- Initialize -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const Logger = window.Logger;
+            Logger.info('🏁 Path Race initializing...');
+
+            const game = new PathGame('player-canvas', 'ai-canvas');
+
+            // Cleanup on unload
+            window.addEventListener('beforeunload', () => {
+                Logger.info('🔄 Cleaning up game resources');
+                game.destroy();
+            });
+        });
+    </script>
+</body>
+</html>

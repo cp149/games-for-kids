@@ -3,7 +3,7 @@
 This file contains important guidelines for Claude when working on this project.
 
 ## ⚡ Output Policy - CRITICAL
-
+所有路径都用相对路径，不许出现/home的字眼
 **BE CONCISE. MINIMIZE TOKEN USAGE.**
 
 ### 报告长度限制
@@ -339,7 +339,7 @@ fetch('data/levels.json')  // ✅ Relative
 
 ```html
 <!-- These will BREAK when published -->
-<img src="/home/wxcd/mgame/games/memory-match/assets/images/cat.png">  ❌
+<img src="/games/memory-match/assets/images/cat.png">  ❌
 <script src="/Users/dev/projects/mgame/js/game.js"></script>  ❌
 <link href="C:\Projects\mgame\styles\main.css">  ❌
 
@@ -350,7 +350,7 @@ fetch('data/levels.json')  // ✅ Relative
 ```javascript
 // WRONG - absolute paths
 const bgImage = new Image();
-bgImage.src = '/home/wxcd/mgame/assets/bg.png';  // ❌ Will break
+bgImage.src = '/assets/bg.png';  // ❌ Will break
 
 // WRONG - absolute from root
 fetch('/data/levels.json')  // ❌ May break on subpath deployments
@@ -501,6 +501,233 @@ console.log('临时调试:', value);  // OK for quick debug, remove later
 - [ ] Commit message in English
 - [ ] File names in English
 
+---
+
+## Universal Components (games/lib/) 🔧
+
+### Component Extraction Guidelines
+
+**When to Extract:**
+- Logic repeated across 3+ games
+- 100+ lines of reusable code
+- Clear single responsibility
+- Standalone functionality
+
+**Benefits:**
+- ✅ Reduce code duplication (27.5% reduction per game)
+- ✅ Consistent behavior across games
+- ✅ Single source of truth for fixes
+- ✅ Faster new game development
+
+### Component Structure
+
+```
+games/lib/
+├── component-name.js              # Implementation (250-300 lines max)
+├── component-name-README.md       # Full API documentation
+└── utils/                         # Small utilities
+    └── helper-name.js
+```
+
+**Required Documentation:**
+- Installation instructions
+- Basic usage examples
+- API reference
+- Integration examples
+- Browser compatibility
+
+### Module Compatibility Pattern
+
+**Support both ES6 modules and global browser usage:**
+
+```javascript
+class ComponentName {
+  // Implementation
+}
+
+// Export for CommonJS (Node.js tests)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ComponentName };
+}
+
+// Export for global browser usage
+if (typeof window !== 'undefined') {
+  window.ComponentName = ComponentName;
+}
+```
+
+**HTML Loading:**
+```html
+<!-- Load before components that use it -->
+<script src="../lib/component-name.js"></script>
+<script src="js/managers/SomeManager.js"></script>
+```
+
+**Test Import:**
+```javascript
+import { ComponentName } from '../../lib/component-name.js';
+globalThis.ComponentName = ComponentName; // Make available globally
+```
+
+### Integration Pattern
+
+**Before Extraction (in game code):**
+```javascript
+class AudioManager {
+  constructor() {
+    this.tracks = [...];
+    this.currentTrack = null;
+    // ... 115 lines of music logic
+  }
+
+  playNextTrack() { /* complex logic */ }
+  handleError() { /* error handling */ }
+  // ... many methods
+}
+```
+
+**After Extraction:**
+```javascript
+class AudioManager {
+  constructor() {
+    this.bgMusic = new BackgroundMusicManager({
+      tracks: [...],
+      volume: 0.3
+    });
+  }
+
+  startBackgroundMusic() { this.bgMusic.start(); }
+  stopBackgroundMusic() { this.bgMusic.stop(); }
+  toggleMusic() { return this.bgMusic.toggle(); }
+}
+```
+
+**Result:** 115 lines → 5 lines delegation
+
+### Existing Universal Components
+
+1. **PerformanceMonitor** (`performance-monitor.js`)
+   - FPS/MS/MB monitoring
+   - 12 games using
+
+2. **Logger** (`utils/Logger.js`)
+   - Structured logging
+   - 12 games using
+
+3. **BackgroundMusicManager** (`background-music.js`)
+   - Random looping music
+   - Error handling
+   - Tab auto-pause
+
+---
+
+## User Experience Patterns 🎮
+
+### Audio Management Best Practices
+
+**Tab Visibility Auto-Pause:**
+```javascript
+// In game initialization
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Tab hidden - pause audio
+    if (this.audioManager.isEnabled()) {
+      this.audioManager.pause();
+      this.musicWasPausedByTab = true;
+    }
+  } else {
+    // Tab visible - resume if was paused by tab
+    if (this.musicWasPausedByTab && this.audioManager.isEnabled()) {
+      this.audioManager.resume();
+      this.musicWasPausedByTab = false;
+    }
+  }
+});
+```
+
+**Key Points:**
+- Pause regardless of game state (menu/playing/paused)
+- Track pause source (user vs. tab)
+- Only resume if paused by tab AND still enabled by user
+
+**Music Control UI:**
+```html
+<!-- Add to control bar -->
+<button id="music-btn" class="control-btn">🔊</button>
+```
+
+```javascript
+// Toggle with instant feedback
+musicBtn.addEventListener('click', () => {
+  const isEnabled = audioManager.toggleMusic();
+  musicBtn.textContent = isEnabled ? '🔊' : '🔇';
+});
+```
+
+### Responsive Controls
+
+**Mobile Detection:**
+```javascript
+const isMobile = 'ontouchstart' in window;
+const controls = isMobile ? 'Tap and swipe' : 'Arrow keys';
+```
+
+**Touch vs Mouse:**
+- Mobile: Show joystick overlay
+- Desktop: Hide joystick, use keyboard
+
+---
+
+## Testing Standards 🧪
+
+### Contract Tests
+
+**Purpose:** Catch method signature errors between components
+
+**When to Use:**
+- After major refactoring (God Object split)
+- Manager/controller integration
+- Public API changes
+
+**Pattern:**
+```javascript
+// tests/api-contract.test.js
+describe('AudioManager - Methods called by SnakeGame', () => {
+  let manager;
+
+  beforeEach(() => {
+    manager = new AudioManager();
+  });
+
+  test('should have play method', () => {
+    expect(typeof manager.play).toBe('function');
+  });
+
+  test('should have toggleMusic method', () => {
+    expect(typeof manager.toggleMusic).toBe('function');
+  });
+});
+```
+
+**Value:** Catches 11 integration errors that unit tests missed
+
+### Test Coverage Requirements
+
+- **Unit Tests:** 80%+ coverage
+- **Contract Tests:** All public APIs
+- **Integration Tests:** Critical user flows
+- **Manual QA:** UI/UX validation
+
+### Testing Checklist
+
+- [ ] All managers have contract tests
+- [ ] Public methods tested
+- [ ] Error handling covered
+- [ ] Edge cases validated
+- [ ] Cross-browser compatibility
+
+---
+
 ## Agent Instructions
 
 When agents work on this project, they must:
@@ -581,6 +808,7 @@ When agents work on this project, they must:
 **代码用英文，交流用中文，游戏支持多语言！**
 **对代码进行优秀的管理，单个js文件不超过550行**
 **不要执行git**
+**用write而不是cat写代码和文档**
 ---
 
 **This is a critical guideline. All agents and developers must follow these standards.**
