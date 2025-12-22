@@ -101,6 +101,13 @@ class Snake {
     render(ctx, camera) {
         if (this.segments.length === 0 || !this.isAlive) return;
 
+        // Validate camera
+        const cameraX = (camera && typeof camera.getX === 'function') ? camera.getX() : 0;
+        const cameraY = (camera && typeof camera.getY === 'function') ? camera.getY() : 0;
+
+        // Skip if invalid camera coordinates
+        if (!isFinite(cameraX) || !isFinite(cameraY)) return;
+
         const pulse = 1 + Math.sin(this.pulsePhase) * CONFIG.SNAKE.PULSE_AMOUNT;
 
         // Draw trail connections between segments for smoother appearance with gradient
@@ -110,14 +117,21 @@ class Snake {
 
         // Create gradient along snake body
         if (this.segments.length >= 2) {
+
             const headScreen = {
-                x: this.segments[0].x - camera.getX(),
-                y: this.segments[0].y - camera.getY()
+                x: this.segments[0].x - cameraX,
+                y: this.segments[0].y - cameraY
             };
             const tailScreen = {
-                x: this.segments[this.segments.length - 1].x - camera.getX(),
-                y: this.segments[this.segments.length - 1].y - camera.getY()
+                x: this.segments[this.segments.length - 1].x - cameraX,
+                y: this.segments[this.segments.length - 1].y - cameraY
             };
+
+            // Ensure valid coordinates for gradient
+            if (!isFinite(headScreen.x) || !isFinite(headScreen.y) ||
+                !isFinite(tailScreen.x) || !isFinite(tailScreen.y)) {
+                return; // Skip rendering if invalid coordinates
+            }
 
             const trailGradient = ctx.createLinearGradient(
                 headScreen.x, headScreen.y,
@@ -131,8 +145,8 @@ class Snake {
             ctx.beginPath();
             for (let i = 0; i < this.segments.length; i++) {
                 const seg = this.segments[i];
-                const screenX = seg.x - camera.getX();
-                const screenY = seg.y - camera.getY();
+                const screenX = seg.x - cameraX;
+                const screenY = seg.y - cameraY;
 
                 if (i === 0) {
                     ctx.moveTo(screenX, screenY);
@@ -146,8 +160,8 @@ class Snake {
         // Render body segments with enhanced glow
         for (let i = 1; i < this.segments.length; i++) {
             const seg = this.segments[i];
-            const screenX = seg.x - camera.getX();
-            const screenY = seg.y - camera.getY();
+            const screenX = seg.x - cameraX;
+            const screenY = seg.y - cameraY;
 
             // Gradient from start to end color
             const t = i / this.segments.length;
@@ -178,8 +192,8 @@ class Snake {
 
         // Render head with enhanced effects
         const head = this.segments[0];
-        const headX = head.x - camera.getX();
-        const headY = head.y - camera.getY();
+        const headX = head.x - cameraX;
+        const headY = head.y - cameraY;
         const headRadius = CONFIG.SNAKE.SEGMENT_RADIUS * CONFIG.SNAKE.HEAD_RADIUS_MULTIPLIER * pulse;
 
         // Head outer glow (larger)
@@ -310,6 +324,13 @@ class Snake {
      */
     getLength() {
         return this.segments.length;
+    }
+
+    /**
+     * Get all segments
+     */
+    getSegments() {
+        return this.segments;
     }
 
     /**

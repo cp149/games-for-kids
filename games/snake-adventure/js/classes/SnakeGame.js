@@ -1,17 +1,25 @@
 /**
  * Snake Game - Main game controller
  * Coordinates all managers and game loop
+ * Refactored to use BuffManager, CollisionManager, and RenderManager
  */
 
 class SnakeGame {
-    constructor(canvasId) {
-        // Canvas setup
-        this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas.getContext('2d');
-        this.container = this.canvas.parentElement;
+    constructor(canvasId, logger = null) {
+        // Canvas setup - support both canvas object (for testing) and canvas ID (for production)
+        if (typeof canvasId === 'string') {
+            this.canvas = document.getElementById(canvasId);
+            this.container = this.canvas ? this.canvas.parentElement : null;
+        } else {
+            // For testing: accept canvas object directly
+            this.canvas = canvasId;
+            this.container = null;
+        }
+
+        this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
 
         // Logger instance
-        this.logger = window.Logger || console;
+        this.logger = logger || window.Logger || console;
 
         // Game state
         this.state = 'menu'; // menu, playing, paused, gameover
@@ -23,28 +31,12 @@ class SnakeGame {
         // AI respawn queue
         this.aiRespawnQueue = [];
 
-        // Active buffs
-        this.scoreMultiplier = 1;
-        this.scoreMultiplierTimer = 0;
-        this.speedBoostTimer = 0;
-        this.originalSpeed = 0;
-        this.magnetTimer = 0;
-        this.magnetRange = 0;
-
-        // Combo system
-        this.comboCount = 0;
-        this.comboTimer = 0;
-        this.comboTimeWindow = 2.0; // 2 seconds to maintain combo
-
         // Achievement tracking
         this.lastScoreMilestone = 0;
 
         // Mouse tracking for continuous following
         this.mouseX = window.innerWidth / 2;
         this.mouseY = window.innerHeight / 2;
-
-        // Background stars for visual effect
-        this.stars = this.generateStars(150);
 
         // Initialize
         this.setupCanvas();
@@ -54,33 +46,13 @@ class SnakeGame {
     }
 
     /**
-     * Generate background stars
-     */
-    generateStars(count) {
-        const stars = [];
-        for (let i = 0; i < count; i++) {
-            stars.push({
-                x: Math.random() * CONFIG.GAME.CANVAS_SIZE,
-                y: Math.random() * CONFIG.GAME.CANVAS_SIZE,
-                size: Math.random() * 2 + 0.5,
-                opacity: Math.random() * 0.5 + 0.3,
-                twinkleSpeed: Math.random() * 2 + 1,
-                twinklePhase: Math.random() * Math.PI * 2
-            });
-        }
-        return stars;
-    }
-
-    /**
      * Setup canvas size - Full screen
      */
     setupCanvas() {
         const updateSize = () => {
-            // Use full window size for canvas
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
 
-            // Update camera viewport if it exists
             if (this.cameraManager) {
                 this.cameraManager.resize(this.canvas.width, this.canvas.height);
             }
@@ -107,6 +79,11 @@ class SnakeGame {
         this.audioManager = new AudioManager();
         this.leaderboardManager = new LeaderboardManager();
         this.killFeedManager = new KillFeedManager();
+
+        // New managers
+        this.buffManager = new BuffManager(this.logger);
+        this.collisionManager = new CollisionManager(CONFIG.GAME.CANVAS_SIZE, this.logger);
+        this.renderManager = new RenderManager(this.canvas, this.cameraManager, this.logger);
 
         // Track AI spawned count
         this.aiSpawnedCount = 0;
@@ -164,9 +141,7 @@ class SnakeGame {
         const handleKeyboard = (e) => {
             if (this.state === 'menu' && e.code === 'Space') {
                 this.start();
-            } else if (this.state === 'playing' && e.code === 'Space') {
-                this.togglePause();
-            } else if (this.state === 'paused' && e.code === 'Space') {
+            } else if ((this.state === 'playing' || this.state === 'paused') && e.code === 'Space') {
                 this.togglePause();
             }
         };
@@ -174,14 +149,12 @@ class SnakeGame {
         document.addEventListener('keydown', handleKeyboard);
         this.eventListeners.set('keydown', { element: document, event: 'keydown', handler: handleKeyboard });
 
-        // Touch controls - track touch position
+        // Touch controls
         const handleTouchStart = (e) => {
             if (this.state === 'menu') {
                 this.start();
                 return;
             }
-
-            // Update mouse position from touch
             const touch = e.touches[0];
             this.mouseX = touch.clientX;
             this.mouseY = touch.clientY;
@@ -189,23 +162,19 @@ class SnakeGame {
 
         const handleTouchMove = (e) => {
             e.preventDefault();
-
-            // Update mouse position from touch
             const touch = e.touches[0];
             this.mouseX = touch.clientX;
             this.mouseY = touch.clientY;
         };
 
-        // Mouse controls - continuous following
+        // Mouse controls
         const handleMouseClick = (e) => {
             if (this.state === 'menu') {
                 this.start();
-                return;
             }
         };
 
         const handleMouseMove = (e) => {
-            // Always track mouse position
             this.mouseX = e.clientX;
             this.mouseY = e.clientY;
         };
@@ -244,8 +213,7 @@ class SnakeGame {
 
         // Right-click to pause/resume
         const handleContextMenu = (e) => {
-            e.preventDefault(); // Prevent default context menu
-
+            e.preventDefault();
             if (this.state === 'playing' || this.state === 'paused') {
                 this.togglePause();
             }
@@ -271,18 +239,8 @@ class SnakeGame {
         this.state = 'playing';
         this.score = 0;
 
-        // Reset buffs
-        this.scoreMultiplier = 1;
-        this.scoreMultiplierTimer = 0;
-        this.speedBoostTimer = 0;
-        this.originalSpeed = 0;
-        this.magnetTimer = 0;
-        this.magnetRange = 0;
-
-        // Reset combo and achievements
-        this.comboCount = 0;
-        this.comboTimer = 0;
-        this.lastScoreMilestone = 0;
+        // Reset buff manager
+        this.buffManager.reset();
 
         // Reset all snakes
         this.snakeManager.clear();
@@ -301,14 +259,16 @@ class SnakeGame {
         // Recreate AI snakes
         this.createAISnakes();
 
+        // Respawn food
+        this.foodManager.clear();
         this.foodManager.ensureMinimumFood(this.snakeManager.getAllSegments());
-        this.particleManager.clear();
-        this.uiManager.updateScore(0);
-        this.uiManager.updateLength(CONFIG.SNAKE.INITIAL_LENGTH);
+
+        // Update UI
+        this.uiManager.updateScore(this.score);
+        this.uiManager.updateLength(this.playerSnake.getLength());
 
         // Start game loop
-        this.lastTime = performance.now();
-        this.gameLoop();
+        requestAnimationFrame((time) => this.gameLoop(time));
     }
 
     /**
@@ -317,196 +277,99 @@ class SnakeGame {
     togglePause() {
         if (this.state === 'playing') {
             this.state = 'paused';
-            this.uiManager.updatePauseButton(true);
+            this.logger.log('⏸️ Game paused');
         } else if (this.state === 'paused') {
             this.state = 'playing';
-            this.uiManager.updatePauseButton(false);
-            this.lastTime = performance.now();
-            this.gameLoop();
+            this.logger.log('▶️ Game resumed');
+            requestAnimationFrame((time) => this.gameLoop(time));
         }
     }
 
     /**
-     * Game loop
+     * Main game loop
      */
-    gameLoop() {
-        if (this.state !== 'playing' && this.state !== 'paused') return;
+    gameLoop(currentTime) {
+        if (this.state !== 'playing') return;
 
-        // Begin performance measurement
-        if (this.perfMonitor) {
-            this.perfMonitor.begin();
-        }
-
-        const currentTime = performance.now();
-        const deltaTime = Math.min((currentTime - this.lastTime) / 1000, CONFIG.PERFORMANCE.MAX_DELTA_TIME);
+        // Calculate delta time
+        const deltaTime = this.lastTime ? Math.min((currentTime - this.lastTime) / 1000, 0.1) : 0;
         this.lastTime = currentTime;
 
-        // Only update game state when playing (not paused)
-        if (this.state === 'playing') {
-            this.update(deltaTime);
-        }
+        // Update
+        this.update(deltaTime);
 
-        // Always render to show pause overlay
+        // Render
         this.render();
 
-        // End performance measurement
-        if (this.perfMonitor) {
-            this.perfMonitor.end();
-        }
-
-        requestAnimationFrame(() => this.gameLoop());
+        // Continue loop
+        requestAnimationFrame((time) => this.gameLoop(time));
     }
 
     /**
      * Update game state
      */
     update(deltaTime) {
-        // Warn about performance issues
-        if (deltaTime > CONFIG.PERFORMANCE.MAX_DELTA_TIME) {
-            this.logger.warn('⚠️ High delta time detected:', deltaTime.toFixed(3), 's');
-        }
-
-        // Update star twinkle animation
-        this.stars.forEach(star => {
-            star.twinklePhase += deltaTime * star.twinkleSpeed;
-        });
-
-        // Update player snake target angle to follow mouse
+        // Update player snake direction based on mouse
         if (this.playerSnake && this.playerSnake.isAlive) {
             const head = this.playerSnake.getHead();
-
-            // Convert snake head world position to screen position
-            const headScreenX = head.x - this.cameraManager.getX();
-            const headScreenY = head.y - this.cameraManager.getY();
-
-            // Calculate angle from snake head to mouse
-            const dx = this.mouseX - headScreenX;
-            const dy = this.mouseY - headScreenY;
-            const targetAngle = Math.atan2(dy, dx);
-
-            // Update player snake's target angle
+            const worldX = this.mouseX + this.cameraManager.getX();
+            const worldY = this.mouseY + this.cameraManager.getY();
+            const targetAngle = Math.atan2(worldY - head.y, worldX - head.x);
             this.playerSnake.setTargetAngle(targetAngle);
-
-            // Update camera to follow player snake
-            this.cameraManager.follow(head);
-
-            // Spawn particles at tail
-            const tail = this.playerSnake.segments[this.playerSnake.segments.length - 1];
-            if (tail) {
-                this.particleManager.spawn(tail.x, tail.y, CONFIG.SNAKE.GRADIENT_END);
-            }
         }
 
-        // Update AI snakes using their strategies
-        const gameState = {
-            foods: this.foodManager.foods,
-            snakes: this.snakeManager.snakes,
-            playerSnake: this.playerSnake
-        };
-        this.aiController.update(this.snakeManager.snakes, gameState);
-
-        // Update all snakes
-        this.snakeManager.update(deltaTime);
-
-        // Update particles
-        this.particleManager.update(deltaTime);
-        this.foodManager.update(deltaTime);
-
-        // Update camera shake
-        this.cameraManager.update(deltaTime);
-
-        // Update leaderboard
-        this.leaderboardManager.update(this.snakeManager.snakes, this.playerSnake);
-
-        // Update kill feed
-        this.killFeedManager.update();
-
-        // Check food collision for all snakes
+        // Update all snakes and spawn trail particles
         for (const snake of this.snakeManager.snakes.values()) {
             if (snake.isAlive) {
+                snake.update(deltaTime);
+
+                // Spawn trail particles for moving snakes
                 const head = snake.getHead();
-                const collectedFood = this.foodManager.checkCollision(head);
-                if (collectedFood) {
-                    this.handleFoodCollision(snake, collectedFood);
+                if (head) {
+                    this.particleManager.spawn(head.x, head.y, snake.color.start);
                 }
             }
         }
 
-        // Update buff timers
-        if (this.scoreMultiplierTimer > 0) {
-            this.scoreMultiplierTimer -= deltaTime;
-            if (this.scoreMultiplierTimer <= 0) {
-                this.scoreMultiplier = 1;
-                this.logger.log('💎 Score multiplier expired');
-            }
+        // Update AI decisions
+        this.aiController.updateAll(
+            deltaTime,
+            this.foodManager.foods,
+            this.snakeManager.getPlayerSnake(),
+            this.snakeManager.getAISnakes()
+        );
+
+        // Update buff manager and handle events
+        const buffEvent = this.buffManager.update(deltaTime, this.playerSnake, this.foodManager.foods);
+        if (buffEvent && buffEvent.comboEnded) {
+            this.uiManager.showToast('🔥 ' + I18N.t('combo_ended', { count: buffEvent.count }));
         }
 
-        if (this.speedBoostTimer > 0) {
-            this.speedBoostTimer -= deltaTime;
-            if (this.speedBoostTimer <= 0 && this.originalSpeed > 0) {
-                this.playerSnake.speed = this.originalSpeed;
-                this.originalSpeed = 0;
-                this.logger.log('⚡ Speed boost expired');
-            }
+        // Update camera
+        if (this.playerSnake && this.playerSnake.isAlive) {
+            const head = this.playerSnake.getHead();
+            this.cameraManager.follow(head);
         }
+        this.cameraManager.update(deltaTime);
 
-        if (this.magnetTimer > 0) {
-            this.magnetTimer -= deltaTime;
-            if (this.magnetTimer <= 0) {
-                this.magnetRange = 0;
-                this.logger.log('🧲 Magnet expired');
-            } else {
-                // Magnet effect - pull nearby food towards player
-                if (this.playerSnake && this.playerSnake.isAlive) {
-                    const head = this.playerSnake.getHead();
-                    for (const food of this.foodManager.foods) {
-                        const dist = MathUtils.distance(head.x, head.y, food.x, food.y);
-                        if (dist < this.magnetRange && dist > CONFIG.FOOD.COLLECTION_RADIUS) {
-                            // Pull food towards player
-                            const angle = Math.atan2(head.y - food.y, head.x - food.x);
-                            const pullSpeed = 300 * deltaTime; // Pull speed
-                            food.x += Math.cos(angle) * pullSpeed;
-                            food.y += Math.sin(angle) * pullSpeed;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Update combo timer
-        if (this.comboTimer > 0) {
-            this.comboTimer -= deltaTime;
-            if (this.comboTimer <= 0) {
-                if (this.comboCount >= 3) {
-                    this.uiManager.showToast('🔥 ' + I18N.t('combo_ended', { count: this.comboCount }));
-                }
-                this.comboCount = 0;
-            }
-        }
-
-        // Check collisions for all snakes
+        // Check food collection
         for (const snake of this.snakeManager.snakes.values()) {
             if (!snake.isAlive) continue;
 
-            const head = snake.getHead();
-
-            // Check boundary collision
-            if (this.checkBoundaryCollision(head)) {
-                this.handleSnakeDeath(snake);
-                continue;
+            const collectedFoods = this.collisionManager.checkFoodCollections(snake, this.foodManager.foods);
+            for (const food of collectedFoods) {
+                this.handleFoodCollision(snake, food);
             }
+        }
 
-            // Check collision with other snakes' bodies
-            for (const otherSnake of this.snakeManager.snakes.values()) {
-                if (!otherSnake.isAlive) continue;
-                if (snake.id === otherSnake.id) continue; // Skip self
+        // Check collisions using optimized collision manager
+        const collisions = this.collisionManager.checkAllCollisions(
+            Array.from(this.snakeManager.snakes.values()),
+            CONFIG.GAME.CANVAS_SIZE
+        );
 
-                // Check if this snake's head hits other snake's body
-                if (otherSnake.checkBodyCollision(head.x, head.y, 0)) {
-                    this.handleSnakeDeath(snake, otherSnake);
-                    break;
-                }
-            }
+        for (const collision of collisions) {
+            this.handleSnakeDeath(collision.snake, collision.hitBy);
         }
 
         // Process AI respawn queue
@@ -515,14 +378,12 @@ class SnakeGame {
             respawn.framesRemaining--;
 
             if (respawn.framesRemaining <= 0) {
-                // Respawn AI snake
                 const margin = 500;
                 const x = MathUtils.random(margin, CONFIG.GAME.CANVAS_SIZE - margin);
                 const y = MathUtils.random(margin, CONFIG.GAME.CANVAS_SIZE - margin);
 
                 const newSnake = this.snakeManager.createAISnake({
-                    x: x,
-                    y: y,
+                    x, y,
                     angle: Math.random() * Math.PI * 2,
                     color: respawn.color,
                     speed: CONFIG.SNAKE.INITIAL_SPEED * CONFIG.AI.INITIAL_SPEED_MULTIPLIER
@@ -533,10 +394,7 @@ class SnakeGame {
                     : new CautiousStrategy();
 
                 this.aiController.registerAI(newSnake, strategy);
-
                 this.logger.log('🤖 AI snake respawned!');
-
-                // Remove from queue
                 this.aiRespawnQueue.splice(i, 1);
             }
         }
@@ -544,7 +402,6 @@ class SnakeGame {
         // Check if should spawn new AI based on player progress
         if (this.playerSnake && this.playerSnake.isAlive) {
             const currentLength = this.playerSnake.getLength();
-
             for (const milestone of CONFIG.AI.SPAWN_ON_MILESTONE) {
                 if (currentLength >= milestone && this.lastMilestoneLength < milestone) {
                     this.spawnAdditionalAI();
@@ -553,6 +410,17 @@ class SnakeGame {
                 }
             }
         }
+
+        // Update render manager animations
+        this.renderManager.updateStars(deltaTime);
+
+        // Update particles and leaderboard
+        this.particleManager.update(deltaTime);
+        this.leaderboardManager.update(this.snakeManager.snakes, this.playerSnake);
+        this.killFeedManager.update(deltaTime);
+
+        // Ensure minimum food
+        this.foodManager.ensureMinimumFood(this.snakeManager.getAllSegments());
     }
 
     /**
@@ -566,473 +434,130 @@ class SnakeGame {
             return;
         }
 
-        const aiColors = [
-            { start: '#ff0066', end: '#ff6699', glow: 'rgba(255, 0, 102, 0.8)' },
-            { start: '#00ff88', end: '#00ddaa', glow: 'rgba(0, 255, 136, 0.8)' },
-            { start: '#ffaa00', end: '#ffdd44', glow: 'rgba(255, 170, 0, 0.8)' },
-            { start: '#aa00ff', end: '#dd44ff', glow: 'rgba(170, 0, 255, 0.8)' },
-            { start: '#00aaff', end: '#44ddff', glow: 'rgba(0, 170, 255, 0.8)' }
-        ];
-
-        const strategies = [AggressiveStrategy, CautiousStrategy, ExplorerStrategy];
-
         const margin = 500;
         const x = MathUtils.random(margin, CONFIG.GAME.CANVAS_SIZE - margin);
         const y = MathUtils.random(margin, CONFIG.GAME.CANVAS_SIZE - margin);
 
-        const aiSnake = this.snakeManager.createAISnake({
-            x: x,
-            y: y,
+        const colors = [
+            { start: '#ff0066', end: '#ff6699', glow: 'rgba(255, 0, 102, 0.8)' },
+            { start: '#00ff88', end: '#00ddaa', glow: 'rgba(0, 255, 136, 0.8)' },
+            { start: '#ffaa00', end: '#ffdd44', glow: 'rgba(255, 170, 0, 0.8)' }
+        ];
+
+        const newSnake = this.snakeManager.createAISnake({
+            x, y,
             angle: Math.random() * Math.PI * 2,
-            color: aiColors[this.aiSpawnedCount % aiColors.length],
+            color: colors[this.aiSpawnedCount % colors.length],
             speed: CONFIG.SNAKE.INITIAL_SPEED * CONFIG.AI.INITIAL_SPEED_MULTIPLIER
         });
 
-        const StrategyClass = strategies[this.aiSpawnedCount % strategies.length];
-        this.aiController.registerAI(aiSnake, new StrategyClass());
+        this.aiController.registerAI(newSnake, new AggressiveStrategy());
         this.aiSpawnedCount++;
 
-        this.uiManager.showToast('🚨 ' + I18N.t('new_ai'));
-        this.audioManager.play('achievement');
-        this.logger.info('🤖 New AI spawned! Total AI:', currentAICount + 1);
+        this.uiManager.showToast('🤖 ' + I18N.t('new_ai'));
+        this.audioManager.play('powerup');
+        this.logger.log('🤖 New AI spawned at milestone:', this.playerSnake.getLength());
     }
 
     /**
-     * Handle food collision for any snake (player or AI)
+     * Apply food type-specific effects using strategy pattern
+     */
+    applyFoodEffect(foodType, snake, foodConfig) {
+        const foodEffects = {
+            'SPEED': () => {
+                this.buffManager.activateSpeedBoost(this.playerSnake, foodConfig.BOOST_DURATION);
+                this.uiManager.showToast('⚡ ' + I18N.t('speed_boost'));
+                this.uiManager.showBuffIndicator('speed', foodConfig.BOOST_DURATION);
+                this.audioManager.play('speedBoost');
+            },
+            'BONUS': () => {
+                this.buffManager.activateScoreMultiplier(foodConfig.SCORE_MULTIPLIER, foodConfig.MULTIPLIER_DURATION);
+                this.uiManager.showToast('💎 ' + I18N.t('score_multiplier'));
+                this.uiManager.showBuffIndicator('bonus', foodConfig.MULTIPLIER_DURATION);
+                this.audioManager.play('powerup');
+            },
+            'GOLDEN': () => {
+                // Golden food gives extra growth (already grew 1, need GROW_AMOUNT - 1 more)
+                if (foodConfig.GROW_AMOUNT) {
+                    for (let i = 1; i < foodConfig.GROW_AMOUNT; i++) {
+                        snake.grow();
+                    }
+                }
+                this.uiManager.showToast('🌟 ' + I18N.t('golden_food'));
+                this.audioManager.play('golden');
+            },
+            'MAGNET': () => {
+                this.buffManager.activateMagnet(foodConfig.MAGNET_RANGE, foodConfig.MAGNET_DURATION);
+                this.uiManager.showToast('🧲 ' + I18N.t('magnet_power'));
+                this.uiManager.showBuffIndicator('magnet', foodConfig.MAGNET_DURATION);
+                this.audioManager.play('powerup');
+            },
+            'NORMAL': () => {
+                // Normal food - just eat sound
+                this.audioManager.play('eat');
+            }
+        };
+
+        // Execute food effect if handler exists
+        const handler = foodEffects[foodType];
+        if (handler) {
+            handler();
+        } else {
+            // Fallback for unknown food types
+            this.audioManager.play('eat');
+        }
+    }
+
+    /**
+     * Handle food collision
      */
     handleFoodCollision(snake, collectedFood) {
-        if (!snake || !collectedFood) return;
-
-        const foodConfig = collectedFood.config;
-        const foodType = collectedFood.type;
         const isPlayer = snake.type === 'player';
+        const foodConfig = collectedFood.config;
 
-        // Spawn collection particles
-        this.particleManager.spawnFoodCollect(collectedFood.x, collectedFood.y, foodConfig.COLOR);
+        // Grow snake (all food makes snake grow by 1 segment)
+        snake.grow();
 
-        // Player-only: Calculate and add score + subtle screen shake + combo
+        // Remove food
+        const foodIndex = this.foodManager.foods.indexOf(collectedFood);
+        if (foodIndex !== -1) {
+            this.foodManager.foods.splice(foodIndex, 1);
+        }
+
+        // Player gets scoring and buffs
         if (isPlayer) {
-            // Combo system
-            this.comboCount++;
-            this.comboTimer = this.comboTimeWindow;
+            // Increment combo
+            this.buffManager.incrementCombo();
 
-            // Calculate score with combo multiplier
+            // Calculate score with multipliers
             const baseScore = foodConfig.SCORE;
-            const comboMultiplier = Math.min(1 + (this.comboCount - 1) * 0.1, 2.5); // Max 2.5x at 15 combo
-            const earnedScore = Math.floor(baseScore * this.scoreMultiplier * comboMultiplier);
+            const earnedScore = this.buffManager.calculateScore(baseScore);
+
             this.score += earnedScore;
-
-            // Show combo notification
-            if (this.comboCount >= 5 && this.comboCount % 5 === 0) {
-                this.uiManager.showToast('🔥 ' + I18N.t('combo', { count: this.comboCount }));
-                this.cameraManager.shake(5, 0.15);
-            }
-
-            // Subtle screen shake for feedback (stronger for special food)
-            const shakeIntensity = foodType !== 'NORMAL' ? 3 : 1.5;
-            this.cameraManager.shake(shakeIntensity, 0.1);
-        }
-
-        // Handle special food effects
-        switch (foodType) {
-            case 'SPEED':
-                // Speed boost
-                if (isPlayer) {
-                    if (this.speedBoostTimer <= 0) {
-                        this.originalSpeed = snake.speed;
-                    }
-                    this.uiManager.showToast('⚡ ' + I18N.t('speed_boost'));
-                    this.uiManager.showBuffIndicator('speed', foodConfig.BOOST_DURATION);
-                    this.audioManager.play('speedBoost');
-                    this.logger.info('⚡ Speed boost activated!');
-                    // Power-up particles
-                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR);
-                }
-                snake.speed = Math.min(
-                    snake.speed + foodConfig.SPEED_BOOST,
-                    CONFIG.SNAKE.MAX_SPEED
-                );
-                this.speedBoostTimer = foodConfig.BOOST_DURATION / 1000;
-                break;
-
-            case 'BONUS':
-                // Score multiplier (player only)
-                if (isPlayer) {
-                    this.scoreMultiplier = foodConfig.SCORE_MULTIPLIER;
-                    this.scoreMultiplierTimer = foodConfig.MULTIPLIER_DURATION / 1000;
-                    this.uiManager.showToast('💎 ' + I18N.t('score_multiplier'));
-                    this.uiManager.showBuffIndicator('bonus', foodConfig.MULTIPLIER_DURATION);
-                    this.audioManager.play('bonus');
-                    this.logger.info('💎 Score multiplier activated!');
-                    // Power-up particles
-                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR);
-                }
-                break;
-
-            case 'GOLDEN':
-                // Grow multiple segments
-                for (let i = 0; i < foodConfig.GROW_AMOUNT; i++) {
-                    snake.grow();
-                }
-                if (isPlayer) {
-                    this.uiManager.showToast('⭐ ' + I18N.t('golden_food'));
-                    this.audioManager.play('golden');
-                    this.logger.info('⭐ Golden food! Grew', foodConfig.GROW_AMOUNT, 'segments');
-                    // Power-up particles
-                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR, 40);
-                }
-                break;
-
-            case 'MAGNET':
-                // Magnet effect - attract nearby food
-                if (isPlayer) {
-                    this.magnetRange = foodConfig.MAGNET_RANGE;
-                    this.magnetTimer = foodConfig.MAGNET_DURATION / 1000;
-                    this.uiManager.showToast('🧲 ' + I18N.t('magnet_power'));
-                    this.uiManager.showBuffIndicator('magnet', foodConfig.MAGNET_DURATION);
-                    this.audioManager.play('bonus');
-                    this.logger.info('🧲 Magnet activated! Range:', this.magnetRange);
-                    // Power-up particles
-                    this.particleManager.spawnPowerUp(collectedFood.x, collectedFood.y, foodConfig.COLOR, 35);
-                }
-                break;
-
-            default:
-                // Normal food - always grow
-                snake.grow();
-                if (isPlayer) {
-                    this.audioManager.play('eat');
-                }
-                break;
-        }
-
-        // Always grow at least once (for non-golden food)
-        if (foodType !== 'GOLDEN') {
-            snake.grow();
-        }
-
-        // Remove collected food and spawn new one
-        this.foodManager.removeFood(collectedFood);
-        this.foodManager.ensureMinimumFood(this.snakeManager.getAllSegments());
-
-        // Player-only: Update UI and check achievements
-        if (isPlayer) {
             this.uiManager.updateScore(this.score);
             this.uiManager.updateLength(snake.getLength());
 
-            const baseScore = foodConfig.SCORE;
-            const earnedScore = Math.floor(baseScore * this.scoreMultiplier);
-            this.logger.log('🍎', foodType, 'food collected! +', earnedScore, 'points. Total:', this.score);
+            // Handle food type effects using strategy mapping
+            this.applyFoodEffect(collectedFood.type, snake, foodConfig);
 
-            // Speed up every N food
-            const foodCount = snake.getLength() - CONFIG.SNAKE.INITIAL_LENGTH;
-            if (CONFIG.PROGRESSION.FOOD_FOR_SPEED_UP.includes(foodCount)) {
-                snake.increaseSpeed();
-                this.uiManager.showToast(I18N.t('speed_up'));
-                this.logger.info('🚀 Natural speed increase! Current speed:', snake.speed);
-            }
-
-            // Length achievement milestones
-            if (CONFIG.PROGRESSION.LENGTH_MILESTONES.includes(snake.getLength())) {
-                this.uiManager.showToast(
-                    I18N.t('achievement', { length: snake.getLength() })
-                );
-                this.audioManager.play('achievement');
-                this.logger.info('🏆 Achievement! Length milestone:', snake.getLength());
-            }
-
-            // Score achievement milestones
-            for (const milestone of CONFIG.PROGRESSION.SCORE_MILESTONES) {
-                if (this.score >= milestone && this.lastScoreMilestone < milestone) {
-                    this.lastScoreMilestone = milestone;
-                    this.uiManager.showToast(`💯 ${milestone} Points!`);
-                    this.audioManager.play('achievement');
-                    this.cameraManager.shake(8, 0.3);
-                    this.logger.info('🏆 Score milestone:', milestone);
-                    break;
-                }
+            // Combo notification
+            if (this.buffManager.getComboCount() >= 3) {
+                this.uiManager.showToast('🔥 ' + I18N.t('combo', { count: this.buffManager.getComboCount() }));
             }
         } else {
-            // AI snake - just log
-            this.logger.log('🤖 AI snake collected', foodType, 'food. Length:', snake.getLength());
-        }
-    }
-
-    /**
-     * Render game
-     */
-    render() {
-        // Clear
-        this.ctx.fillStyle = CONFIG.GAME.BACKGROUND_COLOR;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Render animated stars
-        this.renderStars();
-
-        // Draw boundary (visible part)
-        this.renderBoundary();
-
-        // Render game objects
-        this.particleManager.render(this.ctx, this.cameraManager);
-        this.snakeManager.render(this.ctx, this.cameraManager);
-        this.foodManager.render(this.ctx, this.cameraManager);
-
-        // Render magnet range indicator if active
-        if (this.magnetTimer > 0 && this.playerSnake && this.playerSnake.isAlive) {
-            const head = this.playerSnake.getHead();
-            const screenX = head.x - this.cameraManager.getX();
-            const screenY = head.y - this.cameraManager.getY();
-
-            // Draw pulsing magnet range circle
-            const pulse = Math.sin(performance.now() / 200) * 0.1 + 0.9;
-            const gradient = this.ctx.createRadialGradient(
-                screenX, screenY, 0,
-                screenX, screenY, this.magnetRange * pulse
-            );
-            gradient.addColorStop(0, 'rgba(138, 43, 226, 0)');
-            gradient.addColorStop(0.7, 'rgba(138, 43, 226, 0.15)');
-            gradient.addColorStop(1, 'rgba(138, 43, 226, 0.3)');
-
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.arc(screenX, screenY, this.magnetRange * pulse, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            // Draw range circle outline
-            this.ctx.strokeStyle = 'rgba(138, 43, 226, 0.5)';
-            this.ctx.lineWidth = 2;
-            this.ctx.setLineDash([10, 5]);
-            this.ctx.beginPath();
-            this.ctx.arc(screenX, screenY, this.magnetRange, 0, Math.PI * 2);
-            this.ctx.stroke();
-            this.ctx.setLineDash([]);
+            // AI just gets basic eat sound
+            this.audioManager.play('eat');
         }
 
-        // Render combo counter if active
-        if (this.comboCount >= 3 && this.comboTimer > 0) {
-            const centerX = this.canvas.width / 2;
-            const centerY = 180;
-
-            // Combo background
-            const pulseSize = 1 + Math.sin(performance.now() / 100) * 0.05;
-            this.ctx.save();
-            this.ctx.translate(centerX, centerY);
-            this.ctx.scale(pulseSize, pulseSize);
-
-            // Glow effect
-            this.ctx.shadowBlur = 20;
-            this.ctx.shadowColor = '#ff6600';
-
-            // Combo text
-            this.ctx.font = 'bold 48px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-
-            // Outline
-            const comboText = I18N.t('combo', { count: this.comboCount });
-            this.ctx.strokeStyle = '#000';
-            this.ctx.lineWidth = 6;
-            this.ctx.strokeText(comboText, 0, 0);
-
-            // Fill with gradient
-            const gradient = this.ctx.createLinearGradient(0, -30, 0, 30);
-            gradient.addColorStop(0, '#ffff00');
-            gradient.addColorStop(0.5, '#ff8800');
-            gradient.addColorStop(1, '#ff3300');
-            this.ctx.fillStyle = gradient;
-            this.ctx.fillText(comboText, 0, 0);
-
-            this.ctx.shadowBlur = 0;
-            this.ctx.restore();
-        }
-
-        // Render UI overlays (in screen space, not world space)
-        this.leaderboardManager.render(this.ctx, this.canvas);
-        this.killFeedManager.render(this.ctx);
-
-        // Render pause overlay
-        if (this.state === 'paused') {
-            this.renderPauseOverlay();
-        }
-    }
-
-    /**
-     * Render pause overlay
-     */
-    renderPauseOverlay() {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-
-        // Semi-transparent dark overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // "PAUSED" text with glow effect
-        this.ctx.save();
-        this.ctx.shadowBlur = 30;
-        this.ctx.shadowColor = '#00ffff';
-
-        // Main text
-        this.ctx.font = 'bold 80px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-
-        // Outline
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 8;
-        this.ctx.strokeText(I18N.t('paused'), centerX, centerY - 50);
-
-        // Fill with gradient
-        const gradient = this.ctx.createLinearGradient(0, centerY - 100, 0, centerY);
-        gradient.addColorStop(0, '#00ffff');
-        gradient.addColorStop(1, '#0088ff');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillText(I18N.t('paused'), centerX, centerY - 50);
-
-        // Instruction text
-        this.ctx.shadowBlur = 15;
-        this.ctx.font = 'bold 28px Arial';
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 5;
-        this.ctx.strokeText(I18N.t('right_click_to_resume'), centerX, centerY + 40);
-
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText(I18N.t('right_click_to_resume'), centerX, centerY + 40);
-
-        this.ctx.restore();
-    }
-
-    /**
-     * Render animated stars in background
-     */
-    renderStars() {
-        this.stars.forEach(star => {
-            const x = star.x - this.cameraManager.getX();
-            const y = star.y - this.cameraManager.getY();
-
-            // Calculate twinkle opacity
-            const twinkle = Math.sin(star.twinklePhase) * 0.3 + 0.7;
-            const opacity = star.opacity * twinkle;
-
-            // Render star with glow
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
-            this.ctx.beginPath();
-            this.ctx.arc(x, y, star.size * 2, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-            this.ctx.beginPath();
-            this.ctx.arc(x, y, star.size, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-    }
-
-    /**
-     * Render world boundary with spikes
-     */
-    renderBoundary() {
-        const left = -this.cameraManager.getX();
-        const top = -this.cameraManager.getY();
-        const right = CONFIG.GAME.CANVAS_SIZE - this.cameraManager.getX();
-        const bottom = CONFIG.GAME.CANVAS_SIZE - this.cameraManager.getY();
-
-        // Base boundary line
-        this.ctx.strokeStyle = CONFIG.GAME.BOUNDARY_COLOR;
-        this.ctx.lineWidth = CONFIG.GAME.BOUNDARY_WIDTH;
-        this.ctx.shadowBlur = CONFIG.GAME.BOUNDARY_GLOW;
-        this.ctx.shadowColor = CONFIG.GAME.BOUNDARY_COLOR;
-        this.ctx.strokeRect(left, top, CONFIG.GAME.CANVAS_SIZE, CONFIG.GAME.CANVAS_SIZE);
-
-        // Draw spikes
-        const spikeSize = 30;
-        const spikeSpacing = 50;
-        this.ctx.fillStyle = CONFIG.GAME.BOUNDARY_COLOR;
-
-        // Top spikes (pointing down)
-        for (let x = 0; x < CONFIG.GAME.CANVAS_SIZE; x += spikeSpacing) {
-            const sx = x - this.cameraManager.getX();
-            const sy = top;
-            this.ctx.beginPath();
-            this.ctx.moveTo(sx, sy);
-            this.ctx.lineTo(sx + spikeSize / 2, sy + spikeSize);
-            this.ctx.lineTo(sx + spikeSize, sy);
-            this.ctx.closePath();
-            this.ctx.fill();
-        }
-
-        // Bottom spikes (pointing up)
-        for (let x = 0; x < CONFIG.GAME.CANVAS_SIZE; x += spikeSpacing) {
-            const sx = x - this.cameraManager.getX();
-            const sy = bottom;
-            this.ctx.beginPath();
-            this.ctx.moveTo(sx, sy);
-            this.ctx.lineTo(sx + spikeSize / 2, sy - spikeSize);
-            this.ctx.lineTo(sx + spikeSize, sy);
-            this.ctx.closePath();
-            this.ctx.fill();
-        }
-
-        // Left spikes (pointing right)
-        for (let y = 0; y < CONFIG.GAME.CANVAS_SIZE; y += spikeSpacing) {
-            const sx = left;
-            const sy = y - this.cameraManager.getY();
-            this.ctx.beginPath();
-            this.ctx.moveTo(sx, sy);
-            this.ctx.lineTo(sx + spikeSize, sy + spikeSize / 2);
-            this.ctx.lineTo(sx, sy + spikeSize);
-            this.ctx.closePath();
-            this.ctx.fill();
-        }
-
-        // Right spikes (pointing left)
-        for (let y = 0; y < CONFIG.GAME.CANVAS_SIZE; y += spikeSpacing) {
-            const sx = right;
-            const sy = y - this.cameraManager.getY();
-            this.ctx.beginPath();
-            this.ctx.moveTo(sx, sy);
-            this.ctx.lineTo(sx - spikeSize, sy + spikeSize / 2);
-            this.ctx.lineTo(sx, sy + spikeSize);
-            this.ctx.closePath();
-            this.ctx.fill();
-        }
-
-        this.ctx.shadowBlur = 0;
-    }
-
-    /**
-     * Check boundary collision
-     */
-    checkBoundaryCollision(head) {
-        const margin = CONFIG.SNAKE.SEGMENT_RADIUS;
-        return (
-            head.x < margin ||
-            head.x > CONFIG.GAME.CANVAS_SIZE - margin ||
-            head.y < margin ||
-            head.y > CONFIG.GAME.CANVAS_SIZE - margin
+        // Particles
+        this.particleManager.spawnFoodCollect(
+            collectedFood.x, collectedFood.y,
+            foodConfig.COLOR
         );
     }
 
     /**
-     * Check self collision
-     */
-    checkSelfCollision() {
-        const head = this.snakeManager.getHead();
-        const skipSegments = CONFIG.COLLISION.SELF_COLLISION_SKIP_SEGMENTS;
-
-        for (let i = skipSegments; i < this.snakeManager.segments.length; i++) {
-            const seg = this.snakeManager.segments[i];
-            if (MathUtils.circlesIntersect(
-                head.x, head.y, CONFIG.SNAKE.SEGMENT_RADIUS,
-                seg.x, seg.y, CONFIG.SNAKE.SEGMENT_RADIUS
-            )) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Handle snake death - turn body into food with visual effects
+     * Handle snake death
      */
     handleSnakeDeath(snake, killer = null) {
         if (!snake || !snake.isAlive) return;
@@ -1041,84 +566,71 @@ class SnakeGame {
 
         this.logger.log(isPlayer ? '💀 Player died!' : '🤖 AI snake died!', 'Length:', snake.getLength());
 
-        // Spawn explosion particles at head
-        const head = snake.getHead();
-        this.particleManager.spawnExplosion(head.x, head.y, snake.color.start, 30);
+        // Mark as dead
+        snake.isAlive = false;
 
-        // Camera shake on death
-        if (isPlayer) {
-            this.cameraManager.shake(15, 0.4);
-        } else {
-            this.cameraManager.shake(8, 0.2);
+        // Award score to killer
+        if (killer && killer.type === 'player') {
+            const baseScore = CONFIG.FOOD.TYPES.NORMAL.SCORE * snake.getLength();
+            const earnedScore = this.buffManager.calculateScore(baseScore);
+            this.score += earnedScore;
+            this.uiManager.updateScore(this.score);
         }
 
-        // Play death sound
-        if (isPlayer) {
-            this.audioManager.play('death');
-        } else {
-            this.audioManager.play('aiDeath');
-        }
-
-        // Add to kill feed
-        this.killFeedManager.addDeath(snake, killer);
-
-        // Turn snake body into food with mini explosions (every 3rd segment)
-        const segments = snake.segments;
-        for (let i = 0; i < segments.length; i += 3) {
-            const seg = segments[i];
-
-            // Spawn smaller explosion for each food spawn
-            this.particleManager.spawnExplosion(seg.x, seg.y, snake.color.end, 8);
+        // Convert body to food with particles
+        const segments = snake.getSegments();
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
 
             // Create food at segment position
-            const foodTypes = Object.keys(CONFIG.FOOD.TYPES);
-            const weights = foodTypes.map(type => CONFIG.FOOD.TYPES[type].SPAWN_WEIGHT);
-            const randomType = MathUtils.weightedRandom(foodTypes, weights);
-            const foodConfig = CONFIG.FOOD.TYPES[randomType];
+            if (i % 2 === 0) {
+                this.foodManager.spawnFoodAt(segment.x, segment.y);
+            }
 
-            this.foodManager.foods.push({
-                x: seg.x,
-                y: seg.y,
-                type: randomType,
-                config: foodConfig,
-                pulsePhase: Math.random() * Math.PI * 2
-            });
+            // Create death particles
+            if (i % 3 === 0) {
+                this.particleManager.spawnExplosion(
+                    segment.x, segment.y,
+                    snake.color.start
+                );
+            }
         }
 
-        // Mark snake as dead
-        snake.die();
+        // Kill feed
+        this.killFeedManager.addDeath(snake, killer);
 
-        // If player died, game over
+        // Respawn or game over
         if (isPlayer) {
             this.gameOver();
         } else {
-            // AI snake - respawn after delay
             this.respawnAISnake(snake);
         }
+
+        this.audioManager.play('death');
     }
 
     /**
-     * Respawn AI snake after death
+     * Respawn AI snake
      */
     respawnAISnake(deadSnake) {
-        // Remove dead snake from controller
-        this.aiController.removeAI(deadSnake.id);
-        this.snakeManager.removeSnake(deadSnake.id);
+        const strategy = this.aiController.aiSnakes.get(deadSnake);
+        const strategyType = strategy instanceof AggressiveStrategy ? 'aggressive' : 'cautious';
 
-        // Add to respawn queue (3 seconds = 180 frames at 60 FPS)
         this.aiRespawnQueue.push({
-            framesRemaining: 180,
             color: deadSnake.color,
-            strategyType: deadSnake.color.start === '#ff0066' ? 'aggressive' : 'cautious'
+            strategyType: strategyType,
+            framesRemaining: CONFIG.AI.RESPAWN_DELAY_FRAMES
         });
+
+        this.aiController.aiSnakes.delete(deadSnake);
     }
 
     /**
      * Game over
      */
     gameOver() {
-        this.logger.warn('💀 Game Over! Final score:', this.score, 'Length:', this.playerSnake ? this.playerSnake.getLength() : 0);
         this.state = 'gameover';
+        this.logger.info('💀 Game Over! Score:', this.score);
         this.uiManager.showGameOver(this.score, () => this.start());
     }
 
@@ -1126,7 +638,6 @@ class SnakeGame {
      * Refresh UI after language change
      */
     refreshUI() {
-        // Update score and length displays
         this.uiManager.updateScore(this.score);
         if (this.playerSnake) {
             this.uiManager.updateLength(this.playerSnake.getLength());
@@ -1134,40 +645,43 @@ class SnakeGame {
     }
 
     /**
+     * Render game
+     */
+    render() {
+        this.renderManager.render(
+            this.state,
+            this.playerSnake,
+            this.buffManager,
+            this.particleManager,
+            this.snakeManager,
+            this.foodManager,
+            this.leaderboardManager,
+            this.killFeedManager
+        );
+    }
+
+    /**
      * Cleanup
      */
     destroy() {
-        this.state = 'destroyed';
+        this.logger.info('🔄 Destroying game...');
 
-        // Destroy performance monitor
-        if (this.perfMonitor) {
-            this.perfMonitor.destroy();
-            this.perfMonitor = null;
-        }
-
-        // Destroy all managers
-        this.uiManager.destroy();
-        this.snakeManager.destroy();
-        this.foodManager.destroy();
-        this.cameraManager.destroy();
-        this.particleManager.destroy();
-        this.audioManager.destroy();
-        this.leaderboardManager.destroy();
-        this.killFeedManager.destroy();
-
-        // Remove event listeners
-        this.eventListeners.forEach(({ element, event, handler }) => {
+        // Cleanup event listeners
+        for (const [key, { element, event, handler }] of this.eventListeners) {
             element.removeEventListener(event, handler);
-        });
+        }
         this.eventListeners.clear();
 
-        // Clear references
-        this.canvas = null;
-        this.ctx = null;
+        // Cleanup render manager
+        if (this.renderManager) {
+            this.renderManager.destroy();
+        }
+
+        this.logger.info('✅ Game destroyed');
     }
 }
 
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = SnakeGame;
+// Export for ES6 modules (testing)
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = { SnakeGame };
 }

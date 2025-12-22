@@ -86,6 +86,23 @@ class FoodManager {
     }
 
     /**
+     * Spawn food at specific position (used when snake dies)
+     */
+    spawnFoodAt(x, y) {
+        const foodType = this.selectFoodType();
+
+        const newFood = {
+            x,
+            y,
+            type: foodType.name,
+            config: foodType.config,
+            pulsePhase: Math.random() * Math.PI * 2
+        };
+
+        this.foods.push(newFood);
+    }
+
+    /**
      * Ensure minimum number of food items on screen
      */
     ensureMinimumFood(snakeSegments) {
@@ -314,6 +331,13 @@ class FoodManager {
     }
 
     /**
+     * Clear all food items
+     */
+    clear() {
+        this.foods = [];
+    }
+
+    /**
      * Cleanup
      */
     destroy() {
@@ -323,5 +347,5 @@ class FoodManager {
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = FoodManager;
+    module.exports = { FoodManager };
 }

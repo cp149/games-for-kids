@@ -95,5 +95,5 @@ class KillFeedManager {
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = KillFeedManager;
+    module.exports = { KillFeedManager };
 }

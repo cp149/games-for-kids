@@ -21,6 +21,11 @@ class CameraManager {
      * Follow target (snake head) with enhanced smoothing
      */
     follow(target) {
+        // Validate target
+        if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') {
+            return;
+        }
+
         const targetX = target.x - this.viewportWidth / 2;
         const targetY = target.y - this.viewportHeight / 2;
 
@@ -75,11 +80,13 @@ class CameraManager {
      * Get camera position with shake applied
      */
     getX() {
-        return this.x + this.shakeX;
+        const x = this.x + this.shakeX;
+        return isFinite(x) ? x : 0;
     }
 
     getY() {
-        return this.y + this.shakeY;
+        const y = this.y + this.shakeY;
+        return isFinite(y) ? y : 0;
     }
 
     /**
@@ -100,5 +107,5 @@ class CameraManager {
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CameraManager;
+    module.exports = { CameraManager };
 }

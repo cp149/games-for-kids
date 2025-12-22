@@ -254,5 +254,5 @@ class ParticleManager {
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ParticleManager;
+    module.exports = { ParticleManager };
 }

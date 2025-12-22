@@ -266,5 +266,5 @@ class UIManager {
 
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UIManager;
+    module.exports = { UIManager };
 }
