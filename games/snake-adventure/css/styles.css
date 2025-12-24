@@ -177,8 +177,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(15px);
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(3px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -288,12 +288,13 @@ body {
     left: 50%;
     transform: translateX(-50%);
     padding: 20px 40px;
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.98) 0%, rgba(0, 212, 255, 0.98) 100%);
-    color: #000;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.3) 0%, rgba(0, 212, 255, 0.3) 100%);
+    color: #fff;
     font-size: 22px;
     font-weight: 900;
     border-radius: 20px;
     border: 3px solid rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(5px);
     box-shadow:
         0 0 40px rgba(0, 255, 255, 1),
         0 5px 25px rgba(0, 0, 0, 0.4),
@@ -302,8 +303,8 @@ body {
     z-index: 50;
     animation: toastSlide 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     text-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.4),
-        0 0 10px rgba(255, 255, 255, 0.5);
+        0 2px 4px rgba(0, 0, 0, 0.8),
+        0 0 10px rgba(0, 255, 255, 0.8);
     letter-spacing: 0.5px;
 }
 
@@ -367,6 +368,7 @@ body {
     margin-bottom: 6px;
     filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.7));
     animation: iconBounce 1s ease-in-out infinite;
+    opacity: 0.5;
 }
 
 @keyframes iconBounce {

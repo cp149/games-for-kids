@@ -157,7 +157,7 @@ class Snake {
             ctx.stroke();
         }
 
-        // Render body segments with enhanced glow
+        // Render body segments (optimized - removed outer glow for performance)
         for (let i = 1; i < this.segments.length; i++) {
             const seg = this.segments[i];
             const screenX = seg.x - cameraX;
@@ -167,18 +167,7 @@ class Snake {
             const t = i / this.segments.length;
             const segmentColor = this.interpolateColor(this.color.start, this.color.end, t);
 
-            // Outer glow
-            const outerGlow = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, seg.radius * pulse * 2);
-            outerGlow.addColorStop(0, segmentColor);
-            outerGlow.addColorStop(0.5, this.addAlpha(segmentColor, 0.3));
-            outerGlow.addColorStop(1, 'transparent');
-
-            ctx.fillStyle = outerGlow;
-            ctx.beginPath();
-            ctx.arc(screenX, screenY, seg.radius * pulse * 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Core segment
+            // Single gradient for core segment (removed expensive outer glow)
             const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, seg.radius * pulse);
             gradient.addColorStop(0, '#ffffff');
             gradient.addColorStop(0.3, segmentColor);

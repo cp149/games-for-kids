@@ -52,6 +52,13 @@ const I18N = {
             racing: "Racing",
             finished: "Finished",
 
+            // AI Thinking Visualization
+            ai_thinking: "AI Thinking...",
+            ai_iteration: "Iteration: {count}",
+            ai_current_path: "Current Path: {length} steps",
+            ai_found_better: "AI Found Better Path!",
+            ai_best_so_far: "Best: {length} steps",
+
             // Countdown
             countdown_ready: "Ready...",
             countdown_set: "Set...",
@@ -106,6 +113,13 @@ const I18N = {
             racing: "竞速中",
             finished: "已完成",
 
+            // AI 思考可视化
+            ai_thinking: "AI 思考中...",
+            ai_iteration: "迭代: {count}",
+            ai_current_path: "当前路径: {length} 步",
+            ai_found_better: "AI 发现更优路径！",
+            ai_best_so_far: "最优: {length} 步",
+
             // 倒计时
             countdown_ready: "准备...",
             countdown_set: "预备...",
@@ -159,6 +173,13 @@ const I18N = {
             found_solution: "パス発見！",
             racing: "レース中",
             finished: "完了",
+
+            // AI 思考可視化
+            ai_thinking: "AI 思考中...",
+            ai_iteration: "反復: {count}",
+            ai_current_path: "現在のパス: {length} ステップ",
+            ai_found_better: "AI がより良いパスを発見！",
+            ai_best_so_far: "最良: {length} ステップ",
 
             // カウントダウン
             countdown_ready: "準備...",

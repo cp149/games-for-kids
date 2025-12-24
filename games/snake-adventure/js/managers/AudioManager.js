@@ -27,6 +27,7 @@ class AudioManager {
                 'assets/sounds/5.mp3'
             ],
             volume: CONFIG.AUDIO.MUSIC_VOLUME,
+            autoPauseOnTabHidden: true,
             logger: window.Logger || console
         });
 

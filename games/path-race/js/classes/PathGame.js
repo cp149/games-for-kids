@@ -19,27 +19,29 @@ class PathGame {
         this.cellSize = 0;
         this.dotRadius = CONFIG.GRID.DOT_RADIUS;
 
+        // Game state
+        this.state = new GameState();
+
         // Managers
         this.renderManager = new RenderManager(this.canvasSize, CONFIG);
-        this.uiManager = new UIManager(this);
+        this.uiManager = new UIManager();
         this.audioManager = new AudioManager();
         this.levelManager = new LevelManager();
         this.pathManager = new PathManager();
-        this.aiManager = new AIManager(this);
+        this.aiManager = new AIManager({
+            onProgress: (percent) => this.uiManager.updateAIProgress(percent),
+            onStatusChange: (status) => this.uiManager.updateAIStatus(status),
+            onImprovement: (pathLength) => this.uiManager.showAIImprovement(pathLength),
+            onThinking: (iteration, pathLength) => this.uiManager.updateAIThinking(iteration, pathLength),
+            onNeedsRender: () => this.setNeedsRender(),
+            onRender: () => this.renderBothCanvases(),
+            onFinish: () => this.checkWinner()
+        });
         this.inputManager = new InputManager(this);
-
-        // Game state
-        this.gameState = 'menu';
-        this.currentLevel = 1;
-        this.grid = null;
-        this.undoCount = 0;
-        this.playerStartTime = null;
-        this.playerFinishTime = null;
 
         // Animation & RAF optimization
         this.lastTime = 0;
         this.animationId = null;
-        this.countdownValue = 3;
         this.needsRender = true; // Dirty flag for rendering
 
         this.init();
@@ -52,11 +54,8 @@ class PathGame {
         this.setupCanvases();
         this.inputManager.setupListeners();
 
-        if (!localStorage.getItem(CONFIG.STORAGE.TUTORIAL_COMPLETED)) {
-            this.showInstructions();
-        } else {
-            this.loadLevel(1);
-        }
+        // Always show instructions on first load
+        this.showInstructions();
 
         this.logger.info('PathGame: Initialized');
     }
@@ -80,7 +79,7 @@ class PathGame {
 
         // Update RenderManager with new canvas size
         if (this.renderManager) {
-            this.renderManager.canvasSize = size;
+            this.renderManager.setCanvasSize(size);
         }
 
         this.logger.info(`PathGame: Canvas size ${size}x${size}`);
@@ -91,16 +90,15 @@ class PathGame {
      * Show instructions
      */
     showInstructions() {
-        document.getElementById('instructions-overlay').classList.remove('hidden');
+        this.uiManager.showInstructions();
     }
 
     /**
      * Start game
      */
     startGame() {
-        localStorage.setItem(CONFIG.STORAGE.TUTORIAL_COMPLETED, 'true');
-        document.getElementById('instructions-overlay').classList.add('hidden');
-        this.loadLevel(this.currentLevel);
+        this.uiManager.hideInstructions();
+        this.loadLevel(this.state.level);
     }
 
     /**
@@ -108,18 +106,15 @@ class PathGame {
      */
     loadLevel(levelNum) {
         this.logger.info(`PathGame: Loading level ${levelNum}`);
-        this.currentLevel = levelNum;
-        this.gameState = 'loading';
 
-        // Reset game state
-        this.playerStartTime = null;
-        this.playerFinishTime = null;
-        this.undoCount = 0;
+        this.state.transition('loading');
+        this.state.level = levelNum;
+        this.state.reset();
 
         // Generate grid
-        this.grid = GridGenerator.generateLevel(levelNum);
-        this.pathManager.setGrid(this.grid);
-        this.renderManager.setGrid(this.grid);
+        this.state.grid = GridGenerator.generateLevel(levelNum);
+        this.pathManager.setGrid(this.state.grid);
+        this.renderManager.setGrid(this.state.grid);
 
         // Reset AI
         if (this.aiManager) {
@@ -127,10 +122,15 @@ class PathGame {
         }
 
         // Calculate cell size (kept for backwards compatibility)
-        this.cellSize = (this.canvasSize - CONFIG.GRID.GRID_PADDING * 2) / this.grid.size;
+        this.cellSize = (this.canvasSize - CONFIG.GRID.GRID_PADDING * 2) / this.state.grid.size;
 
         // Update UI
         this.uiManager.updateLevel(levelNum);
+
+        // Start background music (only if not already playing)
+        if (!this.audioManager.bgMusic.audio) {
+            this.audioManager.startBackgroundMusic();
+        }
 
         // Render initial state
         this.renderBothCanvases();
@@ -143,31 +143,13 @@ class PathGame {
      * Start countdown
      */
     startCountdown() {
-        this.gameState = 'countdown';
-        this.countdownValue = 3;
+        this.state.transition('countdown');
 
-        const overlay = document.getElementById('countdown-overlay');
-        const text = overlay.querySelector('.countdown-text');
-
-        overlay.classList.remove('hidden');
-
-        const countdown = () => {
-            if (this.countdownValue > 0) {
-                text.textContent = this.countdownValue;
-                this.audioManager.playSound('countdown');
-                this.countdownValue--;
-                setTimeout(countdown, 1000);
-            } else {
-                text.textContent = 'GO!';
-                this.audioManager.playSound('go');
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    this.startRace();
-                }, 500);
-            }
-        };
-
-        countdown();
+        this.uiManager.startCountdown(3, {
+            onTick: () => this.audioManager.playSound('countdown'),
+            onGo: () => this.audioManager.playSound('go'),
+            onComplete: () => this.startRace()
+        });
     }
 
     /**
@@ -175,15 +157,14 @@ class PathGame {
      */
     startRace() {
         this.logger.info('PathGame: Race started');
-        this.gameState = 'racing';
-        this.playerStartTime = Date.now();
-        this.undoCount = 0;
+        this.state.transition('racing');
+        this.state.player.startTime = Date.now();
 
         // Announce to screen readers
-        this.uiManager.announce(`Level ${this.currentLevel} started. Race against the AI!`, 'assertive');
+        this.uiManager.announce(`Level ${this.state.level} started. Race against the AI!`, 'assertive');
 
         // Start AI
-        this.aiManager.start(this.grid, this.currentLevel);
+        this.aiManager.start(this.state.grid, this.state.level);
 
         // Start game loop
         this.startGameLoop();
@@ -198,7 +179,7 @@ class PathGame {
      */
     startGameLoop() {
         const loop = (timestamp) => {
-            if (this.gameState === 'racing' || this.gameState === 'finished') {
+            if (this.state.state === 'racing' || this.state.state === 'finished') {
                 const deltaTime = timestamp - this.lastTime;
                 this.lastTime = timestamp;
 
@@ -228,11 +209,11 @@ class PathGame {
      * Update game state
      */
     update(deltaTime) {
-        if (this.gameState !== 'racing') return;
+        if (!this.state.isRacing()) return;
 
         // Update player time (triggers render on second change)
-        if (this.playerStartTime && !this.playerFinishTime) {
-            const elapsed = Math.floor((Date.now() - this.playerStartTime) / 1000);
+        if (this.state.player.startTime && !this.state.player.finishTime) {
+            const elapsed = Math.floor((Date.now() - this.state.player.startTime) / 1000);
             const previousTime = this.uiManager.currentTime || 0;
             this.uiManager.updatePlayerTime(elapsed);
 
@@ -261,7 +242,7 @@ class PathGame {
         // Clear
         this.renderManager.clearCanvas(ctx);
 
-        if (!this.grid) return;
+        if (!this.state.grid) return;
 
         // Draw grid lines
         this.renderManager.drawGridLines(ctx);
@@ -272,7 +253,7 @@ class PathGame {
         // Draw pheromones (AI side only)
         if (side === 'ai' && this.aiManager.antColony) {
             const pheromones = this.aiManager.getPheromones();
-            const getEdgeKey = (from, to) => this.aiManager.antColony.getEdgeKey(from, to);
+            const getEdgeKey = (from, to) => this.aiManager.getEdgeKey(from, to);
             this.renderManager.drawPheromones(ctx, pheromones, getEdgeKey);
         }
 
@@ -293,8 +274,7 @@ class PathGame {
      * Player finish
      */
     playerFinish() {
-        this.playerFinishTime = Date.now();
-        this.logger.info('PathGame: Player finished');
+        this.state.finishPlayer();
         this.audioManager.playSound('path_complete');
         this.checkWinner();
     }
@@ -304,12 +284,12 @@ class PathGame {
      */
     checkWinner() {
         // Prevent multiple calls after race ended
-        if (this.gameState === 'finished') {
+        if (this.state.state === 'finished') {
             this.logger.info('PathGame: checkWinner called but game already finished');
             return;
         }
 
-        const playerDone = this.playerFinishTime !== null;
+        const playerDone = this.state.player.finishTime !== null;
         const aiDone = this.aiManager.isFinished();
 
         this.logger.info(`PathGame: checkWinner - playerDone: ${playerDone}, aiDone: ${aiDone}`);
@@ -319,7 +299,7 @@ class PathGame {
 
         // Both finished - compare times
         if (playerDone && aiDone) {
-            const playerTime = this.playerFinishTime - this.playerStartTime;
+            const playerTime = this.state.player.finishTime - this.state.player.startTime;
             const aiTime = this.aiManager.getTime();
 
             this.logger.info(`PathGame: Both finished - playerTime: ${playerTime}ms, aiTime: ${aiTime}ms`);
@@ -348,7 +328,7 @@ class PathGame {
      * End race
      */
     endRace(winner) {
-        this.gameState = 'finished';
+        this.state.transition('finished');
         this.logger.info(`PathGame: Race ended, winner: ${winner}`);
 
         // Stop game loop
@@ -356,10 +336,15 @@ class PathGame {
             cancelAnimationFrame(this.animationId);
         }
 
+        // Stop AI opponent
+        if (this.aiManager) {
+            this.aiManager.stop();
+        }
+
         // Calculate stars
         let stars = 1;
         if (winner === 'player') {
-            const playerTime = this.playerFinishTime - this.playerStartTime;
+            const playerTime = this.state.player.finishTime - this.state.player.startTime;
             const aiTime = this.aiManager.getTime();
 
             if (playerTime < aiTime * 0.8) {
@@ -374,9 +359,9 @@ class PathGame {
         }
 
         // Save progress
-        this.levelManager.setLevelStars(this.currentLevel, stars);
+        this.levelManager.setLevelStars(this.state.level, stars);
         if (stars >= 1) {
-            this.levelManager.unlockLevel(this.currentLevel + 1);
+            this.levelManager.unlockLevel(this.state.level + 1);
         }
 
         // Show result modal
@@ -389,46 +374,23 @@ class PathGame {
      * Show result modal
      */
     showResultModal(winner, stars) {
-        const modal = document.getElementById('result-modal');
-        const title = document.getElementById('result-title');
-        const starsEl = document.getElementById('result-stars');
-        const timeEl = document.getElementById('result-time');
-        const movesEl = document.getElementById('result-moves');
-        const undosEl = document.getElementById('result-undos');
+        const playerTime = this.state.player.finishTime ?
+            Math.floor((this.state.player.finishTime - this.state.player.startTime) / 1000) : null;
 
-        let announcement = '';
-        if (winner === 'player') {
-            title.textContent = I18N.t('you_win');
-            starsEl.textContent = '⭐'.repeat(stars);
-            announcement = `Congratulations! You won with ${stars} star${stars > 1 ? 's' : ''}!`;
-        } else if (winner === 'ai') {
-            title.textContent = I18N.t('ai_wins');
-            starsEl.textContent = '⭐';
-            announcement = 'The AI won this round. Try again!';
-        } else {
-            title.textContent = 'Tie! 🤝';
-            starsEl.textContent = '⭐⭐';
-            announcement = 'It\'s a tie! Well played!';
-        }
-
-        const playerTime = this.playerFinishTime ?
-            Math.floor((this.playerFinishTime - this.playerStartTime) / 1000) : '-';
-        timeEl.textContent = playerTime + 's';
-        movesEl.textContent = this.pathManager.getPathLength();
-        undosEl.textContent = this.undoCount;
-
-        // Announce result
-        this.uiManager.announce(announcement, 'assertive');
-
-        modal.classList.remove('hidden');
-        modal.setAttribute('aria-hidden', 'false');
+        this.uiManager.showResultModal({
+            winner,
+            stars,
+            playerTime,
+            moves: this.pathManager.getPathLength(),
+            undoCount: this.state.player.undoCount
+        });
     }
 
     /**
      * Hide result modal
      */
     hideResultModal() {
-        document.getElementById('result-modal').classList.add('hidden');
+        this.uiManager.hideResultModal();
     }
 
     /**
@@ -436,7 +398,7 @@ class PathGame {
      */
     restartLevel() {
         this.logger.info('PathGame: Restarting level');
-        this.loadLevel(this.currentLevel);
+        this.loadLevel(this.state.level);
     }
 
     /**
@@ -452,8 +414,8 @@ class PathGame {
      */
     nextLevel() {
         this.hideResultModal();
-        this.currentLevel++;
-        this.loadLevel(this.currentLevel);
+        this.state.level++;
+        this.loadLevel(this.state.level);
     }
 
     /**

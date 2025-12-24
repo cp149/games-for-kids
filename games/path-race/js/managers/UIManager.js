@@ -4,8 +4,7 @@
  */
 
 class UIManager {
-    constructor(game) {
-        this.game = game;
+    constructor() {
         this.elements = {};
         this.particles = new ParticleSystem();
         this.currentTime = 0; // Track current time for RAF optimization
@@ -23,6 +22,10 @@ class UIManager {
         this.elements.aiStatus = document.getElementById('ai-status');
         this.elements.aiProgress = document.getElementById('ai-progress');
         this.elements.announcements = document.getElementById('game-announcements');
+
+        // AI thinking visualization elements (will be created dynamically)
+        this.elements.aiIterationDisplay = null;
+        this.elements.aiPathLengthDisplay = null;
 
         // Add animation classes to interactive elements
         this.setupAnimations();
@@ -109,6 +112,27 @@ class UIManager {
             this.elements.aiProgress.classList.add('pulse');
             setTimeout(() => this.elements.aiProgress.classList.remove('pulse'), 500);
         }
+    }
+
+    /**
+     * Update AI thinking visualization (removed - feature disabled)
+     */
+    updateAIThinking(iteration, pathLength) {
+        // Feature disabled
+    }
+
+    /**
+     * Show AI improvement notification (removed - feature disabled)
+     */
+    showAIImprovement(newLength) {
+        // Feature disabled
+    }
+
+    /**
+     * Create thinking display elements (removed - feature disabled)
+     */
+    createThinkingDisplay() {
+        // Feature disabled
     }
 
     /**
@@ -228,6 +252,137 @@ class UIManager {
         setTimeout(() => {
             this.elements.announcements.textContent = message;
         }, 100);
+    }
+
+    /**
+     * Show instructions overlay
+     */
+    showInstructions() {
+        const overlay = document.getElementById('instructions-overlay');
+        if (overlay) {
+            overlay.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Hide instructions overlay
+     */
+    hideInstructions() {
+        const overlay = document.getElementById('instructions-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Start countdown animation
+     * @param {number} startValue - Starting countdown number (e.g., 3)
+     * @param {Object} callbacks - Callback functions
+     * @param {Function} callbacks.onTick - Called on each countdown tick (number)
+     * @param {Function} callbacks.onGo - Called when showing "GO!"
+     * @param {Function} callbacks.onComplete - Called when countdown finishes
+     */
+    startCountdown(startValue, callbacks = {}) {
+        let countdownValue = startValue;
+        const overlay = document.getElementById('countdown-overlay');
+        const text = overlay?.querySelector('.countdown-text');
+
+        if (!overlay || !text) {
+            console.warn('Countdown overlay not found');
+            if (callbacks.onComplete) callbacks.onComplete();
+            return;
+        }
+
+        overlay.classList.remove('hidden');
+
+        const countdown = () => {
+            if (countdownValue > 0) {
+                text.textContent = countdownValue;
+                if (callbacks.onTick) callbacks.onTick();
+                countdownValue--;
+                setTimeout(countdown, 1000);
+            } else {
+                text.textContent = 'GO!';
+                if (callbacks.onGo) callbacks.onGo();
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    if (callbacks.onComplete) callbacks.onComplete();
+                }, 500);
+            }
+        };
+
+        countdown();
+    }
+
+    /**
+     * Show result modal
+     * @param {Object} data - Result data
+     * @param {string} data.winner - Winner: 'player', 'ai', or 'tie'
+     * @param {number} data.stars - Number of stars earned
+     * @param {number} data.playerTime - Player time in seconds (or null)
+     * @param {number} data.moves - Number of moves
+     * @param {number} data.undoCount - Number of undos used
+     */
+    showResultModal(data) {
+        const modal = document.getElementById('result-modal');
+        const title = document.getElementById('result-title');
+        const starsEl = document.getElementById('result-stars');
+        const timeEl = document.getElementById('result-time');
+        const movesEl = document.getElementById('result-moves');
+        const undosEl = document.getElementById('result-undos');
+
+        if (!modal) return;
+
+        // Set title and stars based on winner
+        let announcement = '';
+        if (data.winner === 'player') {
+            title.textContent = I18N.t('you_win');
+            starsEl.textContent = '⭐'.repeat(data.stars);
+            announcement = `Congratulations! You won with ${data.stars} star${data.stars > 1 ? 's' : ''}!`;
+        } else if (data.winner === 'ai') {
+            title.textContent = I18N.t('ai_wins');
+            starsEl.textContent = '⭐';
+            announcement = 'The AI won this round. Try again!';
+        } else {
+            title.textContent = 'Tie! 🤝';
+            starsEl.textContent = '⭐⭐';
+            announcement = 'It\'s a tie! Well played!';
+        }
+
+        // Set stats
+        const playerTime = data.playerTime !== null ? data.playerTime + 's' : '-';
+        timeEl.textContent = playerTime;
+        movesEl.textContent = data.moves;
+        undosEl.textContent = data.undoCount;
+
+        // Announce result to screen readers
+        this.announce(announcement, 'assertive');
+
+        // Show modal
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    /**
+     * Hide result modal
+     */
+    hideResultModal() {
+        const modal = document.getElementById('result-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    /**
+     * Show error flash on canvas
+     * @param {HTMLCanvasElement} canvas - Canvas element to flash
+     */
+    showCanvasError(canvas) {
+        if (!canvas) return;
+
+        canvas.classList.add('flash-error');
+        setTimeout(() => canvas.classList.remove('flash-error'), 500);
     }
 
     /**

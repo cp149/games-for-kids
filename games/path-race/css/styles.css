@@ -47,7 +47,7 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 80px;
+    height: 70px;
     background: rgba(255, 255, 255, 0.95);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -64,15 +64,22 @@ body {
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Header controls container */
+#header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
 #level-info {
     background: linear-gradient(135deg, #4CAF50, #66BB6A);
-    padding: 12px 24px;
+    padding: 10px 20px;
     border-radius: 30px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 #level-display {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     color: white;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
@@ -86,7 +93,7 @@ body {
     justify-content: center;
     width: 100%;
     max-width: 1400px;
-    padding: 100px 20px 100px 20px;
+    padding: 90px 20px 40px 20px;
 }
 
 .game-panel {
@@ -226,25 +233,21 @@ canvas {
 
 /* Controls */
 #controls {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
-    gap: 16px;
-    z-index: 100;
+    gap: 12px;
+    align-items: center;
 }
 
 .control-btn {
-    width: 64px;
-    height: 64px;
-    font-size: 32px;
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
     background: white;
-    border: 4px solid #2196F3;
+    border: 3px solid #2196F3;
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -464,7 +467,7 @@ canvas {
 @media (max-width: 900px) {
     #dual-display {
         flex-direction: column;
-        padding: 120px 20px 120px 20px;
+        padding: 100px 20px 40px 20px;
     }
 
     .divider {
@@ -479,22 +482,40 @@ canvas {
 }
 
 @media (max-width: 600px) {
+    #game-header {
+        height: 60px;
+        padding: 0 15px;
+    }
+
     #game-title {
         font-size: 24px;
     }
 
+    #header-controls {
+        gap: 12px;
+    }
+
+    #level-info {
+        padding: 8px 16px;
+    }
+
     #level-display {
-        font-size: 18px;
+        font-size: 16px;
+    }
+
+    #controls {
+        gap: 8px;
+    }
+
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        border-width: 2px;
     }
 
     .panel-title {
         font-size: 22px;
-    }
-
-    .control-btn {
-        width: 56px;
-        height: 56px;
-        font-size: 28px;
     }
 }
 
@@ -540,6 +561,15 @@ canvas {
 @keyframes flash-error {
     0%, 100% { background: transparent; }
     50% { background: rgba(244, 67, 54, 0.3); }
+}
+
+.flash-green {
+    animation: flash-green 0.5s;
+}
+
+@keyframes flash-green {
+    0%, 100% { color: inherit; }
+    50% { color: #4CAF50; text-shadow: 0 0 10px #4CAF50; }
 }
 
 /* ============================

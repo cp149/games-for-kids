@@ -244,20 +244,24 @@ bgImage.src = '/assets/background.png';  // Also bad for GitHub Pages
 
 ---
 
-## 6. Resource Sharing (RECOMMENDED)
+## 6. Resource and Code Sharing (RECOMMENDED)
 
-### Shared Assets Location
+### 6.1 Shared Assets Location
 
 ```
 lib/
 ├── images/           # Shared images (backgrounds, sprites)
 │   ├── runner-bg1.png
 │   └── runner-bg2.png
-└── sounds/           # Shared audio
-    └── bgm/
+├── sounds/           # Shared audio
+│   └── bgm/
+└── utils/            # Shared code components
+    ├── Logger.js
+    ├── PerformanceMonitor.js
+    └── BackgroundMusicManager.js
 ```
 
-### Reference Shared Assets
+### 6.2 Reference Shared Assets
 
 ```javascript
 // In config.js
@@ -267,16 +271,342 @@ DEFAULT_IMAGES: [
 ]
 ```
 
-### Benefits
-- Reduce project size
-- Visual consistency across games
-- Single update point
+### 6.3 Shared Code Components (CRITICAL)
+
+**Rule**: If 3+ games need the same functionality, extract it to `lib/`.
+
+**Example: BackgroundMusicManager**
+
+```javascript
+// lib/utils/BackgroundMusicManager.js
+class BackgroundMusicManager {
+  constructor(options = {}) {
+    this.options = {
+      tracks: options.tracks || [],
+      volume: options.volume !== undefined ? options.volume : 0.3,
+      autoPauseOnTabHidden: options.autoPauseOnTabHidden !== undefined
+        ? options.autoPauseOnTabHidden
+        : true,  // ← Configurable feature
+      logger: options.logger || console
+    };
+    // ... implementation
+  }
+}
+```
+
+**Usage in games:**
+
+```javascript
+// games/path-race/js/managers/AudioManager.js
+this.bgMusic = new BackgroundMusicManager({
+    tracks: CONFIG.AUDIO.MUSIC_TRACKS,
+    volume: CONFIG.AUDIO.MUSIC_VOLUME,
+    autoPauseOnTabHidden: true  // Enable tab visibility handling
+});
+
+// games/snake-adventure/js/managers/AudioManager.js
+this.bgMusic = new BackgroundMusicManager({
+    tracks: ['assets/sounds/1.mp3', 'assets/sounds/2.mp3'],
+    volume: 0.3,
+    autoPauseOnTabHidden: true  // Same feature, zero duplication
+});
+```
+
+### 6.4 Benefits of Code Sharing
+
+- **DRY**: Fix once, all games benefit
+- **Consistency**: Same behavior across all games
+- **Feature propagation**: Add `autoPauseOnTabHidden` → all games get it
+- **Maintenance**: Update one file vs. updating N games
+
+### 6.5 When to Extract to lib/
+
+✅ **Extract if**:
+- Used in 3+ games
+- Self-contained functionality (logging, music, performance)
+- Needs configuration options
+- Can be unit tested independently
+
+❌ **Don't extract if**:
+- Game-specific logic
+- Tightly coupled to game mechanics
+- Used in only 1-2 games
 
 ---
 
-## 6. Mobile Optimization (MANDATORY)
+## 7. Game Loop and Performance Patterns (MANDATORY)
 
-### 6.1 Touch Targets
+### 7.1 Single RAF Loop Pattern
+
+**Problem**: Calling `requestAnimationFrame` multiple times creates duplicate game loops, causing severe performance issues.
+
+**Solution**: Game loop should be created ONCE and controlled by state.
+
+```javascript
+// ✅ CORRECT: Single RAF loop controlled by state
+class Game {
+    start() {
+        this.state = 'playing';
+        this.startGameLoop();  // Called ONCE
+    }
+
+    startGameLoop() {
+        const loop = (timestamp) => {
+            // State check controls execution, not loop creation
+            if (this.state === 'playing') {
+                this.update(deltaTime);
+                this.render();
+            }
+            // Loop ALWAYS continues
+            requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+    }
+
+    togglePause() {
+        if (this.state === 'playing') {
+            this.state = 'paused';
+        } else if (this.state === 'paused') {
+            this.state = 'playing';
+            this.lastTime = null;  // Reset to avoid large delta
+            // ❌ DO NOT call requestAnimationFrame here!
+            // Loop is already running
+        }
+    }
+}
+```
+
+**Common Mistake**:
+
+```javascript
+// ❌ WRONG: Creates multiple concurrent loops
+togglePause() {
+    if (this.state === 'paused') {
+        this.state = 'playing';
+        requestAnimationFrame((time) => this.gameLoop(time));  // BAD!
+        // Now you have 2+ loops running in parallel
+    }
+}
+```
+
+**Why This Matters (Real Bug)**:
+- Snake-adventure had this bug → "为什么snake这么卡？"
+- Multiple RAF loops → rendering 2x, 3x, or more per frame
+- FPS drops from 60 to 20-30
+- CPU usage spikes
+
+### 7.2 RAF Loop Lifecycle
+
+**Pattern 1: Continuous Loop (Recommended)**
+```javascript
+// Loop runs continuously, state controls execution
+startGameLoop() {
+    const loop = (timestamp) => {
+        if (this.state === 'playing') {
+            this.update(deltaTime);
+            this.render();
+        }
+        requestAnimationFrame(loop);  // Always continue
+    };
+    requestAnimationFrame(loop);
+}
+```
+
+**Pattern 2: Start/Stop Loop**
+```javascript
+// Loop starts and stops completely
+startGameLoop() {
+    const loop = (timestamp) => {
+        this.update(deltaTime);
+        this.render();
+        this.animationId = requestAnimationFrame(loop);
+    };
+    this.animationId = requestAnimationFrame(loop);
+}
+
+stopGameLoop() {
+    if (this.animationId) {
+        cancelAnimationFrame(this.animationId);
+        this.animationId = null;
+    }
+}
+```
+
+**Choose Pattern 1** for games with pause/resume (snake, platformers).
+**Choose Pattern 2** for games with distinct start/end (puzzle, racing).
+
+---
+
+## 8. Edge Case Handling (MANDATORY)
+
+### 8.1 Single-Element Collections
+
+**Problem**: Algorithms that avoid repeats fail when only one option exists.
+
+**Example from BackgroundMusicManager**:
+
+```javascript
+// ❌ WRONG: Fails with 1 track
+selectRandomTrack() {
+    let nextIndex;
+    do {
+        nextIndex = Math.floor(Math.random() * this.tracks.length);
+    } while (nextIndex === this.currentTrackIndex);  // Infinite loop if length = 1
+    return nextIndex;
+}
+
+// ✅ CORRECT: Handle single-element case
+selectRandomTrack() {
+    const availableTracks = this.tracks.length;
+
+    // Special case: only one track
+    if (availableTracks === 1) {
+        return this.failedTracks.has(0) ? -1 : 0;
+    }
+
+    // General case: avoid current track
+    let nextIndex;
+    do {
+        nextIndex = Math.floor(Math.random() * availableTracks);
+    } while (nextIndex === this.currentTrackIndex);
+    return nextIndex;
+}
+```
+
+### 8.2 State Reset on Cleanup
+
+**Problem**: Cached state prevents reselection after cleanup.
+
+**Example**: Music track index not reset → can't replay same track.
+
+```javascript
+// ❌ WRONG: currentTrackIndex stays 0
+cleanup() {
+    if (this.audio) {
+        this.audio.pause();
+        this.audio = null;
+    }
+    // currentTrackIndex still 0 → selectRandomTrack avoids it
+}
+
+// ✅ CORRECT: Reset state to allow reselection
+cleanup() {
+    if (this.audio) {
+        this.audio.pause();
+        this.audio = null;
+    }
+    this.currentTrackIndex = -1;  // Allow any track to be selected next
+}
+```
+
+### 8.3 Edge Case Checklist
+
+Before releasing any feature:
+- [ ] Test with 0 items (empty state)
+- [ ] Test with 1 item (no alternatives)
+- [ ] Test with 2 items (minimal choice)
+- [ ] Test state transitions (play → pause → resume)
+- [ ] Test cleanup and restart (memory reset)
+
+**Real Bug Example**:
+- BackgroundMusicManager with 1 track
+- Tab switch → cleanup → resume
+- `selectRandomTrack()` avoided index 0 (current) → returned -1 → "No valid tracks"
+- Fix: Reset `currentTrackIndex = -1` in cleanup + handle single-track case
+
+---
+
+## 9. UX Optimization - Automate the Obvious (RECOMMENDED)
+
+### 9.1 Don't Make Users Click Obvious Steps
+
+**Principle**: If there's only one valid first action, do it automatically.
+
+**Example from Path-Race**:
+
+```javascript
+// ❌ WRONG: Make user click the green start dot
+validateMove(fromDot, toDot) {
+    // User must click start dot first
+    if (!fromDot) {
+        return toDot.type === 'START';
+    }
+    // Then click neighbors
+    return fromDot.neighbors.includes(toDot);
+}
+
+// ✅ CORRECT: Auto-add start dot, user clicks adjacent dots directly
+reset() {
+    this.playerPath = [];
+    if (this.grid) {
+        const startDot = this.grid.startDot;
+        if (startDot) {
+            startDot.visited = true;
+            startDot.playerVisited = true;
+            this.playerPath.push(startDot);  // Auto-add
+            this.logger.info('Start dot auto-added to path');
+        }
+    }
+}
+
+validateMove(fromDot, toDot) {
+    // fromDot always exists (start is auto-added)
+    if (!fromDot) return false;
+
+    // User just clicks neighbors, no need to click start
+    if (toDot.playerVisited) return false;
+    return fromDot.neighbors.includes(toDot);
+}
+
+getPathLength() {
+    // Exclude auto-added start from move count
+    return Math.max(0, this.playerPath.length - 1);
+}
+```
+
+### 9.2 Other Examples of Automation
+
+**Auto-focus input fields**:
+```javascript
+// After modal opens
+setTimeout(() => document.getElementById('name-input').focus(), 100);
+```
+
+**Auto-start tutorial on first launch**:
+```javascript
+if (!localStorage.getItem('tutorial_completed')) {
+    this.showTutorial();
+}
+```
+
+**Auto-pause on tab switch**:
+```javascript
+// Already handled by BackgroundMusicManager autoPauseOnTabHidden option
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) this.pause();
+    else this.resume();
+});
+```
+
+### 9.3 When NOT to Automate
+
+❌ **Don't automate**:
+- Actions with consequences (deleting, submitting)
+- Steps that teach mechanics
+- Choices that affect gameplay
+- Optional features users might not want
+
+✅ **Automate**:
+- Only one valid option
+- Obvious first steps
+- Repetitive actions
+- Background optimizations (music pause, autosave)
+
+---
+
+## 10. Mobile Optimization (MANDATORY)
+
+### 10.1 Touch Targets
 
 ```css
 .control-btn {
@@ -286,7 +616,7 @@ DEFAULT_IMAGES: [
 }
 ```
 
-### 6.2 Touch Intent Detection
+### 10.2 Touch Intent Detection
 
 ```javascript
 // Distinguish drag from scroll
@@ -310,7 +640,7 @@ onTouchMove(e) {
 }
 ```
 
-### 6.3 iOS Safari Compatibility
+### 10.3 iOS Safari Compatibility
 
 ```javascript
 const video = document.createElement('video');
@@ -320,7 +650,7 @@ video.setAttribute('playsinline', '');
 video.setAttribute('webkit-playsinline', '');
 ```
 
-### 6.4 GPU-Accelerated Dragging
+### 10.4 GPU-Accelerated Dragging
 
 ```javascript
 // GOOD: Use transform (GPU accelerated)
@@ -333,7 +663,7 @@ element.style.top = y + 'px';
 
 ---
 
-## 7. Index.html Structure (MANDATORY)
+## 11. Index.html Structure (MANDATORY)
 
 ```html
 <!DOCTYPE html>
@@ -370,7 +700,7 @@ element.style.top = y + 'px';
 
 ---
 
-## 8. Comprehensive Quality Checklist
+## 12. Comprehensive Quality Checklist
 
 Before considering a game complete, perform multi-round QA across these dimensions:
 
@@ -414,6 +744,7 @@ Before considering a game complete, perform multi-round QA across these dimensio
 - [ ] Tutorial quality: First-time users understand gameplay
 - [ ] Child testing: Tested with target age group
 - [ ] Attention span: Engagement maintained for session length
+- [ ] Obvious steps automated: Don't make users click the obvious first step
 
 ### Memory Safety (Critical)
 - [ ] Event listener cleanup: All listeners removed in destroy()
@@ -425,7 +756,7 @@ Before considering a game complete, perform multi-round QA across these dimensio
 
 ---
 
-## 9. Leveraging Project Memory (MANDATORY)
+## 13. Leveraging Project Memory (MANDATORY)
 
 ### Serena Memory System
 
@@ -549,7 +880,7 @@ Read('.serena/memories/relevant-memory.md')
 
 ---
 
-## 10. Multi-Agent Quality Workflow (RECOMMENDED)
+## 14. Multi-Agent Quality Workflow (RECOMMENDED)
 
 Use Quality Engineer Agent for multi-round code review:
 
@@ -561,7 +892,7 @@ Each round provides specific file locations and fix suggestions.
 
 ---
 
-## 11. Test Suite (RECOMMENDED)
+## 15. Test Suite (RECOMMENDED)
 
 Make tests easy to run with a single command:
 

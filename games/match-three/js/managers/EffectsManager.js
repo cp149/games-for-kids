@@ -1,6 +1,7 @@
 /**
  * EffectsManager - Handles visual effects and animations
  * Manages floating scores, combos, star bursts, and confetti
+ * Uses lib/particle-system.js for common effects
  */
 
 class EffectsManager {
@@ -8,6 +9,9 @@ class EffectsManager {
         this.container = container;
         this.timers = new Set(); // Track all timers for cleanup
         this._boardElement = null; // Cached board element for performance
+
+        // Use shared ParticleSystem from lib
+        this.particles = new ParticleSystem(container);
     }
 
     /**
@@ -93,116 +97,36 @@ class EffectsManager {
 
     /**
      * Show star burst effect at position
+     * Delegates to lib/particle-system.js
      * @param {number} x - X position
      * @param {number} y - Y position
      * @param {number} count - Number of stars
      */
     showStarBurst(x, y, count = 5) {
-        const board = this.getBoardElement();
-        if (!board) return;
-
-        const offset = CONFIG.GAME.EFFECTS.STAR_BURST_OFFSET;
-        const duration = CONFIG.GAME.EFFECTS.STAR_BURST_DURATION;
-        const stagger = CONFIG.GAME.EFFECTS.STAGGER_DELAY;
-
-        for (let i = 0; i < count; i++) {
-            this.safeSetTimeout(() => {
-                // Check if board still exists (use cached element)
-                if (!this.getBoardElement()) return;
-
-                const star = document.createElement('div');
-                star.className = 'star-burst';
-
-                // Random offset from center
-                const offsetX = (Math.random() - 0.5) * offset;
-                const offsetY = (Math.random() - 0.5) * offset;
-
-                star.style.left = `${x + offsetX}px`;
-                star.style.top = `${y + offsetY}px`;
-
-                board.appendChild(star);
-
-                this.safeSetTimeout(() => {
-                    if (star.parentNode) star.remove();
-                }, duration);
-            }, i * stagger);
-        }
+        // Use ParticleSystem's createBurst for star effect
+        this.particles.createBurst(x, y, '#FFD700', count);
     }
 
     /**
      * Show confetti celebration effect
+     * Delegates to lib/particle-system.js
      */
     showConfetti() {
         const count = CONFIG.GAME.EFFECTS.CONFETTI_COUNT;
-        const stagger = CONFIG.GAME.EFFECTS.STAGGER_DELAY;
-
-        for (let i = 0; i < count; i++) {
-            this.safeSetTimeout(() => {
-                this.createConfetti();
-            }, i * stagger);
-        }
-    }
-
-    /**
-     * Create single confetti piece
-     */
-    createConfetti() {
-        // Check if container still exists
-        if (!this.container || !this.container.parentNode) return;
-
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-
-        // Random position
-        confetti.style.left = `${Math.random() * 100}%`;
-
-        // Random color from fruits
-        const fruits = CONFIG.GEM.FRUITS;
-        const randomColor = fruits[Math.floor(Math.random() * fruits.length)].color;
-        confetti.style.backgroundColor = randomColor;
-
-        // Random size
-        const size = 8 + Math.random() * 8;
-        confetti.style.width = `${size}px`;
-        confetti.style.height = `${size}px`;
-
-        // Random animation delay
-        confetti.style.animationDelay = `${Math.random() * 0.5}s`;
-
-        this.container.appendChild(confetti);
-
-        this.safeSetTimeout(() => {
-            if (confetti.parentNode) confetti.remove();
-        }, CONFIG.GAME.EFFECTS.CONFETTI_DURATION);
+        // Use ParticleSystem's createConfetti with game's count
+        this.particles.createConfetti(window.innerWidth / 2, 100, count);
     }
 
     /**
      * Show toast notification
+     * Delegates to lib/particle-system.js
      * @param {string} message - Message to display
      * @param {string} type - Toast type (info, success, warning, error)
      */
     showToast(message, type = 'info') {
-        // Check if container still exists
-        if (!this.container || !this.container.parentNode) return;
-
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-
-        this.container.appendChild(toast);
-
-        this.safeSetTimeout(() => {
-            if (toast.parentNode) toast.classList.add('show');
-        }, CONFIG.GAME.EFFECTS.TOAST_SHOW_DELAY);
-
-        this.safeSetTimeout(() => {
-            if (toast.parentNode) {
-                toast.classList.remove('show');
-                this.safeSetTimeout(() => {
-                    if (toast.parentNode) toast.remove();
-                }, CONFIG.GAME.EFFECTS.TOAST_HIDE_TRANSITION);
-            }
-        }, CONFIG.GAME.TIMING.TOAST_DURATION);
+        // Use ParticleSystem's showToast with game's duration
+        const duration = CONFIG.GAME.TIMING.TOAST_DURATION || 2000;
+        this.particles.showToast(message, type, duration);
     }
 
     /**
@@ -212,6 +136,11 @@ class EffectsManager {
         // Clear all pending timers
         this.timers.forEach(timerId => clearTimeout(timerId));
         this.timers.clear();
+
+        // Destroy particle system
+        if (this.particles) {
+            this.particles.destroy();
+        }
 
         // Remove any lingering effect elements
         if (this.container) {

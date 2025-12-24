@@ -231,7 +231,14 @@ const GridGenerator = {
         const visited = new Set();
         const path = [];
 
-        const found = this.findHamiltonianPath(startDot, endDot, visited, path, dots.length);
+        // Dynamic timeout based on grid size (generous limits for level loading)
+        // 3x3: 1s, 4x4: 2s, 5x5: 3s, 6x6: 5s
+        const startTime = Date.now();
+        const maxDuration = grid.size <= 3 ? 1000 :
+                           grid.size === 4 ? 2000 :
+                           grid.size === 5 ? 3000 : 5000;
+
+        const found = this.findHamiltonianPath(startDot, endDot, visited, path, dots.length, startTime, maxDuration);
 
         if (found) {
             grid.solution = [...path];
@@ -243,7 +250,12 @@ const GridGenerator = {
     /**
      * Backtracking algorithm to find Hamiltonian path
      */
-    findHamiltonianPath(current, end, visited, path, totalDots) {
+    findHamiltonianPath(current, end, visited, path, totalDots, startTime, maxDuration) {
+        // Timeout protection: abort if validation takes too long
+        if (startTime && maxDuration && (Date.now() - startTime) > maxDuration) {
+            return false;
+        }
+
         visited.add(current.index);
         path.push(current);
 
@@ -259,7 +271,7 @@ const GridGenerator = {
 
         for (const neighbor of current.neighbors) {
             if (!visited.has(neighbor.index)) {
-                if (this.findHamiltonianPath(neighbor, end, visited, path, totalDots)) {
+                if (this.findHamiltonianPath(neighbor, end, visited, path, totalDots, startTime, maxDuration)) {
                     return true;
                 }
             }

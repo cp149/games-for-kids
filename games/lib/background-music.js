@@ -35,6 +35,9 @@ class BackgroundMusicManager {
       // Auto-enable on creation
       autoStart: options.autoStart !== undefined ? options.autoStart : false,
 
+      // Auto-pause when tab is hidden (default: true)
+      autoPauseOnTabHidden: options.autoPauseOnTabHidden !== undefined ? options.autoPauseOnTabHidden : true,
+
       // Logger (optional)
       logger: options.logger || console
     };
@@ -50,6 +53,15 @@ class BackgroundMusicManager {
     // Event handlers (need to store for cleanup)
     this.handleTrackEnd = null;
     this.handleTrackError = null;
+    this.handleVisibilityChange = null;
+
+    // Tab visibility tracking
+    this.musicWasPausedByTab = false;
+
+    // Setup tab visibility handling
+    if (this.options.autoPauseOnTabHidden) {
+      this.setupTabVisibility();
+    }
 
     // Auto-start if requested
     if (this.options.autoStart) {
@@ -58,10 +70,38 @@ class BackgroundMusicManager {
   }
 
   /**
+   * Setup tab visibility change handler
+   */
+  setupTabVisibility() {
+    this.handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab hidden - pause music if enabled and playing
+        if (this.enabled && this.audio && !this.audio.paused) {
+          // this.options.logger.info('[BackgroundMusic] Tab hidden - pausing music');
+          this.stop();
+          this.musicWasPausedByTab = true;
+        }
+      } else {
+        // Tab visible - resume music if it was paused by tab
+        // this.options.logger.info(`[BackgroundMusic] Tab visible - wasPausedByTab: ${this.musicWasPausedByTab}, enabled: ${this.enabled}`);
+        if (this.musicWasPausedByTab && this.enabled) {
+          // this.options.logger.info('[BackgroundMusic] Resuming music');
+          this.start();
+          this.musicWasPausedByTab = false;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+  }
+
+  /**
    * Start playing background music
    */
   start() {
+    // this.options.logger.info(`[BackgroundMusic] start() called - enabled: ${this.enabled}, tracks: ${this.options.tracks.length}`);
     if (!this.enabled || this.options.tracks.length === 0) {
+      // this.options.logger.warn('[BackgroundMusic] Cannot start - disabled or no tracks');
       return;
     }
 
@@ -78,7 +118,7 @@ class BackgroundMusicManager {
 
     // Check if all tracks have failed
     if (this.failedTracks.size >= this.options.tracks.length) {
-      this.options.logger.warn('[BackgroundMusic] All tracks failed to load. Disabling music.');
+      // this.options.logger.warn('[BackgroundMusic] All tracks failed to load. Disabling music.');
       this.enabled = false;
       return;
     }
@@ -86,7 +126,7 @@ class BackgroundMusicManager {
     // Prevent infinite loops
     this.loadAttempts++;
     if (this.loadAttempts > this.maxLoadAttempts) {
-      this.options.logger.warn('[BackgroundMusic] Too many load attempts. Disabling music.');
+      // this.options.logger.warn('[BackgroundMusic] Too many load attempts. Disabling music.');
       this.enabled = false;
       return;
     }
@@ -97,7 +137,7 @@ class BackgroundMusicManager {
     // Select random track (avoid repeats and failed tracks)
     const nextIndex = this.selectRandomTrack();
     if (nextIndex === -1) {
-      this.options.logger.warn('[BackgroundMusic] No valid tracks available.');
+      // this.options.logger.warn('[BackgroundMusic] No valid tracks available.');
       this.enabled = false;
       return;
     }
@@ -118,7 +158,7 @@ class BackgroundMusicManager {
 
     // Handle load errors
     this.handleTrackError = () => {
-      this.options.logger.warn(`[BackgroundMusic] Failed to load: ${trackPath}`);
+      // this.options.logger.warn(`[BackgroundMusic] Failed to load: ${trackPath}`);
       this.failedTracks.add(nextIndex);
       this.playNextTrack(); // Try next track
     };
@@ -128,7 +168,7 @@ class BackgroundMusicManager {
     const playPromise = this.audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(error => {
-        this.options.logger.warn('[BackgroundMusic] Autoplay blocked:', error.message);
+        // this.options.logger.warn('[BackgroundMusic] Autoplay blocked:', error.message);
         // Don't mark as failed - autoplay block is browser policy, not file error
       });
     }
@@ -140,17 +180,17 @@ class BackgroundMusicManager {
    */
   selectRandomTrack() {
     const availableTracks = this.options.tracks.length;
+
+    // Special case: only one track
+    if (availableTracks === 1) {
+      return this.failedTracks.has(0) ? -1 : 0;
+    }
+
     let attempts = 0;
     let nextIndex;
 
     do {
-      // Random selection
-      if (availableTracks === 1) {
-        nextIndex = 0;
-      } else {
-        nextIndex = Math.floor(Math.random() * availableTracks);
-      }
-
+      nextIndex = Math.floor(Math.random() * availableTracks);
       attempts++;
 
       // Prevent infinite loop
@@ -186,6 +226,8 @@ class BackgroundMusicManager {
       this.start();
     } else {
       this.stop();
+      // Clear tab pause flag when manually disabled
+      this.musicWasPausedByTab = false;
     }
 
     return this.enabled;
@@ -246,6 +288,9 @@ class BackgroundMusicManager {
 
       this.audio = null;
     }
+
+    // Reset track index so selectRandomTrack can choose any track (including the same one)
+    this.currentTrackIndex = -1;
   }
 
   /**
@@ -255,6 +300,12 @@ class BackgroundMusicManager {
     this.stop();
     this.enabled = false;
     this.failedTracks.clear();
+
+    // Remove visibility change listener
+    if (this.handleVisibilityChange) {
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+      this.handleVisibilityChange = null;
+    }
   }
 }
 

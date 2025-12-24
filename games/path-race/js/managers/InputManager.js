@@ -46,8 +46,8 @@ class InputManager {
      * Handle player canvas click
      */
     handlePlayerClick(event) {
-        if (this.game.gameState !== 'racing') {
-            this.logger.warn(`InputManager: Click ignored - state is ${this.game.gameState}`);
+        if (this.game.state.state !== 'racing') {
+            this.logger.warn(`InputManager: Click ignored - state is ${this.game.state.state}`);
             return;
         }
 
@@ -74,9 +74,7 @@ class InputManager {
             } else {
                 this.logger.warn('InputManager: Move rejected by PathManager');
                 this.game.audioManager.playSound('click_invalid');
-                // Flash error animation
-                this.game.playerCanvas.classList.add('flash-error');
-                setTimeout(() => this.game.playerCanvas.classList.remove('flash-error'), 500);
+                this.game.uiManager.showCanvasError(this.game.playerCanvas);
             }
         } else {
             this.logger.info('InputManager: No dot found at click position');
@@ -89,7 +87,7 @@ class InputManager {
     getClickedDot(x, y) {
         const clickRadius = CONFIG.PLAYER.CLICK_RADIUS;
 
-        for (const dot of this.game.grid.dots) {
+        for (const dot of this.game.state.grid.dots) {
             const pos = this.game.renderManager.getDotScreenPos(dot);
             const dist = MathUtils.distance({ x, y }, pos);
 
@@ -105,11 +103,11 @@ class InputManager {
      * Handle undo button
      */
     handleUndo() {
-        if (this.game.gameState !== 'racing') return;
+        if (this.game.state.state !== 'racing') return;
 
         const undone = this.game.pathManager.undo();
         if (undone) {
-            this.game.undoCount++;
+            this.game.state.incrementUndo();
             this.game.audioManager.playSound('undo');
             this.game.setNeedsRender();
         }

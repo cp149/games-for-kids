@@ -23,6 +23,18 @@ class RenderManager {
     }
 
     /**
+     * Set canvas size and recalculate cell size
+     * @param {number} size - New canvas size
+     */
+    setCanvasSize(size) {
+        this.canvasSize = size;
+        // Recalculate cell size if grid is set
+        if (this.grid) {
+            this.cellSize = (this.canvasSize - this.config.GRID.GRID_PADDING * 2) / this.grid.size;
+        }
+    }
+
+    /**
      * Convert grid coordinates to screen position
      */
     getDotScreenPos(dot) {
@@ -115,6 +127,32 @@ class RenderManager {
     }
 
     /**
+     * Draw AI thinking path (semi-transparent preview)
+     */
+    drawThinkingPath(ctx, path) {
+        if (!path || path.length < 2) return;
+
+        // More visible orange with higher opacity
+        ctx.strokeStyle = 'rgba(255, 152, 0, 0.65)';
+        ctx.lineWidth = this.config.GRID.LINE_WIDTH + 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.setLineDash([12, 6]); // More prominent dashed line
+
+        ctx.beginPath();
+        const start = this.getDotScreenPos(path[0]);
+        ctx.moveTo(start.x, start.y);
+
+        for (let i = 1; i < path.length; i++) {
+            const pos = this.getDotScreenPos(path[i]);
+            ctx.lineTo(pos.x, pos.y);
+        }
+
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset dash
+    }
+
+    /**
      * Draw dots
      */
     drawDots(ctx, side = 'player') {
@@ -166,12 +204,18 @@ class RenderManager {
 
         ctx.lineWidth = 4;
 
+        // Optimization: Skip rendering edges with very low pheromone levels
+        const MIN_VISIBLE_ALPHA = 0.15;
+
         this.grid.edges.forEach(edge => {
             const key = getEdgeKeyFn(edge.from, edge.to);
             const level = pheromones.get(key) || 0;
 
             // Map pheromone level to alpha (0.1 to 0.6)
             const alpha = Math.max(0.1, Math.min(0.6, level * 0.1));
+
+            // Skip rendering if alpha is below visible threshold
+            if (alpha < MIN_VISIBLE_ALPHA) return;
 
             ctx.strokeStyle = `rgba(255, 152, 0, ${alpha})`;
 

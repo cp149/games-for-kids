@@ -300,16 +300,29 @@ describe('RenderManager - Pheromones', () => {
         expect(mockCtx.strokeStyle).toContain('0.6');
     });
 
-    it('should clamp alpha values to min 0.1', () => {
+    it('should skip rendering edges below MIN_VISIBLE_ALPHA threshold', () => {
         const pheromones = new Map();
-        pheromones.set('0-1', 0); // Zero level
+        pheromones.set('0-1', 0); // Zero level → alpha = 0.1 < 0.15 threshold
 
         const getEdgeKey = (from, to) => `${from.id}-${to.id}`;
 
         rm.drawPheromones(mockCtx, pheromones, getEdgeKey);
 
-        // Alpha should be clamped to min 0.1
-        expect(mockCtx.strokeStyle).toContain('0.1');
+        // Edge should be skipped (optimization), no strokeStyle set
+        expect(mockCtx.stroke).not.toHaveBeenCalled();
+    });
+
+    it('should render edges above MIN_VISIBLE_ALPHA threshold', () => {
+        const pheromones = new Map();
+        pheromones.set('0-1', 2); // Level 2 → alpha = 0.2 > 0.15 threshold
+
+        const getEdgeKey = (from, to) => `${from.id}-${to.id}`;
+
+        rm.drawPheromones(mockCtx, pheromones, getEdgeKey);
+
+        // Edge should be rendered with alpha 0.2
+        expect(mockCtx.strokeStyle).toContain('0.2');
+        expect(mockCtx.stroke).toHaveBeenCalled();
     });
 
     it('should handle no grid set', () => {

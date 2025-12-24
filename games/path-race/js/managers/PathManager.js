@@ -35,19 +35,14 @@ class PathManager {
 
     /**
      * Validate if a move is legal
-     * @param {Object} fromDot - Current dot (null if starting)
+     * @param {Object} fromDot - Current dot
      * @param {Object} toDot - Target dot
      * @returns {boolean} True if valid move
      */
     validateMove(fromDot, toDot) {
         // First move must be start dot
-        if (!fromDot && toDot.type === CONFIG.DOT_TYPES.START) {
-            return true;
-        }
-
-        // Must have a from dot for subsequent moves
         if (!fromDot) {
-            return false;
+            return toDot.type === CONFIG.DOT_TYPES.START;
         }
 
         // Can't move to already visited dot
@@ -177,7 +172,7 @@ class PathManager {
      * Clean up resources
      */
     destroy() {
-        this.reset();
+        this.playerPath = [];
         this.grid = null;
     }
 }

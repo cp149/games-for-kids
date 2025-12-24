@@ -4,9 +4,9 @@
  */
 
 class ParticleSystem {
-    constructor() {
+    constructor(container = document.body) {
         this.particles = [];
-        this.container = document.body;
+        this.container = container;
     }
 
     /**
@@ -34,8 +34,10 @@ class ParticleSystem {
 
             // Remove after animation
             setTimeout(() => {
-                confetti.remove();
-                this.particles = this.particles.filter(p => p !== confetti);
+                if (confetti.parentNode) {
+                    confetti.remove();
+                    this.particles = this.particles.filter(p => p !== confetti);
+                }
             }, 5000);
         }
     }
@@ -68,8 +70,10 @@ class ParticleSystem {
             this.particles.push(particle);
 
             setTimeout(() => {
-                particle.remove();
-                this.particles = this.particles.filter(p => p !== particle);
+                if (particle.parentNode) {
+                    particle.remove();
+                    this.particles = this.particles.filter(p => p !== particle);
+                }
             }, 1000);
         }
     }
@@ -101,7 +105,11 @@ class ParticleSystem {
 
         setTimeout(() => {
             toast.classList.add('fade-out');
-            setTimeout(() => toast.remove(), 500);
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 500);
         }, duration);
     }
 
@@ -129,7 +137,11 @@ class ParticleSystem {
 
         this.container.appendChild(ripple);
 
-        setTimeout(() => ripple.remove(), 600);
+        setTimeout(() => {
+            if (ripple.parentNode) {
+                ripple.remove();
+            }
+        }, 600);
     }
 
     /**
@@ -148,7 +160,12 @@ class ParticleSystem {
     }
 }
 
-// Export
+// Export for both browser and Node.js
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ParticleSystem;
+}
+
+// Make available globally for browser
+if (typeof window !== 'undefined') {
+    window.ParticleSystem = ParticleSystem;
 }

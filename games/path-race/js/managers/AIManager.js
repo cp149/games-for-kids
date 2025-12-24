@@ -4,9 +4,20 @@
  */
 
 class AIManager {
-    constructor(game) {
+    constructor(callbacks = {}) {
         this.logger = window.Logger;
-        this.game = game;
+
+        // Callbacks for decoupling
+        this.callbacks = {
+            onProgress: callbacks.onProgress,           // (percent) => {}
+            onStatusChange: callbacks.onStatusChange,   // (status) => {}
+            onImprovement: callbacks.onImprovement,     // (pathLength) => {}
+            onThinking: callbacks.onThinking,           // (iteration, pathLength) => {}
+            onNeedsRender: callbacks.onNeedsRender,     // () => {}
+            onRender: callbacks.onRender,               // () => {}
+            onFinish: callbacks.onFinish                // () => {}
+        };
+
         this.antColony = null;
         this.isRunning = false;
         this.aiPath = [];
@@ -21,6 +32,10 @@ class AIManager {
         this.lastImprovementIteration = 0;
         this.bestPathLength = Infinity;
         this.noImprovementThreshold = 20; // Stop if no improvement for 20 iterations
+
+        // Thinking visualization
+        this.currentThinkingPath = null; // Current best path being considered
+        this.previousBestLength = Infinity; // Track improvements
     }
 
     /**
@@ -49,6 +64,10 @@ class AIManager {
         this.lastImprovementIteration = 0;
         this.bestPathLength = Infinity;
 
+        // Reset thinking visualization
+        this.currentThinkingPath = null;
+        this.previousBestLength = Infinity;
+
         // Start iterative solving
         this.runACO();
     }
@@ -65,19 +84,37 @@ class AIManager {
             const bestPath = await this.antColony.runIteration();
             this.currentIteration++;
 
-            // Update UI with progress
-            const progress = (this.currentIteration / this.maxIterations) * 100;
-            if (this.game.uiManager) {
-                this.game.uiManager.updateAIProgress(progress);
-                this.game.uiManager.updateAIStatus('exploring');
-            }
+            // Update thinking path visualization
+            this.currentThinkingPath = bestPath;
+
+            // Update UI with progress (search phase: 0-50%)
+            const searchProgress = (this.currentIteration / this.maxIterations) * 50;
+            this.callbacks.onProgress?.(searchProgress);
+            this.callbacks.onStatusChange?.('exploring');
+
+            // Update thinking visualization
+            this.callbacks.onThinking?.(
+                this.currentIteration,
+                bestPath ? bestPath.length : null
+            );
 
             // Track improvement for early stopping
             if (bestPath && bestPath.length < this.bestPathLength) {
+                const improved = this.bestPathLength !== Infinity;
                 this.bestPathLength = bestPath.length;
                 this.lastImprovementIteration = this.currentIteration;
                 this.logger.info(`AIManager: Improved path length: ${bestPath.length}`);
+
+                // Show improvement notification
+                if (improved) {
+                    this.callbacks.onImprovement?.(bestPath.length);
+                }
+
+                this.previousBestLength = bestPath.length;
             }
+
+            // Trigger render
+            this.callbacks.onNeedsRender?.();
 
             // Quick fail: if ACO can't find ANY path in first 10 iterations, give up
             if (this.currentIteration === 10 && !bestPath) {
@@ -94,15 +131,20 @@ class AIManager {
                 }
             }
 
-            // If found complete path, validate and execute it
+            // If found complete path, check if we should continue or execute
             if (bestPath && this.antColony.isValidPath(bestPath)) {
-                this.logger.info(`AIManager: Found valid solution at iteration ${this.currentIteration}`);
-                if (this.game.uiManager) {
-                    this.game.uiManager.updateAIProgress(100);
-                    this.game.uiManager.updateAIStatus('found_solution');
+                // Continue iterating if below minimum iterations (for visualization)
+                if (this.currentIteration < CONFIG.ACO.MIN_ITERATIONS) {
+                    this.logger.info(`AIManager: Found solution at iteration ${this.currentIteration}, continuing to MIN_ITERATIONS`);
+                    this.callbacks.onStatusChange?.('found_solution');
+                    // Continue to next iteration
+                } else {
+                    // Above minimum iterations, execute immediately
+                    this.logger.info(`AIManager: Found valid solution at iteration ${this.currentIteration}`);
+                    this.callbacks.onStatusChange?.('found_solution');
+                    this.executePath(bestPath);
+                    return; // Exit - path animation in progress
                 }
-                this.executePath(bestPath);
-                return; // Exit - path animation in progress
             }
 
             // Wait before next iteration (simulate delay)
@@ -130,11 +172,33 @@ class AIManager {
         this.pathTimeouts.forEach(id => clearTimeout(id));
         this.pathTimeouts = [];
 
+        // Calculate delay based on grid size
+        // Small grids (3x3=9 dots): 2000ms per dot (slow, easy to observe)
+        // Medium grids (4x4=16 dots): 1250ms per dot
+        // Large grids (5x5=25 dots): 800ms per dot (faster to avoid long wait)
+        const pathLength = path.length;
+        let delayPerDot;
+        if (pathLength <= 9) {
+            delayPerDot = 2000; // 3x3: 2s per dot
+        } else if (pathLength <= 16) {
+            delayPerDot = 1250; // 4x4: 1.25s per dot
+        } else if (pathLength <= 25) {
+            delayPerDot = 800;  // 5x5: 0.8s per dot
+        } else {
+            delayPerDot = 500;  // 6x6+: 0.5s per dot
+        }
+
+        this.logger.info(`AIManager: Animation speed ${delayPerDot}ms per dot for ${pathLength} dots grid`);
+
         // Mark dots as visited by AI
         path.forEach((dot, index) => {
             const timeoutId = setTimeout(() => {
                 dot.aiVisited = true;
                 dot.visited = true;
+
+                // Update progress during path execution (execution phase: 50-100%)
+                const executionProgress = 50 + ((index + 1) / path.length) * 50;
+                this.callbacks.onProgress?.(executionProgress);
 
                 // Check if finished (path is pre-validated, so last step = success)
                 if (index === path.length - 1) {
@@ -143,10 +207,8 @@ class AIManager {
                 }
 
                 // Trigger render
-                if (this.game.renderBothCanvases) {
-                    this.game.renderBothCanvases();
-                }
-            }, index * 1000); // Animate path step by step (1000ms per dot)
+                this.callbacks.onRender?.();
+            }, index * delayPerDot); // Dynamic delay based on grid size
 
             this.pathTimeouts.push(timeoutId);
         });
@@ -177,9 +239,7 @@ class AIManager {
             this.executePath(bestPath);
         } else {
             this.logger.error('AIManager: No valid path found even with fallback');
-            if (this.game.uiManager) {
-                this.game.uiManager.updateAIStatus('failed');
-            }
+            this.callbacks.onStatusChange?.('failed');
         }
     }
 
@@ -252,17 +312,13 @@ class AIManager {
         this.finishTime = Date.now();
         this.isRunning = false;
 
-        if (this.game.uiManager) {
-            this.game.uiManager.updateAIStatus('finished');
-            this.game.uiManager.updateAIProgress(100);
-        }
+        this.callbacks.onStatusChange?.('finished');
+        this.callbacks.onProgress?.(100);
 
         this.logger.info(`AIManager: Finished in ${this.getTime()}ms`);
 
         // Notify game
-        if (this.game.checkWinner) {
-            this.game.checkWinner();
-        }
+        this.callbacks.onFinish?.();
     }
 
     /**
@@ -304,6 +360,32 @@ class AIManager {
      */
     getPheromones() {
         return this.antColony ? this.antColony.getPheromones() : null;
+    }
+
+    /**
+     * Get edge key for pheromone lookup
+     * @param {Object} from - From dot
+     * @param {Object} to - To dot
+     * @returns {string|null} Edge key or null if no ant colony
+     */
+    getEdgeKey(from, to) {
+        return this.antColony ? this.antColony.getEdgeKey(from, to) : null;
+    }
+
+    /**
+     * Get current thinking path for visualization
+     * @returns {Array|null} Current best path being considered
+     */
+    getThinkingPath() {
+        return this.currentThinkingPath;
+    }
+
+    /**
+     * Get current iteration count
+     * @returns {number} Current iteration
+     */
+    getCurrentIteration() {
+        return this.currentIteration;
     }
 
     /**

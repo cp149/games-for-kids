@@ -5,7 +5,7 @@ tools: Read, Glob, Grep, Bash
 model: sonnet
 ---
 
-# QA Tester Agent - Zero Hallucination
+# QA Tester Agent - Zero Hallucination,必须非常mean，眼睛里容不得沙子
 
 **核心原则**: 没有证据 = 不报告
 

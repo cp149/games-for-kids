@@ -27,6 +27,10 @@ class SnakeGame {
         this.lastTime = 0;
         this.eventListeners = new Map();
         this.perfMonitor = null; // Will be set externally
+        this.animationId = null; // Track RAF loop
+
+        // Key state tracking (prevent key repeat spam)
+        this.keysPressed = new Set();
 
         // AI respawn queue
         this.aiRespawnQueue = [];
@@ -37,9 +41,6 @@ class SnakeGame {
         // Mouse tracking for continuous following
         this.mouseX = window.innerWidth / 2;
         this.mouseY = window.innerHeight / 2;
-
-        // Tab visibility music control
-        this.musicWasPausedByTab = false;
 
         // Initialize
         this.setupCanvas();
@@ -140,8 +141,14 @@ class SnakeGame {
      * Setup mouse and touch controls
      */
     setupControls() {
-        // Keyboard - only for pause
-        const handleKeyboard = (e) => {
+        // Keyboard - only for pause (with anti-repeat protection)
+        const handleKeydown = (e) => {
+            // Prevent key repeat spam
+            if (this.keysPressed.has(e.code)) {
+                return;
+            }
+            this.keysPressed.add(e.code);
+
             if (this.state === 'menu' && e.code === 'Space') {
                 this.start();
             } else if ((this.state === 'playing' || this.state === 'paused') && e.code === 'Space') {
@@ -149,8 +156,14 @@ class SnakeGame {
             }
         };
 
-        document.addEventListener('keydown', handleKeyboard);
-        this.eventListeners.set('keydown', { element: document, event: 'keydown', handler: handleKeyboard });
+        const handleKeyup = (e) => {
+            this.keysPressed.delete(e.code);
+        };
+
+        document.addEventListener('keydown', handleKeydown);
+        document.addEventListener('keyup', handleKeyup);
+        this.eventListeners.set('keydown', { element: document, event: 'keydown', handler: handleKeydown });
+        this.eventListeners.set('keyup', { element: document, event: 'keyup', handler: handleKeyup });
 
         // Touch controls
         const handleTouchStart = (e) => {
@@ -233,28 +246,6 @@ class SnakeGame {
 
         this.canvas.addEventListener('contextmenu', handleContextMenu);
         this.eventListeners.set('contextmenu', { element: this.canvas, event: 'contextmenu', handler: handleContextMenu });
-
-        // Tab visibility change - auto pause/resume music
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                // Tab is hidden - pause music unconditionally if enabled
-                if (this.audioManager.bgMusic.isEnabled()) {
-                    this.audioManager.bgMusic.stop();
-                    this.musicWasPausedByTab = true;
-                    this.logger.log('🔇 Music paused (tab hidden)');
-                }
-            } else {
-                // Tab is visible - resume music if it was paused by tab and still enabled
-                if (this.musicWasPausedByTab && this.audioManager.bgMusic.isEnabled()) {
-                    this.audioManager.bgMusic.start();
-                    this.musicWasPausedByTab = false;
-                    this.logger.log('🔊 Music resumed (tab visible)');
-                }
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        this.eventListeners.set('visibilitychange', { element: document, event: 'visibilitychange', handler: handleVisibilityChange });
     }
 
     /**
@@ -270,8 +261,17 @@ class SnakeGame {
      */
     start() {
         this.logger.info('🎮 Game started');
+
+        // Cancel any existing game loop to prevent multiple loops
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+            this.logger.info('🔄 Cancelled existing game loop');
+        }
+
         this.state = 'playing';
         this.score = 0;
+        this.lastTime = null; // Reset time
 
         // Reset buff manager
         this.buffManager.reset();
@@ -304,8 +304,8 @@ class SnakeGame {
         // Start background music
         this.audioManager.startBackgroundMusic();
 
-        // Start game loop
-        requestAnimationFrame((time) => this.gameLoop(time));
+        // Start game loop (only once)
+        this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
     }
 
     /**
@@ -317,8 +317,9 @@ class SnakeGame {
             this.logger.log('⏸️ Game paused');
         } else if (this.state === 'paused') {
             this.state = 'playing';
+            this.lastTime = null; // Reset time to avoid large delta
             this.logger.log('▶️ Game resumed');
-            requestAnimationFrame((time) => this.gameLoop(time));
+            // Don't call requestAnimationFrame - gameLoop is still running
         }
     }
 
@@ -326,7 +327,13 @@ class SnakeGame {
      * Main game loop
      */
     gameLoop(currentTime) {
-        if (this.state !== 'playing') return;
+        // Always continue loop (handle pause by skipping update/render)
+        this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
+
+        // Skip update/render if not playing
+        if (this.state !== 'playing') {
+            return;
+        }
 
         // Performance monitoring
         if (this.perfMonitor) {
@@ -347,9 +354,6 @@ class SnakeGame {
         if (this.perfMonitor) {
             this.perfMonitor.end();
         }
-
-        // Continue loop
-        requestAnimationFrame((time) => this.gameLoop(time));
     }
 
     /**
@@ -712,6 +716,12 @@ class SnakeGame {
      */
     destroy() {
         this.logger.info('🔄 Destroying game...');
+
+        // Cancel game loop
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
 
         // Cleanup event listeners
         for (const [key, { element, event, handler }] of this.eventListeners) {

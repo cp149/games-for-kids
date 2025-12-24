@@ -12,8 +12,17 @@
         <!-- Header -->
         <header id="game-header">
             <h1 id="game-title">Path Race</h1>
-            <div id="level-info">
-                <span id="level-display">Level 1</span>
+            <div id="header-controls">
+                <div id="level-info">
+                    <span id="level-display">Level 1</span>
+                </div>
+                <div id="controls" role="toolbar" aria-label="Game controls">
+                    <button id="home-btn" class="control-btn" title="Home" aria-label="Go to home page">🏠</button>
+                    <button id="restart-btn" class="control-btn" title="Restart" aria-label="Restart current level">🔄</button>
+                    <button id="undo-btn" class="control-btn player-only" title="Undo" aria-label="Undo last move">↶</button>
+                    <button id="music-btn" class="control-btn" title="Music" aria-label="Toggle background music">🔊</button>
+                    <button id="lang-btn" class="control-btn" title="Language" aria-label="Change language">🌐</button>
+                </div>
             </div>
         </header>
 
@@ -77,15 +86,6 @@
             </div>
         </div>
 
-        <!-- Controls -->
-        <div id="controls" role="toolbar" aria-label="Game controls">
-            <button id="home-btn" class="control-btn" title="Home" aria-label="Go to home page">🏠</button>
-            <button id="restart-btn" class="control-btn" title="Restart" aria-label="Restart current level">🔄</button>
-            <button id="undo-btn" class="control-btn player-only" title="Undo" aria-label="Undo last move">↶</button>
-            <button id="music-btn" class="control-btn" title="Music" aria-label="Toggle background music">🔊</button>
-            <button id="lang-btn" class="control-btn" title="Language" aria-label="Change language">🌐</button>
-        </div>
-
         <!-- Live Region for Screen Readers -->
         <div id="game-announcements"
              role="status"
@@ -116,7 +116,7 @@
         </div>
 
         <!-- Instructions Overlay (First Time) -->
-        <div id="instructions-overlay" class="overlay">
+        <div id="instructions-overlay" class="overlay hidden">
             <div class="instructions-content">
                 <h2 data-i18n="how_to_play">How to Play</h2>
                 <div class="instruction-list">
@@ -147,14 +147,16 @@
     </div>
 
     <!-- Load scripts in order -->
+    <script src="../lib/stats.min.js"></script>
     <script src="../lib/utils/Logger.js"></script>
     <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/utils/MathUtils.js"></script>
     <script src="js/utils/GridGenerator.js"></script>
-    <script src="js/utils/ParticleSystem.js"></script>
+    <script src="../lib/particle-system.js"></script>
     <script src="js/classes/Dot.js"></script>
     <script src="js/classes/Grid.js"></script>
+    <script src="js/classes/GameState.js"></script>
     <script src="js/classes/AntColony.js"></script>
     <script src="../lib/background-music.js"></script>
     <script src="js/managers/UIManager.js"></script>
@@ -167,17 +169,31 @@
     <script src="js/classes/PathGame.js"></script>
 
     <!-- Initialize -->
-    <script>
+    <script type="module">
+        import { PerformanceMonitor } from '../lib/performance-monitor.js';
+
         document.addEventListener('DOMContentLoaded', () => {
             const Logger = window.Logger;
             Logger.info('🏁 Path Race initializing...');
+            Logger.log('Environment:', Logger.getEnvironment());
+
+            // Initialize performance monitor
+            const perfMonitor = new PerformanceMonitor({
+                position: 'top-left',
+                logger: Logger
+            });
+            perfMonitor.init();
 
             const game = new PathGame('player-canvas', 'ai-canvas');
+
+            // Attach performance monitor to game
+            game.perfMonitor = perfMonitor;
 
             // Cleanup on unload
             window.addEventListener('beforeunload', () => {
                 Logger.info('🔄 Cleaning up game resources');
                 game.destroy();
+                perfMonitor.destroy();
             });
         });
     </script>

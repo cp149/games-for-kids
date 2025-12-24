@@ -207,10 +207,10 @@ class UIManager {
         };
 
         const buffColors = {
-            'speed': 'linear-gradient(135deg, #ff0066 0%, #ff6699 100%)',
-            'bonus': 'linear-gradient(135deg, #00ff00 0%, #00ddaa 100%)',
-            'golden': 'linear-gradient(135deg, #ffff00 0%, #ffdd44 100%)',
-            'magnet': 'linear-gradient(135deg, #8a2be2 0%, #9370db 100%)'
+            'speed': 'linear-gradient(135deg, rgba(255, 0, 102, 0.4) 0%, rgba(255, 102, 153, 0.4) 100%)',
+            'bonus': 'linear-gradient(135deg, rgba(0, 255, 0, 0.4) 0%, rgba(0, 221, 170, 0.4) 100%)',
+            'golden': 'linear-gradient(135deg, rgba(255, 255, 0, 0.4) 0%, rgba(255, 221, 68, 0.4) 100%)',
+            'magnet': 'linear-gradient(135deg, rgba(138, 43, 226, 0.4) 0%, rgba(147, 112, 219, 0.4) 100%)'
         };
 
         const indicator = document.createElement('div');

@@ -71,7 +71,8 @@ const CONFIG = {
     ACO: {
         NUM_ANTS: 10,                   // Base number of ants (scaled by grid size)
         MAX_ITERATIONS: 150,            // Maximum ACO iterations (increased for harder grids)
-        ITERATION_DELAY: 150,           // ms between iterations (faster visual feedback)
+        MIN_ITERATIONS: 3,              // Minimum iterations before stopping (reduced for speed)
+        ITERATION_DELAY: 150,           // ms between iterations (faster gameplay)
 
         // Algorithm parameters (balanced exploration vs exploitation)
         ALPHA: 1.2,                     // Pheromone importance (increased - trust trails more)
@@ -82,7 +83,7 @@ const CONFIG = {
 
         // Difficulty multipliers (AI speed by level)
         DIFFICULTY_MULTIPLIERS: {
-            1: 0.5,   2: 0.5,   3: 0.5,    // Very slow (tutorial)
+            1: 0.5,   2: 0.5,   3: 0.5,    // Very slow (easy levels)
             4: 0.6,   5: 0.6,   6: 0.6,    // Slow
             7: 0.75,  8: 0.75,  9: 0.75, 10: 0.75,  // Medium
             DEFAULT: 0.85                   // Fast (11+)
@@ -136,6 +137,11 @@ const CONFIG = {
         MUSIC_VOLUME: 0.3,
         SFX_VOLUME: 0.5,
 
+        // Background music tracks (random play)
+        MUSIC_TRACKS: [
+            'assets/sounds/music/background.mp3'
+        ],
+
         // Sound file paths
         SOUNDS: {
             CLICK_VALID: 'assets/sounds/sfx/click.mp3',
@@ -178,8 +184,7 @@ const CONFIG = {
         LANGUAGE: 'path_race_lang',
         LEVEL_PROGRESS: 'path_race_levels',
         MUSIC_ENABLED: 'path_race_music',
-        SFX_ENABLED: 'path_race_sfx',
-        TUTORIAL_COMPLETED: 'path_race_tutorial'
+        SFX_ENABLED: 'path_race_sfx'
     },
 
     // I18n keys (translations in i18n.js)

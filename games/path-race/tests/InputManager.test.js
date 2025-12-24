@@ -53,11 +53,23 @@ describe('InputManager', () => {
         `;
 
         mockGame = {
-            gameState: 'racing',
+            state: {
+                state: 'racing',
+                grid: {
+                    dots: [
+                        { gridX: 0, gridY: 0, type: 'start', index: 0 },
+                        { gridX: 1, gridY: 0, type: 'normal', index: 1 }
+                    ]
+                },
+                incrementUndo: vi.fn()
+            },
             playerCanvas: document.getElementById('player-canvas'),
             audioManager: {
                 playSound: vi.fn(),
                 toggleMusic: vi.fn()
+            },
+            uiManager: {
+                showCanvasError: vi.fn()
             },
             pathManager: {
                 addMove: vi.fn().mockReturnValue(true),
@@ -67,13 +79,6 @@ describe('InputManager', () => {
             renderManager: {
                 getDotScreenPos: vi.fn().mockReturnValue({ x: 100, y: 100 })
             },
-            grid: {
-                dots: [
-                    { gridX: 0, gridY: 0, type: 'start', index: 0 },
-                    { gridX: 1, gridY: 0, type: 'normal', index: 1 }
-                ]
-            },
-            undoCount: 0,
             setNeedsRender: vi.fn(),
             playerFinish: vi.fn(),
             startGame: vi.fn(),
@@ -193,7 +198,7 @@ describe('InputManager', () => {
 
     describe('Player Click Handling', () => {
         it('should ignore clicks when not racing', () => {
-            mockGame.gameState = 'menu';
+            mockGame.state.state = 'menu';
             const event = new MouseEvent('click', { clientX: 100, clientY: 100 });
             manager.handlePlayerClick(event);
 
@@ -225,7 +230,7 @@ describe('InputManager', () => {
             manager.handlePlayerClick(event);
 
             expect(mockGame.audioManager.playSound).toHaveBeenCalledWith('click_invalid');
-            expect(mockGame.playerCanvas.classList.contains('flash-error')).toBe(true);
+            expect(mockGame.uiManager.showCanvasError).toHaveBeenCalledWith(mockGame.playerCanvas);
         });
 
         it('should call playerFinish when path complete', () => {
@@ -259,7 +264,7 @@ describe('InputManager', () => {
             manager.handleUndo();
 
             expect(mockGame.pathManager.undo).toHaveBeenCalled();
-            expect(mockGame.undoCount).toBe(1);
+            expect(mockGame.state.incrementUndo).toHaveBeenCalled();
             expect(mockGame.audioManager.playSound).toHaveBeenCalledWith('undo');
             expect(mockGame.setNeedsRender).toHaveBeenCalled();
         });
@@ -269,12 +274,12 @@ describe('InputManager', () => {
 
             manager.handleUndo();
 
-            expect(mockGame.undoCount).toBe(0);
+            expect(mockGame.state.incrementUndo).not.toHaveBeenCalled();
             expect(mockGame.setNeedsRender).not.toHaveBeenCalled();
         });
 
         it('should ignore undo when not racing', () => {
-            mockGame.gameState = 'menu';
+            mockGame.state.state = 'menu';
 
             manager.handleUndo();
 

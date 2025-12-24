@@ -7,14 +7,20 @@ class AudioManager {
     constructor() {
         this.logger = window.Logger;
         this.sounds = new Map();
-        this.musicEnabled = true;
         this.sfxEnabled = true;
-        this.musicVolume = CONFIG.AUDIO.MUSIC_VOLUME;
         this.sfxVolume = CONFIG.AUDIO.SFX_VOLUME;
 
-        // Audio context for better control
+        // Audio context for Web Audio API
         this.audioContext = null;
-        this.musicElement = null;
+
+        // Background music system using lib component
+        this.bgMusic = new BackgroundMusicManager({
+            tracks: CONFIG.AUDIO.MUSIC_TRACKS || [],
+            volume: CONFIG.AUDIO.MUSIC_VOLUME,
+            autoStart: false,
+            autoPauseOnTabHidden: true, // Auto-pause when tab hidden (lib feature)
+            logger: this.logger
+        });
 
         this.init();
     }
@@ -23,154 +29,137 @@ class AudioManager {
      * Initialize audio system
      */
     init() {
-        // Load preferences
-        this.musicEnabled = localStorage.getItem(CONFIG.STORAGE.MUSIC_ENABLED) !== 'false';
+        // Load SFX preferences
         this.sfxEnabled = localStorage.getItem(CONFIG.STORAGE.SFX_ENABLED) !== 'false';
+
+        // Initialize Web Audio API
+        this.initAudioContext();
 
         // Preload sound effects
         this.preloadSounds();
-
-        // Setup background music if available
-        this.setupBackgroundMusic();
-
-        // Handle visibility change (pause music when tab hidden)
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                this.pauseMusic();
-            } else if (this.musicEnabled) {
-                this.resumeMusic();
-            }
-        });
 
         this.logger.info('AudioManager: Initialized');
     }
 
     /**
-     * Preload sound effects
+     * Initialize Web Audio API context
      */
-    preloadSounds() {
-        const soundFiles = {
-            click_valid: 'assets/sounds/sfx/click.mp3',
-            click_invalid: 'assets/sounds/sfx/error.mp3',
-            undo: 'assets/sounds/sfx/undo.mp3',
-            path_complete: 'assets/sounds/sfx/success.mp3',
-            win: 'assets/sounds/sfx/win.mp3',
-            lose: 'assets/sounds/sfx/lose.mp3',
-            countdown: 'assets/sounds/sfx/countdown.mp3',
-            go: 'assets/sounds/sfx/go.mp3'
-        };
-
-        // Create Audio elements for each sound
-        Object.entries(soundFiles).forEach(([key, path]) => {
-            const audio = new Audio();
-            audio.src = path;
-            audio.volume = this.sfxVolume;
-            audio.preload = 'auto';
-
-            // Handle loading errors gracefully
-            audio.addEventListener('error', () => {
-                this.logger.warn(`AudioManager: Failed to load sound: ${path}`);
-            });
-
-            this.sounds.set(key, audio);
-        });
-
-        this.logger.info(`AudioManager: Preloaded ${this.sounds.size} sounds`);
-    }
-
-    /**
-     * Setup background music
-     */
-    setupBackgroundMusic() {
-        // Use background-music.js component if available
-        if (typeof BackgroundMusic !== 'undefined') {
-            this.musicElement = new BackgroundMusic({
-                volume: this.musicVolume,
-                autoplay: false,
-                loop: true
-            });
-
-            if (this.musicEnabled) {
-                this.playMusic();
+    initAudioContext() {
+        if (!this.audioContext) {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.logger.info('AudioManager: Web Audio API initialized');
+            } catch (err) {
+                this.logger.warn('AudioManager: Web Audio API not supported');
             }
-        } else {
-            this.logger.warn('AudioManager: BackgroundMusic component not available');
         }
     }
 
     /**
-     * Play a sound effect
+     * Preload sound effects (Web Audio API - no files needed)
+     */
+    preloadSounds() {
+        // Define sound parameters (frequency, duration, type)
+        const soundParams = {
+            click_valid: { freq: 800, duration: 0.1, type: 'sine' },
+            click_invalid: { freq: 200, duration: 0.2, type: 'sawtooth' },
+            undo: { freq: 600, duration: 0.15, type: 'triangle' },
+            path_complete: { freq: 1000, duration: 0.3, type: 'sine' },
+            win: { freq: 1200, duration: 0.5, type: 'sine', ascending: true },
+            lose: { freq: 300, duration: 0.4, type: 'sawtooth', descending: true },
+            countdown: { freq: 900, duration: 0.15, type: 'square' },
+            go: { freq: 1500, duration: 0.2, type: 'sine' }
+        };
+
+        // Store sound parameters
+        Object.entries(soundParams).forEach(([key, params]) => {
+            this.sounds.set(key, params);
+        });
+
+        this.logger.info(`AudioManager: Initialized ${this.sounds.size} Web Audio sounds`);
+    }
+
+    /**
+     * Play a sound effect using Web Audio API
      * @param {string} soundKey - Key of sound to play
      */
     playSound(soundKey) {
-        if (!this.sfxEnabled) return;
+        if (!this.sfxEnabled || !this.audioContext) return;
 
-        const sound = this.sounds.get(soundKey);
-        if (!sound) {
-            // Sound not loaded, skip silently
+        const params = this.sounds.get(soundKey);
+        if (!params) {
+            this.logger.warn(`AudioManager: Sound not found: ${soundKey}`);
             return;
         }
 
-        // Clone and play (allows overlapping sounds)
-        const clone = sound.cloneNode();
-        clone.volume = this.sfxVolume;
-
-        clone.play().catch(err => {
-            // Fail silently for missing audio files
-        });
-
-        // Cleanup after playing
-        clone.addEventListener('ended', () => {
-            clone.remove();
-        });
-    }
-
-    /**
-     * Play background music
-     */
-    playMusic() {
-        if (!this.musicEnabled || !this.musicElement) return;
-
         try {
-            this.musicElement.play();
-            this.logger.info('AudioManager: Music started');
+            const now = this.audioContext.currentTime;
+
+            // Create oscillator
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+
+            // Set waveform type
+            oscillator.type = params.type || 'sine';
+
+            // Set frequency (with pitch variation for special sounds)
+            if (params.ascending) {
+                oscillator.frequency.setValueAtTime(params.freq * 0.8, now);
+                oscillator.frequency.linearRampToValueAtTime(params.freq * 1.2, now + params.duration);
+            } else if (params.descending) {
+                oscillator.frequency.setValueAtTime(params.freq * 1.2, now);
+                oscillator.frequency.linearRampToValueAtTime(params.freq * 0.8, now + params.duration);
+            } else {
+                oscillator.frequency.setValueAtTime(params.freq, now);
+            }
+
+            // Set volume envelope (fade in/out for smoother sound)
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + params.duration);
+
+            // Play
+            oscillator.start(now);
+            oscillator.stop(now + params.duration);
+
         } catch (err) {
-            this.logger.warn('AudioManager: Failed to play music:', err);
+            this.logger.warn(`AudioManager: Failed to play sound ${soundKey}:`, err);
         }
     }
 
     /**
-     * Pause background music
+     * Start background music
      */
-    pauseMusic() {
-        if (this.musicElement) {
-            this.musicElement.pause();
-        }
+    startBackgroundMusic() {
+        this.bgMusic.start();
+        this.logger.info('AudioManager: Background music started');
     }
 
     /**
-     * Resume background music
+     * Stop background music
      */
-    resumeMusic() {
-        if (this.musicEnabled && this.musicElement) {
-            this.musicElement.play();
-        }
+    stopBackgroundMusic() {
+        this.bgMusic.stop();
     }
 
     /**
-     * Toggle music on/off
+     * Toggle background music on/off
      */
     toggleMusic() {
-        this.musicEnabled = !this.musicEnabled;
-        localStorage.setItem(CONFIG.STORAGE.MUSIC_ENABLED, this.musicEnabled);
+        const isEnabled = this.bgMusic.toggle();
+        this.logger.info(`AudioManager: Music ${isEnabled ? 'enabled' : 'disabled'}`);
+        return isEnabled;
+    }
 
-        if (this.musicEnabled) {
-            this.playMusic();
-        } else {
-            this.pauseMusic();
-        }
-
-        this.logger.info(`AudioManager: Music ${this.musicEnabled ? 'enabled' : 'disabled'}`);
+    /**
+     * Set music volume
+     * @param {number} volume - Volume level (0-1)
+     */
+    setMusicVolume(volume) {
+        this.bgMusic.setVolume(volume);
     }
 
     /**
@@ -183,41 +172,26 @@ class AudioManager {
     }
 
     /**
-     * Set music volume
-     * @param {number} volume - Volume level (0-1)
-     */
-    setMusicVolume(volume) {
-        this.musicVolume = Math.max(0, Math.min(1, volume));
-        if (this.musicElement) {
-            this.musicElement.setVolume(this.musicVolume);
-        }
-    }
-
-    /**
      * Set SFX volume
      * @param {number} volume - Volume level (0-1)
      */
     setSFXVolume(volume) {
         this.sfxVolume = Math.max(0, Math.min(1, volume));
-        this.sounds.forEach(sound => {
-            sound.volume = this.sfxVolume;
-        });
+        this.logger.info(`AudioManager: SFX volume set to ${this.sfxVolume}`);
     }
 
     /**
      * Cleanup resources
      */
     destroy() {
-        this.pauseMusic();
+        this.bgMusic.destroy();
 
-        this.sounds.forEach(sound => {
-            sound.pause();
-            sound.src = '';
-        });
+        // Clear sound parameters
         this.sounds.clear();
 
-        if (this.musicElement && this.musicElement.destroy) {
-            this.musicElement.destroy();
+        // Close audio context
+        if (this.audioContext && this.audioContext.state !== 'closed') {
+            this.audioContext.close();
         }
 
         this.logger.info('AudioManager: Destroyed');
