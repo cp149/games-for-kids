@@ -1,4 +1,4 @@
-# Building Free & Safe Games for Kids with Claude Code - Series 14
+# Building Free & Safe Games for Kids with Claude Code, Gemini, and JenMusic - Series 14
 
 **Date**: December 22-24, 2025
 **Game**: Path Race - Hamiltonian Path Racing
