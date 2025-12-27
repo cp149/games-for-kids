@@ -819,7 +819,6 @@ This game successfully:
 - Project Chronicler: Comprehensive documentation
 
 **Tools Used**:
-- Google Gemini AI: Image generation (via image_helper.py)
 - Visual Studio Code: Code editing
 - Chrome DevTools: Testing and debugging
 - Git: Version control

@@ -286,7 +286,6 @@ games/memory-match/
 - Optimized file sizes
 
 **Generation Method:**
-- Google Gemini AI via image_helper.py
 - Custom prompts for each animal
 - Generated in < 5 minutes
 - Professional quality results
@@ -493,7 +492,7 @@ python -m http.server 8000
 
 **Tools & Resources:**
 - Google Gemini AI - Image generation
-- image_helper.py - Asset generation tool
+
 - Modern web standards - HTML5/CSS3/ES6+
 
 ---

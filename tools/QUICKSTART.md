@@ -27,39 +27,11 @@ Replace `your_api_key_here` with the key you copied.
 
 ## Step 4: Test It! (30 seconds)
 
-```bash
-python tools/image_helper.py "A cute cartoon chef character"
-```
 
-Check the `generated_images/` directory for your image!
 
-## Common Examples
 
-**Game Character:**
-```bash
-python tools/image_helper.py "A chibi style magic chef, full body, transparent background" --output assets/characters --filename chef
-```
 
-**UI Icon:**
-```bash
-python tools/image_helper.py "A cooking pot icon, flat design, colorful" --output assets/icons --filename pot
-```
 
-**Background:**
-```bash
-python tools/image_helper.py "A magical kitchen scene, cartoon style, warm colors" --output assets/backgrounds --filename kitchen
-```
-
-**Multiple Variations:**
-```bash
-python tools/image_helper.py "A food ingredient icon" --count 3
-```
-
-## Need Help?
-
-```bash
-python tools/image_helper.py --help
-```
 
 See `tools/README.md` for detailed documentation.
 

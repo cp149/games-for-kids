@@ -2,78 +2,6 @@
 
 This directory contains helpful tools for game development.
 
-## Image Helper - AI Image Generation
-
-**File**: `image_helper.py`
-
-Generate game assets and UI elements using Google Gemini AI.
-
-### Quick Start
-
-1. **Install dependencies:**
-   ```bash
-   pip install google-genai python-dotenv
-   ```
-
-2. **Setup API key:**
-
-   Create a `.env` file in the project root:
-   ```env
-   GEMINI_API_KEY=your_api_key_here
-   ```
-
-   Get your API key from: https://aistudio.google.com/apikey
-
-3. **Generate your first image:**
-   ```bash
-   python tools/image_helper.py "A cute cartoon chef character"
-   ```
-
-### Usage Examples
-
-**Basic usage:**
-```bash
-python tools/image_helper.py "A magic cooking pot icon, flat design"
-```
-
-**Specify output directory:**
-```bash
-python tools/image_helper.py "A game background" --output assets/backgrounds
-```
-
-**Custom filename:**
-```bash
-python tools/image_helper.py "A power-up star" --filename star-powerup
-```
-
-**Generate multiple variations:**
-```bash
-python tools/image_helper.py "A character sprite" --count 3
-```
-
-**Complete example:**
-```bash
-python tools/image_helper.py "A colorful ingredient icon, flat design, transparent background" \
-  --output assets/icons \
-  --filename tomato-icon \
-  --count 2
-```
-
-### Command Line Options
-
-```
-python tools/image_helper.py [OPTIONS] "prompt"
-
-Arguments:
-  prompt              Text description of the image to generate
-
-Options:
-  -o, --output DIR    Output directory (default: generated_images)
-  -f, --filename NAME Base filename without extension
-  -c, --count N       Number of images to generate (default: 1)
-  --api-key KEY       Gemini API key (overrides environment variable)
-  -h, --help          Show help message
-```
 
 ### Prompting Tips
 
@@ -100,55 +28,10 @@ Options:
 
 ### Common Use Cases
 
-**Game Characters:**
-```bash
-python tools/image_helper.py "A chibi style chef character, full body, transparent background, game sprite" --output assets/characters --filename hero
-```
-
-**UI Icons:**
-```bash
-python tools/image_helper.py "A pause button icon, circular, modern design" --output assets/ui --filename pause
-```
-
-**Backgrounds:**
-```bash
-python tools/image_helper.py "A cartoon kitchen scene, bright colors, game background" --output assets/backgrounds --filename kitchen
-```
-
-**Game Items:**
-```bash
-python tools/image_helper.py "A glowing magic star, transparent background, power-up item" --output assets/items --filename star-powerup
-```
-
-**Multiple variations:**
-```bash
-python tools/image_helper.py "Food ingredient icons, colorful, flat design" --output assets/icons --count 5
-```
 
 ### Use as Python Module
 
-You can also import and use in Python code:
 
-```python
-from tools.image_helper import generate_image
-
-# Generate single image
-files = generate_image(
-    prompt="A cute game character",
-    output_dir="assets/characters",
-    filename="hero"
-)
-
-# Generate multiple images
-files = generate_image(
-    prompt="A game icon",
-    output_dir="assets/icons",
-    filename="icon",
-    count=3
-)
-
-print(f"Generated: {files}")
-```
 
 ### Troubleshooting
 
@@ -193,36 +76,6 @@ The **@ui-ux-designer** agent is configured to use this tool. You can ask the ag
 
 ### Examples by Category
 
-**Flat Design Icons:**
-```bash
-python tools/image_helper.py "A cooking pot icon, flat design, red, simple" --output assets/icons
-python tools/image_helper.py "A chef hat icon, flat design, white, minimal" --output assets/icons
-python tools/image_helper.py "A star rating icon, flat design, golden" --output assets/icons
-```
-
-**Cartoon Characters:**
-```bash
-python tools/image_helper.py "A cartoon chef, chibi style, happy expression, full body" --output assets/characters
-python tools/image_helper.py "A cute vegetable character, cartoon style, smiling" --output assets/characters
-```
-
-**Pixel Art:**
-```bash
-python tools/image_helper.py "A food ingredient, pixel art style, 32x32" --output assets/sprites
-python tools/image_helper.py "A cooking tool, 16-bit pixel art" --output assets/sprites
-```
-
-**UI Elements:**
-```bash
-python tools/image_helper.py "A game button, rounded, gradient blue" --output assets/ui
-python tools/image_helper.py "A health bar design, modern UI" --output assets/ui
-```
-
-**Backgrounds:**
-```bash
-python tools/image_helper.py "A kitchen interior, cartoon style, warm lighting" --output assets/backgrounds
-python tools/image_helper.py "A restaurant scene, top-down view, game background" --output assets/backgrounds
-```
 
 ---
 

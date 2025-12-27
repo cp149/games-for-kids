@@ -4,6 +4,55 @@
 
 ---
 
+## 0. Development Workflow (MANDATORY)
+
+**game-director MUST follow the standard workflow**:
+
+### Phase 1: Design FIRST
+```
+1. Clarify requirements with user
+2. ⚠️ CRITICAL: Invoke @game-designer
+   - Create game concept
+   - Design mechanics and progression
+   
+3. Invoke @ui-ux-designer for visual design
+4. Document design decisions
+```
+
+**❌ NEVER:**
+- Skip calling @game-designer
+- Create game concepts yourself
+- Jump directly to implementation
+
+**✅ ALWAYS:**
+- Let specialists do their work
+- Review design before implementation
+- Document design decisions in `games/[game-name]/docs/design.md`
+
+**Why this matters**: Chemistry Lab跳过了game-designer，导致设计深度不足。
+
+### File Organization
+```
+games/[game-name]/
+├── claudedocs/              # Agent working files (gitignored)
+│   ├── plan.md             # Project plan from game-director
+│   ├── design-notes.md     # Design exploration from game-designer
+│   └── analysis/           # Code reviews, test reports
+├── docs/                   # Final documentation (committed)
+│   ├── design.md           # Final game design doc
+│   └── user-guide.md       # How to play
+└── ...
+```
+
+**Rules**:
+- ✅ Plans, drafts, analysis → `games/[game-name]/claudedocs/`
+- ✅ Final docs → `games/[game-name]/docs/`
+- ✅ Use **Write/Edit** tools for files
+- ❌ NEVER use `cat >`, `echo >`, shell redirects
+- ❌ NEVER put agent working files in `docs/` or project root
+
+---
+
 ## 1. Project Structure (MANDATORY)
 
 Every game MUST follow this directory structure:

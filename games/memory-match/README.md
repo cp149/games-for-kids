@@ -219,7 +219,6 @@ This game is part of the mgame project. See project root for license information
 - **Development**: @frontend-developer, @game-mechanics-engineer
 - **Testing**: @qa-tester
 - **Documentation**: @project-chronicler
-- **Asset Generation**: Google Gemini AI (via image_helper.py)
 
 ## 📞 Support
 

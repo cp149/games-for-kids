@@ -86,6 +86,52 @@ Read("file.js")                # 确认实现
 
 ---
 
+## 开发流程审查（新增）
+
+验证game-director是否遵循标准workflow：
+
+### ⚠️ 必查项：Phase 1设计阶段
+```bash
+# 检查是否有game-designer的输出
+Glob("games/*/docs/design.md")
+Glob("docs/*/game-design*.md")
+
+# 验证设计文档内容
+Read("games/[game-name]/docs/design.md")
+
+# 检查是否跳过了game-designer
+❌ 发现: 直接进入实现，无设计文档
+❌ 发现: 设计文档由game-director创建（应该是game-designer）
+✅ 正确: 有game-designer创建的完整设计文档
+```
+
+### 检查清单
+- [ ] 是否存在game-designer创建的设计文档？
+- [ ] 设计文档是否包含：核心机制/关卡设计/难度曲线？
+- [ ] game-director是否在Phase 1调用了@game-designer？
+
+**如果缺失**：
+```markdown
+## Issue: 跳过game-designer阶段
+
+**Severity**: High
+**File**: N/A (流程问题)
+
+**Evidence**:
+- Glob结果: 无设计文档
+- 或: 设计文档缺少专业设计深度
+
+**Impact**:
+- 游戏设计深度不足
+- 缺少专业的机制平衡
+- 缺少视觉概念规划
+
+**Fix**:
+下次开发必须严格遵循game-director workflow Phase 1
+```
+
+---
+
 ## 质量评分
 
 基于实测指标，不是主观感觉：
@@ -93,6 +139,7 @@ Read("file.js")                # 确认实现
 - 实测性能数据（FPS/内存/加载时间）
 - 实际代码行数统计
 - 实际覆盖率计算
+- **开发流程合规性**（是否调用game-designer）
 
 ---
 

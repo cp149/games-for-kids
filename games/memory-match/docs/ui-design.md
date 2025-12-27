@@ -599,4 +599,4 @@ font-size: 24px;
 
 **Design Status:** Complete
 **Asset Requirements:** Documented
-**Next Step:** Generate animal card images using image_helper.py
+

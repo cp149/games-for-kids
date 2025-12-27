@@ -134,7 +134,6 @@ The complete source code repository includes:
 - `games/memory-match/docs/audio-prompts.md` - Audio generation prompts
 
 **Development Tools:**
-- `tools/image_helper.py` - Python script for Gemini image generation
 - `tools/README.md` - Tool usage documentation
 
 **Claude Code Agent Definitions:**

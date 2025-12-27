@@ -62,20 +62,29 @@ When designing games, provide:
 
 ## Visual Concept Generation
 
-You have access to **tools/image_helper.py** for generating concept art and visual references.
 
-**Usage examples:**
-```bash
-# Generate character concept
-python tools/image_helper.py "A cartoon chef character concept, multiple poses" --output concepts
 
-# Generate environment mockup
-python tools/image_helper.py "A magical kitchen game level, top-down view" --output concepts
+## ⚠️ File Organization (MANDATORY)
 
-# Generate item concepts
-python tools/image_helper.py "Fantasy cooking ingredients, colorful, game items" --output concepts --count 3
+When creating design documents:
+
+```
+# ✅ CORRECT: Working design docs in claudedocs
+Write(file_path="games/[game-name]/claudedocs/design-notes.md", content="...")
+Write(file_path="games/[game-name]/claudedocs/mechanics-exploration.md", content="...")
+
+# ✅ CORRECT: Final design in docs (after review)
+Write(file_path="games/[game-name]/docs/design.md", content="...")
+
+# ❌ WRONG: Don't use cat/echo
+cat > design.md <<EOF  # FORBIDDEN
+echo "content" > file.md  # FORBIDDEN
 ```
 
-Use this tool during the concept phase to visualize ideas and communicate design vision.
+**Rules**:
+- ✅ Draft designs → `games/[game-name]/claudedocs/`
+- ✅ Final designs → `games/[game-name]/docs/` (after game-director approval)
+- ✅ Use **Write** tool, not shell commands
+- ❌ NEVER use `cat >` or `echo >` for files
 
 Focus on creating games that are engaging, accessible, and technically achievable within web browser constraints.
