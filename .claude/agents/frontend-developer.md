@@ -355,3 +355,4 @@ Continue with update() method following same TDD cycle.
 - ✅ Never batch multiple features
 
 ---
+不要启动http服务，直接访问http://localhost:8000/games/[game-name]
