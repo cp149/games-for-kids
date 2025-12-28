@@ -1,0 +1,26 @@
+Integration Instructions for ChemistryLabGame.js:
+
+1. In initializeManagers() method, after the Recipe Memory System initialization (around line 202), add:
+
+    // Slot Guidance Systems (Hungry Beaker)
+    if (typeof ReactionCompatibilityCache !== 'undefined' && typeof SlotGuidanceSystem !== 'undefined') {
+      this.compatibilityCache = new ReactionCompatibilityCache(this.reactionRules);
+      this.slotGuidanceSystem = new SlotGuidanceSystem(
+        this.compatibilityCache,
+        this.slotMgr,
+        this.config
+      );
+    }
+
+2. In initializeDragManager() method, after setting the callbacks (around line 241), add:
+
+    // Connect slot guidance system to drag manager
+    if (this.slotGuidanceSystem) {
+      this.dragMgr.setSlotGuidanceSystem(this.slotGuidanceSystem);
+    }
+
+3. In destroy() method, after destroying particleSystem (around line 625), add:
+
+    // Destroy guidance systems
+    if (this.slotGuidanceSystem) this.slotGuidanceSystem.destroy();
+    if (this.compatibilityCache) this.compatibilityCache.destroy();

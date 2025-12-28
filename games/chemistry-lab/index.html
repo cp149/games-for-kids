@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Chemistry Lab - A fun card-based chemistry reaction puzzle game">
+  <title>Chemistry Lab - Reaction Puzzle Game</title>
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Inline language detection to prevent text flash -->
+  <script>
+    // Detect language before DOM loads
+    function detectInitialLanguage() {
+      const savedLang = localStorage.getItem('chemistry-lab-lang');
+      if (savedLang && (savedLang === 'en' || savedLang === 'zh')) {
+        return savedLang;
+      }
+      const browserLang = navigator.language || navigator.userLanguage;
+      const langCode = browserLang.split('-')[0];
+      return langCode === 'zh' ? 'zh' : 'en';
+    }
+
+    // Minimal translations for initial render
+    const INITIAL_TEXTS = {
+      en: {
+        menu_title: '🧪 Chemistry Lab',
+        demo_text: 'Drag + Mix = Explosion!',
+        start_button: '▶️ Start',
+        level_label: 'Level',
+        score_label: 'Score:',
+        time_label: 'Time:',
+        goal_label: 'Goal'
+      },
+      zh: {
+        menu_title: '🧪 化学实验室',
+        demo_text: '拖动 + 混合 = 爆炸！',
+        start_button: '▶️ 开始游戏',
+        level_label: '关卡',
+        score_label: '分数:',
+        time_label: '时间:',
+        goal_label: '目标'
+      }
+    };
+
+    window._initialLang = detectInitialLanguage();
+    window._initialTexts = INITIAL_TEXTS[window._initialLang];
+  </script>
+</head>
+<body>
+  <a href="#game-container" class="skip-to-content">Skip to game</a>
+  <div id="game-container" role="main" aria-label="Chemistry Lab Game">
+    <canvas id="game-canvas" aria-hidden="true"></canvas>
+
+    <!-- UI Overlay -->
+    <div id="ui-overlay" aria-live="polite">
+      <!-- Top HUD -->
+      <div id="hud-top" role="status" aria-label="Game status">
+        <div id="level-info" aria-label="Current level"><span id="level-label"></span> <span id="level-number">1</span></div>
+        <div id="score" aria-label="Current score"><span id="score-label"></span> <span id="score-value">0</span></div>
+        <div id="timer" aria-label="Time remaining"><span id="timer-label"></span> <span id="timer-value">60</span>s</div>
+      </div>
+
+      <!-- Audio Controls (top-right) -->
+      <div id="audio-controls" role="group" aria-label="Audio controls">
+        <button id="music-toggle" class="btn-audio" aria-label="Toggle music">🔊</button>
+        <button id="sound-toggle" class="btn-audio" aria-label="Toggle sound effects">🔊</button>
+      </div>
+
+      <!-- Drop Zone (top area where cards fall) -->
+      <div id="drop-zone" role="region" aria-label="Card drop zone"></div>
+
+      <!-- Experiment Table (4 slots + mix button) -->
+      <div id="experiment-table" role="region" aria-label="Experiment table">
+        <div class="slot-container">
+          <div class="experiment-slot" data-slot="0" tabindex="0" role="button" aria-label="Experiment slot 1"></div>
+          <div class="experiment-slot" data-slot="1" tabindex="0" role="button" aria-label="Experiment slot 2"></div>
+          <div class="experiment-slot" data-slot="2" tabindex="0" role="button" aria-label="Experiment slot 3"></div>
+          <div class="experiment-slot" data-slot="3" tabindex="0" role="button" aria-label="Experiment slot 4"></div>
+        </div>
+        <button id="mix-button" class="btn-mix" disabled aria-label="Mix reagents"></button>
+      </div>
+
+      <!-- Hand Area (special cards for L4+) -->
+      <div id="hand-area" role="region" aria-label="Special cards">
+        <div id="hand-cards"></div>
+      </div>
+
+      <!-- Objective Display -->
+      <div id="objective" role="status" aria-live="polite"><span id="goal-label"></span> <span id="objective-text"></span></div>
+
+      <!-- Tutorial Hints (L1 only) -->
+      <div id="tutorial-hint-1" class="tutorial-hint drop-zone-hint hidden"></div>
+      <div id="tutorial-hint-2" class="tutorial-hint table-hint hidden"></div>
+      <div id="tutorial-hint-3" class="tutorial-hint mix-hint hidden"></div>
+    </div>
+
+    <!-- Menu Overlay -->
+    <div id="menu-overlay" class="overlay" role="dialog" aria-label="Main menu">
+      <!-- Language Switcher -->
+      <div id="language-switcher" style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px;" role="group" aria-label="Language selection">
+        <button id="lang-en" class="btn-lang" data-lang="en" aria-label="English">EN</button>
+        <button id="lang-zh" class="btn-lang" data-lang="zh" aria-label="中文">中文</button>
+      </div>
+
+      <h1 id="menu-title" role="heading" aria-level="1"></h1>
+      <div class="visual-demo">
+        <div class="demo-step">
+          <div class="big-emoji">👆</div>
+          <div class="arrow">→</div>
+          <div class="big-emoji">🔴🔵</div>
+          <div class="arrow">→</div>
+          <div class="big-emoji">💜💥</div>
+        </div>
+        <div id="demo-text" class="demo-text"></div>
+      </div>
+      <button id="start-button" class="btn-large" aria-label="Start game"></button>
+    </div>
+  </div>
+
+  <!-- Immediate text population to prevent flash -->
+  <script>
+    (function() {
+      const t = window._initialTexts;
+      if (!t) return;
+
+      // Menu elements
+      const menuTitle = document.getElementById('menu-title');
+      const demoText = document.getElementById('demo-text');
+      const startButton = document.getElementById('start-button');
+
+      // HUD labels
+      const levelLabel = document.getElementById('level-label');
+      const scoreLabel = document.getElementById('score-label');
+      const timeLabel = document.getElementById('time-label');
+
+      // Populate text immediately
+      if (menuTitle) menuTitle.textContent = t.menu_title;
+      if (demoText) demoText.textContent = t.demo_text;
+      if (startButton) startButton.textContent = t.start_button;
+      if (levelLabel) levelLabel.textContent = t.level_label;
+      if (scoreLabel) scoreLabel.textContent = t.score_label;
+      if (timeLabel) timeLabel.textContent = t.time_label;
+    })();
+  </script>
+
+  <!-- Lib Components -->
+  <script defer src="../lib/stats.min.js"></script>
+  <script defer src="../lib/particle-system.js"></script>
+  <script defer src="../lib/background-music.js"></script>
+
+  <!-- I18n System -->
+  <script src="js/i18n/messages.js"></script>
+  <script src="js/i18n/i18n.js"></script>
+
+  <!-- Game Config -->
+  <script src="js/config.js"></script>
+
+  <!-- Utilities -->
+  <script defer src="js/utils/ReactionRules.js"></script>
+  <script defer src="js/utils/CardFactory.js"></script>
+  <script defer src="js/utils/ArrowRenderer.js"></script>
+
+  <!-- Classes -->
+  <script defer src="js/classes/ReagentCard.js"></script>
+  <script defer src="js/classes/SpecialCard.js"></script>
+  <script defer src="js/classes/Reaction.js"></script>
+  <script defer src="js/classes/MagicSpoon.js"></script>
+
+  <!-- Systems (must load before Managers) -->
+  <script defer src="js/systems/ReactionCompatibilityCache.js"></script>
+  <script defer src="js/systems/SlotGuidanceSystem.js"></script>
+  <script defer src="js/systems/HiccuppingPot.js"></script>
+  <script defer src="js/systems/HiccupAudioSync.js"></script>
+  <script defer src="js/systems/StirringDetector.js"></script>
+  <script defer src="js/systems/MicroParticle.js"></script>
+  <script defer src="js/systems/ZoomTransition.js"></script>
+  <script defer src="js/systems/ParticlePersonalitySystem.js"></script>
+
+  <!-- Level Classes (must load before LevelManager) -->
+  <script defer src="js/levels/BaseLevel.js"></script>
+  <script defer src="js/levels/Level1.js"></script>
+  <script defer src="js/levels/Level2.js"></script>
+  <script defer src="js/levels/Level3.js"></script>
+  <script defer src="js/levels/Level4.js"></script>
+  <script defer src="js/levels/Level5.js"></script>
+  <script defer src="js/levels/Level6.js"></script>
+  <script defer src="js/levels/Level7.js"></script>
+  <script defer src="js/levels/Level8.js"></script>
+  <script defer src="js/levels/Level9.js"></script>
+  <script defer src="js/levels/Level11.js"></script>
+
+  <!-- Managers -->
+  <script defer src="js/managers/CardDropManager.js"></script>
+  <script defer src="js/managers/DragManager.js"></script>
+  <script defer src="js/managers/SlotManager.js"></script>
+  <script defer src="js/managers/ReactionManager.js"></script>
+  <script defer src="js/managers/UIManager.js"></script>
+  <script defer src="js/managers/LevelManager.js"></script>
+  <script defer src="js/managers/TimerManager.js"></script>
+  <script defer src="js/managers/AudioManager.js"></script>
+  <script defer src="js/managers/SpecialCardManager.js"></script>
+  <script defer src="js/managers/InputManager.js"></script>
+  <script defer src="js/managers/DangerousCardManager.js"></script>
+  <script defer src="js/managers/CatalystManager.js"></script>
+
+  <!-- Additional Systems -->
+  <script defer src="js/systems/RecipeMemorySystem.js"></script>
+  <script defer src="js/systems/ReversibilitySystem.js"></script>
+  <script defer src="js/systems/SwipeGestureDetector.js"></script>
+
+  <!-- Animations -->
+  <script defer src="js/animations/ZipperOpenAnimation.js"></script>
+  <script defer src="js/animations/LockedShakeAnimation.js"></script>
+  <script defer src="js/classes/SleepAnimation.js"></script>
+  <script defer src="js/classes/WakeUpAnimation.js"></script>
+  <script defer src="js/classes/SleepingMixtureEffect.js"></script>
+
+  <!-- Main Game -->
+  <script defer src="js/classes/ChemistryLabGame.js"></script>
+
+  <!-- Initialize -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
