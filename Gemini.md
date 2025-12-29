@@ -65,3 +65,31 @@ If the CLI tool is unavailable or if you prefer manual control, you can simulate
 1.  Reading the agent's definition file (e.g., `read_file .claude/agents/game-designer.md`).
 2.  Adopting the "persona" and "constraints" defined in that file for your subsequent actions.
 3.  Manually ensuring you follow the workflows (like TDD or specific documentation formats).
+
+## Multi-Agent Collaboration Workflow (Example)
+
+This workflow demonstrates how to use specialized agents to identify, fix, and verify issues in a project.
+
+### Phase 1: Audit (QA Tester)
+Identify issues by invoking the `qa-tester` with its full system prompt.
+```bash
+claude -p --tools="default" --dangerously-skip-permissions --agents '{"qa-tester": {...}}' "@qa-tester Audit games/target-game/ for compliance and bugs."
+```
+
+### Phase 2: Planning (Frontend Developer)
+Ask the developer agent to analyze the audit results and create a TDD plan.
+```bash
+claude -p --tools="default" --dangerously-skip-permissions --agents '{"frontend-developer": {...}}' "@frontend-developer Create a TodoWrite plan to fix the issues reported by QA."
+```
+
+### Phase 3: Iterative Implementation (Frontend Developer)
+Execute the plan in small steps (max 50 lines), writing tests first.
+```bash
+claude -p --tools="default" --dangerously-skip-permissions --agents '{"frontend-developer": {...}}' "@frontend-developer Execute Task 1: Implement i18n infrastructure. Write tests first!"
+```
+
+### Phase 4: Final Verification (QA Tester)
+Re-run the audit to ensure all issues are resolved and no regressions were introduced.
+```bash
+claude -p --tools="default" --dangerously-skip-permissions --agents '{"qa-tester": {...}}' "@qa-tester Re-audit games/target-game/ and verify all fixes."
+```
