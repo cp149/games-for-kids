@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 Color Mix Lab - Learn Colors Through Play</title>
+    <meta name="description" content="Mix colors, feed the chameleon, and discover the rainbow! Educational game for ages 5-8.">
+
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- Load scripts in dependency order -->
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/index.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/managers/UIManager.js"></script>
+    <script src="js/managers/DragManager.js"></script>
+    <script src="js/ColorMixGame.js"></script>
+
+    <!-- Initialize game -->
+    <script>
+        // Initialize i18n first
+        const i18n = initI18n(TRANSLATIONS, 'en');
+
+        // Initialize game when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initGame);
+        } else {
+            initGame();
+        }
+
+        function initGame() {
+            try {
+                new ColorMixGame('game-container');
+            } catch (error) {
+                document.getElementById('game-container').innerHTML = `
+                    <div class="game-loading">
+                        <div style="text-align: center; color: #E74C3C;">
+                            <h2>😕 ${i18n.t('game_title')}</h2>
+                            <p>Please refresh the page to try again.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

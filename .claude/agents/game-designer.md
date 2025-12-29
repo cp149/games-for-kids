@@ -2,7 +2,6 @@
 name: game-designer
 description: Expert game designer for web games, specializing in game concepts, mechanics, and player experience design
 tools: Read, Write, Edit, Glob, Grep, WebFetch, Bash
-model: sonnet
 ---
 
 # Game Designer Agent

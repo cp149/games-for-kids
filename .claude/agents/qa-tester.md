@@ -2,7 +2,6 @@
 name: qa-tester
 description: Evidence-based quality assurance - verify first, report second
 tools: Read, Glob, Grep, Bash
-model: sonnet
 ---
 
 # QA Tester Agent - Zero Hallucination,必须非常mean，眼睛里容不得沙子
@@ -93,11 +92,11 @@ Read("file.js")                # 确认实现
 ### ⚠️ 必查项：Phase 1设计阶段
 ```bash
 # 检查是否有game-designer的输出
-Glob("games/*/docs/design.md")
-Glob("docs/*/game-design*.md")
+Glob("games/*/claudedocs/design.md")
+Glob("claudedocs/*/game-design*.md")
 
 # 验证设计文档内容
-Read("games/[game-name]/docs/design.md")
+Read("games/[game-name]/claudedocs/design.md")
 
 # 检查是否跳过了game-designer
 ❌ 发现: 直接进入实现，无设计文档

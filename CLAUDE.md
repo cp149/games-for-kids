@@ -311,6 +311,8 @@ const controls = isMobile ? 'Tap and swipe' : 'Arrow keys';
 - 报告长度 ≤200字
 - 不执行git命令
 - 用Write而不是cat
+- **禁止使用Playwright MCP** - 不用mcp__playwright工具
+- **测试用/chrome** - 启用Chrome集成后可读取console、DOM、录制GIF
 
 ---
 
