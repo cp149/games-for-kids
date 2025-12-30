@@ -32,6 +32,30 @@ export class DragManager {
         this.lastMoveTime = 0;
         this.moveThrottle = 16; // ~60fps
         this.cachedSlots = null;
+
+        // Timer tracking for cleanup
+        this.pendingTimers = new Set();
+    }
+
+    /**
+     * Tracked setTimeout that auto-cleans up
+     * @param {Function} callback - Callback function
+     * @param {number} delay - Delay in ms
+     * @returns {number} Timer ID
+     */
+    _setTimeout(callback, delay) {
+        if (!this.pendingTimers) return null;
+
+        const timerId = setTimeout(() => {
+            if (this.pendingTimers) {
+                this.pendingTimers.delete(timerId);
+                // Only execute callback if component is not destroyed
+                callback();
+            }
+        }, delay);
+
+        this.pendingTimers.add(timerId);
+        return timerId;
     }
 
     /**
@@ -210,7 +234,7 @@ export class DragManager {
         document.body.appendChild(sparkle);
 
         // Remove after animation
-        setTimeout(() => sparkle.remove(), 600);
+        this._setTimeout(() => sparkle.remove(), 600);
     }
 
     /**
@@ -222,7 +246,7 @@ export class DragManager {
 
         // Add pickup squish effect to original (jelly physics)
         element.classList.add('pickup-squish');
-        setTimeout(() => element.classList.remove('pickup-squish'), 250);
+        this._setTimeout(() => element.classList.remove('pickup-squish'), 250);
 
         // Create clone for dragging
         const clone = element.cloneNode(true);
@@ -242,7 +266,7 @@ export class DragManager {
         // Start with pickup squish, then transition to jelly wobble
         clone.classList.remove('dragging');
         clone.classList.add('pickup-squish');
-        setTimeout(() => {
+        this._setTimeout(() => {
             clone.classList.remove('pickup-squish');
             clone.classList.add('jelly-wobble');
         }, 250);
@@ -290,11 +314,11 @@ export class DragManager {
             if (result && dropTarget) {
                 // Successful drop - add drop bounce effect
                 element.classList.add('drop-bounce');
-                setTimeout(() => element.classList.remove('drop-bounce'), 500);
+                this._setTimeout(() => element.classList.remove('drop-bounce'), 500);
             } else {
                 // Failed drop - snap back with jelly return
                 element.classList.add('jelly-return');
-                setTimeout(() => element.classList.remove('jelly-return'), 400);
+                this._setTimeout(() => element.classList.remove('jelly-return'), 400);
                 this.snapBack();
             }
 
@@ -370,9 +394,13 @@ export class DragManager {
         clone.style.transition = 'transform 0.3s ease-out';
         clone.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
 
-        setTimeout(() => {
-            clone.remove();
-            this.dragState.clone = null;
+        this._setTimeout(() => {
+            if (clone && clone.parentElement) {
+                clone.remove();
+            }
+            if (this.dragState) {
+                this.dragState.clone = null;
+            }
         }, 300);
     }
 
@@ -412,6 +440,13 @@ export class DragManager {
      * Clean up all resources
      */
     destroy() {
+        // Clear all pending timers
+        if (this.pendingTimers) {
+            this.pendingTimers.forEach(timerId => clearTimeout(timerId));
+            this.pendingTimers.clear();
+            this.pendingTimers = null;
+        }
+
         // Disable all draggable elements
         if (this.eventListeners) {
             this.eventListeners.forEach((listeners, element) => {

@@ -130,8 +130,7 @@ Types: feat, fix, docs, style, refactor, perf, test, chore
 |------|-----|
 | JS文件行数 | ≤550行 |
 | 报告长度 | ≤200字 |
-| Playwright MCP | 禁用 |
-| 测试工具 | /chrome |
+| 测试工具 | Playwright MCP |
 
 **核心原则**: 代码英文，交流中文，游戏多语言
 

@@ -47,8 +47,45 @@ export class ColorMixGame {
             isFreeMode: false
         };
 
+        // Timer and event tracking for cleanup
+        this.pendingTimers = new Set();
+        this.boundListeners = new Map();
+
         // Initialize game
         this.init();
+    }
+
+    /**
+     * Tracked setTimeout that auto-cleans up
+     * @param {Function} callback - Callback function
+     * @param {number} delay - Delay in ms
+     * @returns {number} Timer ID
+     */
+    _setTimeout(callback, delay) {
+        if (!this.pendingTimers) return null;
+
+        const timerId = setTimeout(() => {
+            if (this.pendingTimers) {
+                this.pendingTimers.delete(timerId);
+                // Only execute callback if component is not destroyed
+                callback();
+            }
+        }, delay);
+
+        this.pendingTimers.add(timerId);
+        return timerId;
+    }
+
+    /**
+     * Helper to clear tracked timeouts (prevents memory leak in pendingTimers Set)
+     * @param {number} timerId - Timer ID to clear
+     */
+    _clearTimeout(timerId) {
+        if (timerId == null) return;
+        if (this.pendingTimers) {
+            this.pendingTimers.delete(timerId);
+        }
+        clearTimeout(timerId);
     }
 
     /**
@@ -173,8 +210,8 @@ export class ColorMixGame {
         // Don't show hints in free play mode
         if (this.state.isFreeMode) return;
 
-        // Set timer for 8 seconds
-        this.idleHintTimer = setTimeout(() => {
+        // Set timer for 8 seconds (using tracked _setTimeout)
+        this.idleHintTimer = this._setTimeout(() => {
             this.showIdleHint();
         }, 8000);
     }
@@ -184,7 +221,7 @@ export class ColorMixGame {
      */
     clearIdleHintTimer() {
         if (this.idleHintTimer) {
-            clearTimeout(this.idleHintTimer);
+            this._clearTimeout(this.idleHintTimer);
             this.idleHintTimer = null;
         }
     }
@@ -240,53 +277,51 @@ export class ColorMixGame {
      * Setup event listeners
      */
     setupEventListeners() {
+        // Helper to track event listeners for cleanup
+        const addTrackedListener = (element, event, handler) => {
+            if (!element) return;
+            element.addEventListener(event, handler);
+            if (!this.boundListeners.has(element)) {
+                this.boundListeners.set(element, []);
+            }
+            this.boundListeners.get(element).push({ event, handler });
+        };
+
         // Clear button
         const clearBtn = this.ui.getElement('clearBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => this.clearBowl());
-        }
+        addTrackedListener(clearBtn, 'click', () => this.clearBowl());
 
         // Undo button
         const undoBtn = this.ui.getUndoButton();
-        if (undoBtn) {
-            undoBtn.addEventListener('click', () => this.undoLastColor());
-        }
+        addTrackedListener(undoBtn, 'click', () => this.undoLastColor());
 
         // Settings button
         const settingsBtn = this.ui.getElement('settingsBtn');
-        if (settingsBtn) {
-            settingsBtn.addEventListener('click', () => {
-                this.ui.showToast(this.i18n.t('settings_coming') + ' ⚙️', 'info');
-            });
-        }
+        addTrackedListener(settingsBtn, 'click', () => {
+            this.ui.showToast(this.i18n.t('settings_coming') + ' ⚙️', 'info');
+        });
 
         // Sound button
         const soundBtn = this.ui.getElement('soundBtn');
-        if (soundBtn) {
-            soundBtn.addEventListener('click', () => {
-                this.ui.showToast('Sound toggle coming soon! 🔊', 'info');
-            });
-        }
+        addTrackedListener(soundBtn, 'click', () => {
+            this.ui.showToast('Sound toggle coming soon! 🔊', 'info');
+        });
 
         // Sticker book button
         const stickerBookBtn = this.ui.getElement('stickerBookBtn');
-        if (stickerBookBtn) {
-            stickerBookBtn.addEventListener('click', () => {
-                this.showStickerBook();
-            });
-        }
+        addTrackedListener(stickerBookBtn, 'click', () => {
+            this.showStickerBook();
+        });
 
         // Free play button
         const freePlayBtn = this.ui.getElement('freePlayBtn');
-        if (freePlayBtn) {
-            freePlayBtn.addEventListener('click', () => {
-                if (this.state.isFreeMode) {
-                    this.exitFreePlay();
-                } else {
-                    this.enterFreePlay();
-                }
-            });
-        }
+        addTrackedListener(freePlayBtn, 'click', () => {
+            if (this.state.isFreeMode) {
+                this.exitFreePlay();
+            } else {
+                this.enterFreePlay();
+            }
+        });
 
         // Show free play button if unlocked
         if (this.state.freePlayUnlocked) {
@@ -459,7 +494,19 @@ export class ColorMixGame {
         }
 
         const goal = this.state.currentGoal;
-        if (!goal || !goal.targetColor) {
+        if (!goal) {
+            return false;
+        }
+
+        // Resolve target color name correctly based on goal type
+        let targetColorName = null;
+        if (goal.type === 'secondary' || goal.type === 'effect') {
+            targetColorName = goal.color;
+        } else if (goal.type === 'multiple' && goal.colors) {
+            targetColorName = goal.colors[0];
+        }
+
+        if (!targetColorName) {
             return false;
         }
 
@@ -474,7 +521,7 @@ export class ColorMixGame {
             yellow: ['yellow']
         };
 
-        const neededColors = colorComponents[goal.targetColor] || [];
+        const neededColors = colorComponents[targetColorName] || [];
         return neededColors.includes(color);
     }
 
@@ -640,7 +687,7 @@ export class ColorMixGame {
         }
 
         // Auto-clear after delay
-        setTimeout(() => {
+        this._setTimeout(() => {
             this.clearBowl();
         }, 2000);
     }
@@ -652,8 +699,10 @@ export class ColorMixGame {
         // Play celebration sounds
         if (this.audio) {
             this.audio.play('level_complete');
-            setTimeout(() => {
-                this.audio.play('celebration');
+            this._setTimeout(() => {
+                if (this.audio) {
+                    this.audio.play('celebration');
+                }
             }, 300);
         }
 
@@ -680,16 +729,22 @@ export class ColorMixGame {
             this.state.freePlayUnlocked = true;
             this.saveProgress();
             this.ui.showFreePlayButton(true);
-            setTimeout(() => {
-                this.ui.showToast(this.i18n.t('game_complete') || 'Game Complete! Free mode unlocked! 🎉', 'success');
+            this._setTimeout(() => {
+                if (this.ui) {
+                    this.ui.showToast(this.i18n?.t('game_complete') || 'Game Complete! Free mode unlocked! 🎉', 'success');
+                }
             }, 2000);
         } else {
             // Advance to next level after celebration
-            setTimeout(() => {
-                this.state.currentLevel++;
-                this.saveProgress();
-                this.setupLevel(this.state.currentLevel);
-                this.ui.showToast(`${this.i18n.t('level', { '0': this.state.currentLevel })}!`, 'info');
+            this._setTimeout(() => {
+                if (this.state) {
+                    this.state.currentLevel++;
+                    this.saveProgress();
+                    this.setupLevel(this.state.currentLevel);
+                    if (this.ui) {
+                        this.ui.showToast(`${this.i18n?.t('level', { '0': this.state.currentLevel }) || 'Level ' + this.state.currentLevel}!`, 'info');
+                    }
+                }
             }, 2500);
         }
     }
@@ -735,6 +790,24 @@ export class ColorMixGame {
      * Handles null checks and prevents double-destroy errors
      */
     destroy() {
+        // Clear all pending timers first
+        if (this.pendingTimers) {
+            this.pendingTimers.forEach(timerId => clearTimeout(timerId));
+            this.pendingTimers.clear();
+            this.pendingTimers = null;
+        }
+
+        // Remove all tracked event listeners
+        if (this.boundListeners) {
+            this.boundListeners.forEach((listeners, element) => {
+                listeners.forEach(({ event, handler }) => {
+                    element.removeEventListener(event, handler);
+                });
+            });
+            this.boundListeners.clear();
+            this.boundListeners = null;
+        }
+
         // Clear idle hint timer
         this.clearIdleHintTimer();
 

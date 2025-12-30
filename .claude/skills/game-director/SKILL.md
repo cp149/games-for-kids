@@ -93,6 +93,23 @@ npm test  # Must pass
 - [ ] Colors match design"
 ```
 
+**Accessibility** (Human must verify on both platforms):
+```
+"请在以下平台验证:
+
+Windows 桌面 (1280×720+):
+- [ ] 鼠标拖拽流畅
+- [ ] 键盘Tab导航正常
+- [ ] 布局美观，无溢出
+
+平板设备 (768×1024):
+- [ ] 竖屏布局正确
+- [ ] 横屏布局正确
+- [ ] 触摸拖拽响应
+- [ ] 按钮足够大 (>=44px)
+- [ ] 组件间距合理，不误触"
+```
+
 ### 4. 保存知识 (Session End)
 
 ```
@@ -101,6 +118,81 @@ mcp__plugin_serena_serena__write_memory(
   memory_file_name="[game]-architecture",
   content="## 架构决策\n..."
 )
+```
+
+---
+
+## Accessibility Requirements (Required)
+
+**目标平台**: 平板 (iPad/Android) + Windows 桌面
+
+### 屏幕适配
+| 平台 | 分辨率范围 | 设计要点 |
+|------|-----------|---------|
+| **平板竖屏** | 768×1024 | 主要目标，组件垂直排列 |
+| **平板横屏** | 1024×768 | 组件可水平排列 |
+| **Windows** | 1280×720+ | 桌面布局，可更精细 |
+
+### 组件尺寸要求
+```css
+/* 触摸目标 >= 44px (Apple HIG) */
+.icon-btn { min-width: 44px; min-height: 44px; }
+
+/* 游戏主要交互元素 >= 60px (儿童友好) */
+.color-source, .bowl { min-width: 60px; min-height: 60px; }
+
+/* 文字大小 - 平板可读 */
+.game-text { font-size: clamp(16px, 4vw, 24px); }
+
+/* 间距 - 防止误触 */
+.interactive-elements { gap: 12px; }
+```
+
+### CSS 响应式断点
+```css
+/* 移动端优先 */
+.game-container { /* 默认平板竖屏布局 */ }
+
+/* 平板横屏 / 小桌面 */
+@media (min-width: 1024px) { /* 水平布局 */ }
+
+/* 大桌面 */
+@media (min-width: 1440px) { /* 更大组件、更多空间 */ }
+
+/* 触摸设备特殊处理 */
+@media (hover: none) and (pointer: coarse) {
+  /* 隐藏hover效果，增大触摸区域 */
+}
+```
+
+### 布局原则
+- **Flexbox/Grid**: 使用弹性布局，避免固定像素
+- **相对单位**: 优先 `vw`, `vh`, `%`, `clamp()`
+- **安全区域**: 考虑平板刘海/圆角 `env(safe-area-inset-*)`
+- **横竖屏**: 两种方向都要测试
+
+### 输入支持
+- **Touch**: 所有交互支持触摸，拖拽使用 `touchstart/touchmove/touchend`
+- **Mouse**: 同时支持鼠标操作 `mousedown/mousemove/mouseup`
+- **Keyboard**: 可聚焦元素需 `tabindex="0"`，支持 Enter/Space 激活
+
+### HTML 可访问性
+```html
+<!-- 装饰性元素 -->
+<div class="background" aria-hidden="true">...</div>
+
+<!-- 交互元素 -->
+<div class="draggable" role="button" tabindex="0" aria-label="Red Color - Drag to bowl">
+
+<!-- 状态区域 -->
+<div class="progress" role="status" aria-label="Progress: 2 of 3">
+```
+
+### 事件处理模式
+```javascript
+// 同时支持 touch + mouse
+element.addEventListener('mousedown', handler);
+element.addEventListener('touchstart', handler, { passive: false });
 ```
 
 ---

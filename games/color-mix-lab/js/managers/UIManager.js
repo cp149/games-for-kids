@@ -17,7 +17,44 @@ export class UIManager {
         this.i18n = i18n || (typeof getI18n === 'function' ? getI18n() : null);
         this.elements = {};
         this.toastTimeout = null;
+
+        // Timer tracking for cleanup
+        this.pendingTimers = new Set();
+
         this.init();
+    }
+
+    /**
+     * Tracked setTimeout that auto-cleans up
+     * @param {Function} callback - Callback function
+     * @param {number} delay - Delay in ms
+     * @returns {number} Timer ID
+     */
+    _setTimeout(callback, delay) {
+        if (!this.pendingTimers) return null;
+
+        const timerId = setTimeout(() => {
+            if (this.pendingTimers) {
+                this.pendingTimers.delete(timerId);
+                // Only execute callback if component is not destroyed
+                callback();
+            }
+        }, delay);
+
+        this.pendingTimers.add(timerId);
+        return timerId;
+    }
+
+    /**
+     * Helper to clear tracked timeouts (prevents memory leak in pendingTimers Set)
+     * @param {number} timerId - Timer ID to clear
+     */
+    _clearTimeout(timerId) {
+        if (timerId == null) return;
+        if (this.pendingTimers) {
+            this.pendingTimers.delete(timerId);
+        }
+        clearTimeout(timerId);
     }
 
     /**
@@ -317,7 +354,7 @@ export class UIManager {
         switch (mood) {
             case 'happy':
                 chameleon.classList.add('celebrating');
-                setTimeout(() => {
+                this._setTimeout(() => {
                     chameleon.classList.remove('celebrating');
                 }, CONFIG.UI.CELEBRATION_DURATION);
                 break;
@@ -325,7 +362,7 @@ export class UIManager {
             case 'sad':
                 chameleon.classList.add('sad-wiggle');
                 chameleon.classList.add('disgust');
-                setTimeout(() => {
+                this._setTimeout(() => {
                     chameleon.classList.remove('sad-wiggle');
                     chameleon.classList.remove('disgust');
                 }, 800);
@@ -337,7 +374,7 @@ export class UIManager {
 
             case 'confused':
                 chameleon.classList.add('confused');
-                setTimeout(() => {
+                this._setTimeout(() => {
                     chameleon.classList.remove('confused');
                 }, 600);
                 break;
@@ -391,7 +428,7 @@ export class UIManager {
         });
 
         // Remove after animation
-        setTimeout(() => {
+        this._setTimeout(() => {
             if (swirl.parentElement) {
                 swirl.remove();
             }
@@ -493,7 +530,7 @@ export class UIManager {
         // Add bowl squish animation (jelly physics)
         if (this.elements.bowl) {
             this.elements.bowl.classList.add('squish');
-            setTimeout(() => this.elements.bowl.classList.remove('squish'), 300);
+            this._setTimeout(() => this.elements.bowl?.classList.remove('squish'), 300);
         }
 
         // Create splash particle
@@ -503,7 +540,7 @@ export class UIManager {
             particle.style.backgroundColor = colorHex;
             this.elements.particles.appendChild(particle);
 
-            setTimeout(() => particle.remove(), 1000);
+            this._setTimeout(() => particle.remove(), 1000);
         }
 
         // Update clear button
@@ -539,7 +576,7 @@ export class UIManager {
     showToast(message, type = 'info') {
         // Cancel existing timeout
         if (this.toastTimeout) {
-            clearTimeout(this.toastTimeout);
+            this._clearTimeout(this.toastTimeout);
         }
 
         // Reuse existing toast if available
@@ -555,8 +592,8 @@ export class UIManager {
         toast.className = `toast ${type}`;
         toast.textContent = message;
 
-        // Auto-remove after duration
-        this.toastTimeout = setTimeout(() => {
+        // Auto-remove after duration (using tracked _setTimeout)
+        this.toastTimeout = this._setTimeout(() => {
             toast.remove();
             this.toastTimeout = null;
         }, CONFIG.UI.TOAST_DURATION);
@@ -584,7 +621,7 @@ export class UIManager {
         this.createSparkles(window.innerWidth / 2, window.innerHeight / 2, colorHex);
 
         // Remove after animation
-        setTimeout(() => splash.remove(), 1400);
+        this._setTimeout(() => splash.remove(), 1400);
     }
 
     /**
@@ -613,7 +650,7 @@ export class UIManager {
 
             document.body.appendChild(sparkle);
 
-            setTimeout(() => sparkle.remove(), 800);
+            this._setTimeout(() => sparkle.remove(), 800);
         }
     }
 
@@ -634,7 +671,7 @@ export class UIManager {
         document.body.appendChild(splat);
 
         // Remove after animation
-        setTimeout(() => splat.remove(), 2500);
+        this._setTimeout(() => splat.remove(), 2500);
     }
 
     /**
@@ -647,7 +684,7 @@ export class UIManager {
         const flash = document.createElement('div');
         flash.className = 'celebration-flash';
         document.body.appendChild(flash);
-        setTimeout(() => flash.remove(), 500);
+        this._setTimeout(() => flash.remove(), 500);
 
         // Create enhanced confetti particles
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#9944FF', '#44DD44', '#FF99CC', '#66CCFF'];
@@ -676,11 +713,13 @@ export class UIManager {
             confetti.style.setProperty('--confetti-duration', (2.5 + Math.random() * 1.5) + 's');
 
             document.body.appendChild(confetti);
-            setTimeout(() => confetti.remove(), 4500);
+            this._setTimeout(() => confetti.remove(), 4500);
         }
 
-        setTimeout(() => {
-            this.container.classList.remove('level-complete');
+        this._setTimeout(() => {
+            if (this.container) {
+                this.container.classList.remove('level-complete');
+            }
         }, 3000);
     }
 
@@ -724,7 +763,7 @@ export class UIManager {
             confetti.style.setProperty('--confetti-delay', (Math.random() * 0.1) + 's');
 
             document.body.appendChild(confetti);
-            setTimeout(() => confetti.remove(), 2000);
+            this._setTimeout(() => confetti.remove(), 2000);
         }
     }
 
@@ -994,8 +1033,8 @@ export class UIManager {
         // Show overlay
         this.formulaOverlay.classList.add('active');
 
-        // Auto-hide after delay
-        this.formulaTimeout = setTimeout(() => {
+        // Auto-hide after delay (using tracked _setTimeout)
+        this.formulaTimeout = this._setTimeout(() => {
             this.hideFormulaOverlay();
         }, 4000);
     }
@@ -1007,7 +1046,7 @@ export class UIManager {
         if (!this.formulaOverlay) return;
 
         if (this.formulaTimeout) {
-            clearTimeout(this.formulaTimeout);
+            this._clearTimeout(this.formulaTimeout);
             this.formulaTimeout = null;
         }
 
@@ -1031,6 +1070,13 @@ export class UIManager {
      * Clean up resources
      */
     destroy() {
+        // Clear all pending timers first
+        if (this.pendingTimers) {
+            this.pendingTimers.forEach(timerId => clearTimeout(timerId));
+            this.pendingTimers.clear();
+            this.pendingTimers = null;
+        }
+
         if (this.toastTimeout) {
             clearTimeout(this.toastTimeout);
             this.toastTimeout = null;

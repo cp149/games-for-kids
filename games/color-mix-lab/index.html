@@ -12,8 +12,8 @@
     <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
 </head>
 <body>
-    <!-- Living Background Elements -->
-    <div class="living-bg">
+    <!-- Living Background Elements (decorative) -->
+    <div class="living-bg" aria-hidden="true">
         <div class="cloud cloud-1">☁️</div>
         <div class="cloud cloud-2">☁️</div>
         <div class="butterfly butterfly-1">🦋</div>
@@ -25,63 +25,63 @@
         <!-- Header Area: Settings, Sound, Sticker Book, Free Play -->
         <header class="header-area">
             <button class="icon-btn sticker-book-btn" aria-label="Sticker Book">
-                <span class="icon-sticker">📖</span>
+                <span class="icon-sticker" aria-hidden="true">📖</span>
             </button>
             <button class="icon-btn free-play-btn hidden" aria-label="Free Play Mode">
-                <span class="icon-free-play">🎨</span>
+                <span class="icon-free-play" aria-hidden="true">🎨</span>
             </button>
             <button class="icon-btn settings-btn" aria-label="Settings">
-                <span class="icon-settings"></span>
+                <span class="icon-settings" aria-hidden="true"></span>
             </button>
             <button class="icon-btn sound-btn" aria-label="Toggle Sound">
-                <span class="icon-sound"></span>
+                <span class="icon-sound" aria-hidden="true"></span>
             </button>
         </header>
 
         <!-- Chameleon Area: Character & Goal -->
         <section class="chameleon-area">
             <div class="target-leaf">
-                <div class="chameleon">
-                    <div class="chameleon-body"></div>
-                    <div class="chameleon-eyes"></div>
+                <div class="chameleon" role="img" aria-label="A chameleon waiting for a new color">
+                    <div class="chameleon-body" aria-hidden="true"></div>
+                    <div class="chameleon-eyes" aria-hidden="true"></div>
                 </div>
             </div>
-            <div class="progress-stars">
-                <span class="star"></span>
-                <span class="star"></span>
-                <span class="star"></span>
+            <div class="progress-stars" role="status" aria-label="Progress: 0 of 3 stars collected">
+                <span class="star" aria-hidden="true"></span>
+                <span class="star" aria-hidden="true"></span>
+                <span class="star" aria-hidden="true"></span>
             </div>
         </section>
 
         <!-- Mixing Area: Bowl & Buttons -->
         <section class="mixing-area">
-            <div class="bowl">
-                <div class="liquid"></div>
-                <div class="particles"></div>
+            <div class="bowl" role="region" aria-label="Mixing Bowl - Drag colors here to mix them" tabindex="0">
+                <div class="liquid" aria-hidden="true"></div>
+                <div class="particles" aria-hidden="true"></div>
             </div>
             <div class="bowl-controls">
-                <button class="icon-btn undo-btn hidden" aria-label="Undo">
-                    <span class="icon-undo">↩️</span>
+                <button class="icon-btn undo-btn hidden" aria-label="Undo last color">
+                    <span class="icon-undo" aria-hidden="true">↩️</span>
                 </button>
                 <button class="icon-btn clear-btn" aria-label="Clear Bowl">
-                    <span class="icon-clear"></span>
+                    <span class="icon-clear" aria-hidden="true"></span>
                 </button>
             </div>
         </section>
 
         <!-- Palette Area: Color Sources -->
-        <section class="palette-area">
-            <div class="color-source red-source" data-color="red" draggable="true">
-                <div class="color-blob"></div>
-                <div class="color-pattern pattern-zigzag"></div>
+        <section class="palette-area" aria-label="Color Palette">
+            <div class="color-source red-source" data-color="red" draggable="true" role="button" tabindex="0" aria-label="Red Color - Drag to bowl">
+                <div class="color-blob" aria-hidden="true"></div>
+                <div class="color-pattern pattern-zigzag" aria-hidden="true"></div>
             </div>
-            <div class="color-source blue-source" data-color="blue" draggable="true">
-                <div class="color-blob"></div>
-                <div class="color-pattern pattern-waves"></div>
+            <div class="color-source blue-source" data-color="blue" draggable="true" role="button" tabindex="0" aria-label="Blue Color - Drag to bowl">
+                <div class="color-blob" aria-hidden="true"></div>
+                <div class="color-pattern pattern-waves" aria-hidden="true"></div>
             </div>
-            <div class="color-source yellow-source" data-color="yellow" draggable="true">
-                <div class="color-blob"></div>
-                <div class="color-pattern pattern-dots"></div>
+            <div class="color-source yellow-source" data-color="yellow" draggable="true" role="button" tabindex="0" aria-label="Yellow Color - Drag to bowl">
+                <div class="color-blob" aria-hidden="true"></div>
+                <div class="color-pattern pattern-dots" aria-hidden="true"></div>
             </div>
         </section>
     </div>

@@ -64,13 +64,21 @@
 }
 
 body {
-  font-family: 'Fredoka One', 'Comic Neue', 'Segoe UI', system-ui, sans-serif;
-  background: var(--bg-gradient);
-  color: #2C3E50;
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-color);
+  background-image: url('../assets/images/game-background.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  font-family: 'Fredoka One', 'Comic Neue', 'Segoe UI', cursive, sans-serif;
   overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  position: relative;
+  color: var(--text-dark);
 }
 
 /* ===== Animated Background Blobs (More Dynamic) ===== */
@@ -265,13 +273,19 @@ body::after {
 }
 
 .game-container {
-  min-height: 100vh;
+  /* Base layout - mobile first, vertical column */
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
   padding: var(--space-md);
   gap: var(--space-lg);
   position: relative;
   z-index: 1;
+  /* Smooth transition for orientation changes */
+  transition: padding 0.3s ease, gap 0.3s ease;
 }
 
 /* ===== Header - Playful & Minimal ===== */
@@ -2109,107 +2123,415 @@ body::after {
 
 /* ===== Responsive Design ===== */
 
-/* Tablet */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .chameleon-container {
-    width: 200px;
-    height: 200px;
+/*
+ * Breakpoint Strategy:
+ * - Mobile: < 768px (default, mobile-first)
+ * - Tablet Portrait: 768px - 1023px (orientation: portrait)
+ * - Tablet Landscape: 768px - 1023px (orientation: landscape) OR 1024px+
+ * - Desktop: 1024px - 1279px
+ * - Large Desktop: 1280px+
+ *
+ * Touch Target Requirements:
+ * - Icon buttons: >= 44px (Apple HIG)
+ * - Game elements: >= 60px (child-friendly)
+ */
+
+/* Tablet Portrait (768px - 1023px, portrait orientation) */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: portrait) {
+  .game-container {
+    padding: var(--space-lg);
+    gap: var(--space-lg);
+    justify-content: space-evenly;
+  }
+
+  /* Scale up main sections for tablet portrait */
+  .chameleon-area {
+    transform: scale(1.15);
+    transform-origin: center;
+  }
+
+  .mixing-area {
+    transform: scale(1.1);
+    transform-origin: center;
+  }
+
+  .palette-area {
+    gap: var(--space-xxl);
+    padding: var(--space-xl) var(--space-xxl);
+  }
+
+  /* Increase touch targets */
+  .color-source {
+    width: 110px;
+    height: 110px;
+  }
+
+  .bowl {
+    width: 240px;
+    height: 170px;
+  }
+
+  .icon-btn {
+    width: 56px;
+    height: 56px;
+  }
+
+  .target-leaf {
+    width: 230px;
+    height: 230px;
   }
 
   .chameleon {
-    font-size: 85px;
-  }
-
-  .color-ball {
-    width: 95px;
-    height: 95px;
-  }
-
-  .mixing-slot {
-    width: 115px;
-    height: 115px;
+    width: 140px;
+    height: 140px;
   }
 }
 
-/* Mobile */
-@media (max-width: 767px) {
+/* Tablet Landscape (768px - 1023px, landscape orientation) */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
   .game-container {
-    padding: var(--space-sm);
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
   }
 
-  .level-info {
-    font-size: 22px;
-    padding: 8px 18px;
+  /* Left side: Chameleon */
+  .chameleon-area {
+    flex: 0 0 auto;
+    order: 1;
   }
 
-  .settings-btn {
-    width: 52px;
-    height: 52px;
-    font-size: 26px;
+  /* Center: Mixing area */
+  .mixing-area {
+    flex: 0 0 auto;
+    order: 2;
+    margin-top: 0;
   }
 
-  .chameleon-panel,
-  .mixing-zone,
-  .color-palette {
-    padding: var(--space-lg);
-    max-width: 100%;
+  /* Bottom: Palette spans full width */
+  .palette-area {
+    flex: 1 1 100%;
+    order: 3;
+    justify-content: center;
+    gap: var(--space-xxl);
   }
 
-  .chameleon-container {
+  /* Slightly smaller elements to fit landscape */
+  .target-leaf {
     width: 180px;
     height: 180px;
   }
 
   .chameleon {
-    font-size: 75px;
+    width: 100px;
+    height: 100px;
+  }
+
+  .bowl {
+    width: 180px;
+    height: 130px;
+  }
+
+  .color-source {
+    width: 90px;
+    height: 90px;
+  }
+
+  /* Progress stars inline */
+  .progress-stars {
+    font-size: 28px;
+  }
+}
+
+/* Desktop (1024px+) - Two column grid layout */
+@media (min-width: 1024px) {
+  .game-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "chameleon mixing"
+      "chameleon palette";
+    gap: var(--space-xl);
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--space-xl);
+    justify-items: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .header-area {
+    position: fixed;
+    top: var(--space-md);
+    right: var(--space-md);
+  }
+
+  .chameleon-area {
+    grid-area: chameleon;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .mixing-area {
+    grid-area: mixing;
+    justify-self: center;
+    align-self: end;
+  }
+
+  .palette-area {
+    grid-area: palette;
+    justify-self: center;
+    align-self: start;
+    margin-top: calc(-1 * var(--space-md));
+  }
+
+  /* Desktop size adjustments */
+  .target-leaf {
+    width: 220px;
+    height: 220px;
+  }
+
+  .chameleon {
+    width: 130px;
+    height: 130px;
+  }
+
+  .bowl {
+    width: 220px;
+    height: 160px;
+  }
+
+  .color-source {
+    width: 100px;
+    height: 100px;
+  }
+
+  .icon-btn {
+    width: 54px;
+    height: 54px;
+  }
+
+  /* Chameleon target bubble - desktop positioning */
+  .chameleon-target {
+    top: -100px;
+    width: 110px;
+    height: 110px;
+  }
+}
+
+/* Large Desktop (1280px+) */
+@media (min-width: 1280px) {
+  .game-container {
+    max-width: 1300px;
+    gap: var(--space-xxl);
+    padding: var(--space-xxl);
+  }
+
+  /* Scale up for immersive experience */
+  .chameleon-area {
+    transform: scale(1.15);
+    transform-origin: center;
+  }
+
+  .mixing-area {
+    transform: scale(1.1);
+    transform-origin: center;
+  }
+
+  .palette-area {
+    transform: scale(1.1);
+    transform-origin: center;
+    gap: var(--space-xxl);
+  }
+
+  .target-leaf {
+    width: 250px;
+    height: 250px;
+  }
+
+  .chameleon {
+    width: 150px;
+    height: 150px;
+  }
+
+  .bowl {
+    width: 250px;
+    height: 180px;
+  }
+
+  .color-source {
+    width: 115px;
+    height: 115px;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets for touch devices */
+  .icon-btn {
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  /* Disable hover effects that don't work on touch */
+  .chameleon-panel:hover,
+  .mixing-zone:hover,
+  .color-source:hover,
+  .bowl:hover,
+  .icon-btn:hover {
+    transform: none;
+  }
+
+  /* Ensure game elements meet child-friendly size (60px+) */
+  .color-source {
+    min-width: 80px;
+    min-height: 80px;
+  }
+
+  .bowl {
+    min-width: 160px;
+    min-height: 120px;
+  }
+
+  /* Active state for touch feedback */
+  .color-source:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+
+  .icon-btn:active {
+    transform: scale(0.9);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Safe Area Padding for notched devices */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .game-container {
+    padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
+    padding-left: calc(var(--space-md) + env(safe-area-inset-left));
+    padding-right: calc(var(--space-md) + env(safe-area-inset-right));
+  }
+}
+
+/* Mobile (< 768px) - Optimized for small screens */
+@media (max-width: 767px) {
+  .game-container {
+    padding: var(--space-sm);
+    gap: var(--space-sm);
+    justify-content: space-around;
+  }
+
+  /* Header adjustments */
+  .header-area {
+    padding: var(--space-xs) var(--space-sm);
+    gap: var(--space-sm);
+  }
+
+  /* Icon buttons - still meet 44px touch target */
+  .icon-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Chameleon area - scale down but keep proportional */
+  .target-leaf {
+    width: 160px;
+    height: 160px;
+  }
+
+  .chameleon {
+    width: 95px;
+    height: 95px;
   }
 
   .chameleon-target {
-    width: 85px;
-    height: 85px;
-    top: -75px;
+    width: 80px;
+    height: 80px;
+    top: -70px;
   }
 
   .target-color {
-    width: 52px;
-    height: 52px;
+    width: 50px;
+    height: 50px;
   }
 
+  /* Progress stars */
+  .progress-stars {
+    font-size: 26px;
+    gap: var(--space-xs);
+  }
+
+  /* Mixing area */
+  .mixing-area {
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .bowl {
+    width: 160px;
+    height: 120px;
+  }
+
+  /* Bowl controls */
+  .bowl-controls {
+    gap: var(--space-xs);
+  }
+
+  .mixing-area .clear-btn {
+    padding: 10px 20px;
+    font-size: 24px;
+  }
+
+  .mixing-area .undo-btn {
+    padding: 10px 16px;
+    font-size: 20px;
+  }
+
+  /* Palette area - color sources still >= 60px (child-friendly) */
+  .palette-area {
+    padding: var(--space-md);
+    gap: var(--space-lg);
+    margin: var(--space-sm);
+  }
+
+  .color-source {
+    width: 75px;
+    height: 75px;
+  }
+
+  /* Legacy class support */
   .color-ball {
-    width: 85px;
-    height: 85px;
+    width: 75px;
+    height: 75px;
   }
 
   .mixing-slot {
-    width: 105px;
-    height: 105px;
+    width: 90px;
+    height: 90px;
   }
 
-  .mixing-slot.empty::after {
-    font-size: 44px;
-  }
-
-  .plus-sign {
-    font-size: 40px;
-  }
-
-  .clear-btn {
-    font-size: 44px;
-    min-width: 140px;
-    min-height: 80px;
-    padding: 14px 28px;
-  }
-
+  /* Sticker book button */
   .sticker-book-btn {
-    width: 75px;
-    height: 75px;
-    font-size: 40px;
-    bottom: 20px;
-    right: 20px;
+    width: 60px;
+    height: 60px;
+    font-size: 32px;
   }
 
+  /* Splash text */
   .splash-text {
-    font-size: 72px;
+    font-size: 56px;
+  }
+
+  /* Toast messages */
+  .toast {
+    font-size: 14px;
+    padding: 10px 18px;
+    max-width: 280px;
   }
 }
 
