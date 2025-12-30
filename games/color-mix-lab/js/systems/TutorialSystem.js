@@ -3,9 +3,11 @@
  * Supports three modes: handheld, image, none
  */
 
-class TutorialSystem {
+import { CONFIG } from '../config.js';
+
+export class TutorialSystem {
     constructor(config = null) {
-        this.config = config || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+        this.config = config || CONFIG;
         if (!this.config) {
             throw new Error('TutorialSystem requires CONFIG');
         }
@@ -364,12 +366,4 @@ class TutorialSystem {
     }
 }
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = TutorialSystem;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.TutorialSystem = TutorialSystem;
-}
+export default TutorialSystem;

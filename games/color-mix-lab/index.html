@@ -7,8 +7,20 @@
     <meta name="description" content="Mix colors, feed the chameleon, and discover the rainbow! Educational game for ages 5-8.">
 
     <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Stats.js for performance monitoring (dev only) -->
+    <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
 </head>
 <body>
+    <!-- Living Background Elements -->
+    <div class="living-bg">
+        <div class="cloud cloud-1">☁️</div>
+        <div class="cloud cloud-2">☁️</div>
+        <div class="butterfly butterfly-1">🦋</div>
+        <div class="butterfly butterfly-2">🦋</div>
+        <div class="leaf leaf-1">🍃</div>
+    </div>
+
     <div id="game-container" class="game-container">
         <!-- Header Area: Settings, Sound, Sticker Book, Free Play -->
         <header class="header-area">
@@ -28,13 +40,11 @@
 
         <!-- Chameleon Area: Character & Goal -->
         <section class="chameleon-area">
-            <div class="thought-bubble">
-                <div class="goal-color"></div>
-            </div>
-            <div class="chameleon">
-                <div class="chameleon-body"></div>
-                <div class="chameleon-eyes"></div>
-                <div class="chameleon-tongue"></div>
+            <div class="target-leaf">
+                <div class="chameleon">
+                    <div class="chameleon-body"></div>
+                    <div class="chameleon-eyes"></div>
+                </div>
             </div>
             <div class="progress-stars">
                 <span class="star"></span>
@@ -43,15 +53,20 @@
             </div>
         </section>
 
-        <!-- Mixing Area: Bowl & Clear Button -->
+        <!-- Mixing Area: Bowl & Buttons -->
         <section class="mixing-area">
             <div class="bowl">
                 <div class="liquid"></div>
                 <div class="particles"></div>
             </div>
-            <button class="icon-btn clear-btn" aria-label="Clear Bowl">
-                <span class="icon-clear"></span>
-            </button>
+            <div class="bowl-controls">
+                <button class="icon-btn undo-btn hidden" aria-label="Undo">
+                    <span class="icon-undo">↩️</span>
+                </button>
+                <button class="icon-btn clear-btn" aria-label="Clear Bowl">
+                    <span class="icon-clear"></span>
+                </button>
+            </div>
         </section>
 
         <!-- Palette Area: Color Sources -->
@@ -71,20 +86,36 @@
         </section>
     </div>
 
-    <!-- Load scripts in dependency order -->
-    <script src="js/i18n/translations.js"></script>
-    <script src="js/i18n/index.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/managers/UIManager.js"></script>
-    <script src="js/managers/DragManager.js"></script>
-    <script src="js/managers/LevelManager.js"></script>
-    <script src="js/systems/MixingSystem.js"></script>
-    <script src="js/systems/TutorialSystem.js"></script>
-    <script src="js/ColorMixGame.js"></script>
+    <!-- ES Module entry point -->
+    <script type="module">
+        // Import shared utilities
+        import { Logger, setLogLevel } from '../lib/utils/Logger.js';
 
-    <!-- Initialize game -->
-    <script>
-        // Initialize i18n first
+        // Import performance monitor
+        import { PerformanceMonitor } from '../lib/performance-monitor.js';
+
+        // Import game modules
+        import { TRANSLATIONS } from './js/i18n/translations.js';
+        import { initI18n } from './js/i18n/index.js';
+        import { ColorMixGame } from './js/ColorMixGame.js';
+
+        // Game instance (declared at top to avoid TDZ issues)
+        let game = null;
+
+        // Make Logger globally available for compatibility
+        window.Logger = Logger;
+
+        // Initialize performance monitor (dev mode only)
+        const perfMonitor = new PerformanceMonitor({
+            position: 'bottom-left',
+            showFPS: true,
+            showMS: true,
+            showMB: false,
+            logger: Logger
+        });
+        perfMonitor.init();
+
+        // Initialize i18n
         const i18n = initI18n(TRANSLATIONS, 'en');
 
         // Initialize game when DOM is ready
@@ -96,8 +127,16 @@
 
         function initGame() {
             try {
-                new ColorMixGame('game-container');
+                Logger.info('🎨 Color Mix Lab initializing...');
+                game = new ColorMixGame('game-container', i18n);
+                Logger.info('✅ Game initialized successfully');
+
+                // Start game loop for performance monitoring
+                if (perfMonitor.isEnabled()) {
+                    requestAnimationFrame(gameLoop);
+                }
             } catch (error) {
+                Logger.error('❌ Failed to initialize game:', error);
                 document.getElementById('game-container').innerHTML = `
                     <div class="game-loading">
                         <div style="text-align: center; color: #E74C3C;">
@@ -108,6 +147,19 @@
                 `;
             }
         }
+
+        function gameLoop() {
+            perfMonitor.update();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (game) {
+                game.destroy();
+            }
+            perfMonitor.destroy();
+        });
     </script>
 </body>
 </html>

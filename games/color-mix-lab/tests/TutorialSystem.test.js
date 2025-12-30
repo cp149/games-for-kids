@@ -1,12 +1,11 @@
 /**
- * @jest-environment jsdom
- */
-
-/**
  * TutorialSystem Unit Tests
  * Tests tutorial modes: handheld, image, none
  * Tests hint system after failures
  */
+
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TutorialSystem } from '../js/systems/TutorialSystem.js';
 
 // Reset DOM before each test
 const resetDOM = () => {
@@ -68,16 +67,12 @@ const mockConfig = {
     }
 };
 
-global.CONFIG = mockConfig;
-
-// Import TutorialSystem
-const TutorialSystem = require('../js/systems/TutorialSystem');
-
 describe('TutorialSystem', () => {
     let tutorialSystem;
 
     beforeEach(() => {
         resetDOM();
+        global.CONFIG = mockConfig;
         tutorialSystem = new TutorialSystem(mockConfig);
     });
 
@@ -85,6 +80,7 @@ describe('TutorialSystem', () => {
         if (tutorialSystem) {
             tutorialSystem.destroy();
         }
+        delete global.CONFIG;
     });
 
     describe('Constructor', () => {
@@ -93,16 +89,21 @@ describe('TutorialSystem', () => {
             expect(tutorialSystem.config).toBe(mockConfig);
         });
 
-        test('should use global CONFIG if not provided', () => {
+        test('should use imported CONFIG if not provided', () => {
+            // In ESM mode, TutorialSystem uses imported CONFIG from config.js
+            // when no config is passed to constructor
             const system = new TutorialSystem();
-            expect(system.config).toBe(mockConfig);
+            expect(system.config).toBeDefined();
             system.destroy();
         });
 
-        test('should throw error if no config available', () => {
-            global.CONFIG = undefined;
-            expect(() => new TutorialSystem()).toThrow('TutorialSystem requires CONFIG');
-            global.CONFIG = mockConfig;
+        test('should accept explicit config parameter', () => {
+            // When config is explicitly passed, use that config
+            const customConfig = { ...mockConfig, CUSTOM: true };
+            const system = new TutorialSystem(customConfig);
+            expect(system.config).toBe(customConfig);
+            expect(system.config.CUSTOM).toBe(true);
+            system.destroy();
         });
 
         test('should initialize elements', () => {
@@ -348,6 +349,7 @@ describe('TutorialSystem Image Mode', () => {
 
     beforeEach(() => {
         resetDOM();
+        global.CONFIG = mockConfig;
         tutorialSystem = new TutorialSystem(mockConfig);
     });
 
@@ -355,6 +357,7 @@ describe('TutorialSystem Image Mode', () => {
         if (tutorialSystem) {
             tutorialSystem.destroy();
         }
+        delete global.CONFIG;
     });
 
     test('should show formula for image tutorial', () => {
@@ -379,6 +382,7 @@ describe('TutorialSystem Edge Cases', () => {
 
     beforeEach(() => {
         resetDOM();
+        global.CONFIG = mockConfig;
         tutorialSystem = new TutorialSystem(mockConfig);
     });
 
@@ -386,6 +390,7 @@ describe('TutorialSystem Edge Cases', () => {
         if (tutorialSystem) {
             tutorialSystem.destroy();
         }
+        delete global.CONFIG;
     });
 
     test('should handle rapid setup/destroy cycles', () => {

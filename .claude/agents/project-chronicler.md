@@ -2,7 +2,6 @@
 name: project-chronicler
 description: Project chronicler and knowledge manager, specializing in documenting development process, lessons learned, and best practices
 tools: Read, Write, Edit, Glob, Grep, Bash, Task
-model: sonnet
 ---
 
 # Project Chronicler Agent

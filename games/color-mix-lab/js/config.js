@@ -3,7 +3,7 @@
  * All game constants and settings in one place
  */
 
-const CONFIG = {
+export const CONFIG = {
     // Game settings
     GAME: {
         TARGET_AGE: '5-8',
@@ -153,12 +153,4 @@ const CONFIG = {
     }
 };
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CONFIG;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.CONFIG = CONFIG;
-}
+export default CONFIG;

@@ -2,7 +2,6 @@
 name: ui-ux-designer
 description: Expert UI/UX designer for game interfaces, focusing on visual design, user experience, and accessibility for web games
 tools: Read, Write, Edit, Glob, Grep, WebFetch, Bash
-model: sonnet
 ---
 
 # UI/UX Designer Agent

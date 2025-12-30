@@ -4,13 +4,15 @@
  * Single Responsibility: All level-related logic
  */
 
-class LevelManager {
+import { CONFIG } from '../config.js';
+
+export class LevelManager {
     /**
      * Create LevelManager instance
      * @param {Object} config - Optional config, uses global CONFIG if not provided
      */
     constructor(config = null) {
-        this.config = config || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+        this.config = config || CONFIG;
         this.currentLevel = 1;
         this.progress = 0;
         this.stickers = [];
@@ -381,12 +383,4 @@ class LevelManager {
     }
 }
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = LevelManager;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.LevelManager = LevelManager;
-}
+export default LevelManager;

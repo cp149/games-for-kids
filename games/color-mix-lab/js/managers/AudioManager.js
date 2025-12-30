@@ -3,9 +3,11 @@
  * For background music, use lib/background-music.js (BackgroundMusicManager)
  */
 
-class AudioManager {
+import { CONFIG } from '../config.js';
+
+export class AudioManager {
     constructor(config = null) {
-        this.config = config || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+        this.config = config || CONFIG;
 
         if (!this.config) {
             throw new Error('Config is required for AudioManager');
@@ -16,12 +18,42 @@ class AudioManager {
         this.sfxEnabled = true;
 
         // Sound effect definitions with Web Audio API tones
+        // Musical color drops - each color has a unique instrument/note
         this.sfxDefinitions = {
-            mix_success: { frequency: 523.25, duration: 0.2, type: 'sine' }, // C5 note
-            mix_mud: { frequency: 130.81, duration: 0.3, type: 'sawtooth' }, // C3 note
-            level_complete: { frequency: 659.25, duration: 0.5, type: 'square' }, // E5 note
-            sticker_earned: { frequency: 783.99, duration: 0.3, type: 'sine' }, // G5 note
-            button_click: { frequency: 440, duration: 0.1, type: 'sine' } // A4 note
+            // Color pickup sounds (when drag starts)
+            pickup_red: { frequency: 261.63, duration: 0.15, type: 'square' },    // C4 - drum-like
+            pickup_blue: { frequency: 130.81, duration: 0.2, type: 'triangle' },  // C3 - bass-like
+            pickup_yellow: { frequency: 523.25, duration: 0.15, type: 'sine' },   // C5 - piano-like
+
+            // Color drop sounds (when dropped into bowl)
+            drop_red: { frequency: 293.66, duration: 0.2, type: 'square' },       // D4 - drum
+            drop_blue: { frequency: 146.83, duration: 0.25, type: 'triangle' },   // D3 - bass
+            drop_yellow: { frequency: 587.33, duration: 0.2, type: 'sine' },      // D5 - piano
+
+            // Mix result sounds
+            mix_success: { frequency: 523.25, duration: 0.3, type: 'sine' },      // C5 - happy
+            mix_orange: { frequency: 392.00, duration: 0.3, type: 'sine' },       // G4 - warm
+            mix_green: { frequency: 440.00, duration: 0.3, type: 'sine' },        // A4 - fresh
+            mix_purple: { frequency: 493.88, duration: 0.3, type: 'sine' },       // B4 - magical
+            mix_mud: { frequency: 110.00, duration: 0.4, type: 'sawtooth' },      // A2 - comical
+
+            // UI sounds
+            level_complete: { frequency: 659.25, duration: 0.5, type: 'square', chord: true }, // E5 with chord
+            sticker_earned: { frequency: 783.99, duration: 0.3, type: 'sine' },   // G5
+            button_click: { frequency: 440, duration: 0.08, type: 'sine' },       // A4 - quick click
+            clear_bowl: { frequency: 220, duration: 0.15, type: 'triangle' },     // A3 - whoosh
+
+            // Additional UI sounds
+            sticker_book_open: { frequency: 523.25, duration: 0.2, type: 'sine' },  // C5
+            sticker_book_close: { frequency: 392.00, duration: 0.15, type: 'sine' }, // G4
+            undo: { frequency: 330.00, duration: 0.12, type: 'triangle' },         // E4 - soft undo
+            hint_appear: { frequency: 880.00, duration: 0.15, type: 'sine' },      // A5 - sparkle
+            celebration: { frequency: 523.25, duration: 0.4, type: 'sine', arpeggio: true }, // C5 arpeggio
+
+            // Chameleon reaction sounds
+            chameleon_happy: { frequency: 659.25, duration: 0.2, type: 'sine' },   // E5 - happy chirp
+            chameleon_sad: { frequency: 196.00, duration: 0.3, type: 'triangle' }, // G3 - sad wah
+            chameleon_confused: { frequency: 349.23, duration: 0.25, type: 'square' } // F4 - confused
         };
 
         // Web Audio API context (created lazily)
@@ -67,23 +99,30 @@ class AudioManager {
         }
 
         if (this.audioContext) {
-            this.playTone(
-                definition.frequency,
-                definition.duration,
-                definition.type,
-                volumeOverride !== null ? volumeOverride : this.sfxVolume
-            );
+            const volume = volumeOverride !== null ? volumeOverride : this.sfxVolume;
+
+            // Handle special sound types
+            if (definition.chord) {
+                // Play a major chord (root, major third, perfect fifth)
+                this.playChord(definition.frequency, definition.duration, definition.type, volume);
+            } else if (definition.arpeggio) {
+                // Play ascending arpeggio
+                this.playArpeggio(definition.frequency, definition.duration, definition.type, volume);
+            } else {
+                this.playTone(definition.frequency, definition.duration, definition.type, volume);
+            }
         }
     }
 
     /**
-     * Play a tone using Web Audio API
+     * Play a tone using Web Audio API with ADSR envelope
      * @param {number} frequency - Frequency in Hz
      * @param {number} duration - Duration in seconds
      * @param {string} type - Oscillator type (sine, square, sawtooth, triangle)
      * @param {number} volume - Volume (0-1)
+     * @param {number} startTime - Optional start time offset
      */
-    playTone(frequency, duration, type, volume) {
+    playTone(frequency, duration, type, volume, startTime = 0) {
         if (!this.audioContext) return;
 
         try {
@@ -95,11 +134,22 @@ class AudioManager {
 
             oscillator.frequency.value = frequency;
             oscillator.type = type;
-            gainNode.gain.value = volume;
 
-            const now = this.audioContext.currentTime;
+            const now = this.audioContext.currentTime + startTime;
+
+            // ADSR envelope for smoother, more musical sound
+            const attack = 0.02;
+            const decay = duration * 0.2;
+            const sustain = volume * 0.7;
+            const release = duration * 0.3;
+
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(volume, now + attack);
+            gainNode.gain.linearRampToValueAtTime(sustain, now + attack + decay);
+            gainNode.gain.linearRampToValueAtTime(0, now + duration);
+
             oscillator.start(now);
-            oscillator.stop(now + duration);
+            oscillator.stop(now + duration + 0.1);
 
             // Cleanup
             oscillator.onended = () => {
@@ -111,6 +161,37 @@ class AudioManager {
                 Logger.warn('Failed to play tone:', error);
             }
         }
+    }
+
+    /**
+     * Play a major chord
+     * @param {number} rootFreq - Root frequency
+     * @param {number} duration - Duration in seconds
+     * @param {string} type - Oscillator type
+     * @param {number} volume - Volume (0-1)
+     */
+    playChord(rootFreq, duration, type, volume) {
+        // Major chord: root, major third (1.26), perfect fifth (1.5)
+        const chordVolume = volume * 0.5; // Reduce volume for each note
+        this.playTone(rootFreq, duration, type, chordVolume);
+        this.playTone(rootFreq * 1.26, duration, type, chordVolume);
+        this.playTone(rootFreq * 1.5, duration, type, chordVolume);
+    }
+
+    /**
+     * Play ascending arpeggio
+     * @param {number} rootFreq - Root frequency
+     * @param {number} duration - Total duration in seconds
+     * @param {string} type - Oscillator type
+     * @param {number} volume - Volume (0-1)
+     */
+    playArpeggio(rootFreq, duration, type, volume) {
+        const noteLength = duration / 4;
+        const notes = [1, 1.26, 1.5, 2]; // Root, third, fifth, octave
+
+        notes.forEach((ratio, index) => {
+            this.playTone(rootFreq * ratio, noteLength, type, volume, index * noteLength * 0.7);
+        });
     }
 
     /**
@@ -160,12 +241,4 @@ class AudioManager {
     }
 }
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = AudioManager;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.AudioManager = AudioManager;
-}
+export default AudioManager;

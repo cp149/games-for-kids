@@ -3,30 +3,32 @@
  * Following TDD principles - tests written FIRST
  */
 
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
 // Mock dependencies
 const mockUIManager = {
-    showToast: jest.fn(),
-    updateLevel: jest.fn(),
-    createMixingSlots: jest.fn(() => [{}, {}]),
-    getElement: jest.fn(() => ({ innerHTML: '', addEventListener: jest.fn() })),
-    addColorBall: jest.fn(() => ({ style: {} })),
-    updateGoal: jest.fn(),
-    setChameleonTarget: jest.fn(),
-    setChameleonColor: jest.fn(),
-    setChameleonMood: jest.fn(),
-    showSplashText: jest.fn(),
-    showMudSplat: jest.fn(),
-    showLevelComplete: jest.fn(),
-    destroy: jest.fn()
+    showToast: vi.fn(),
+    updateLevel: vi.fn(),
+    createMixingSlots: vi.fn(() => [{}, {}]),
+    getElement: vi.fn(() => ({ innerHTML: '', addEventListener: vi.fn() })),
+    addColorBall: vi.fn(() => ({ style: {} })),
+    updateGoal: vi.fn(),
+    setChameleonTarget: vi.fn(),
+    setChameleonColor: vi.fn(),
+    setChameleonMood: vi.fn(),
+    showSplashText: vi.fn(),
+    showMudSplat: vi.fn(),
+    showLevelComplete: vi.fn(),
+    destroy: vi.fn()
 };
 
 const mockDragManager = {
-    enableDrag: jest.fn(),
-    destroy: jest.fn()
+    enableDrag: vi.fn(),
+    destroy: vi.fn()
 };
 
 // Mock CONFIG
-global.CONFIG = {
+const mockConfig = {
     LEVELS: {
         1: {
             name: 'make_purple',
@@ -66,10 +68,11 @@ class MockSimpleI18n {
     }
 }
 
-global.SimpleI18n = MockSimpleI18n;
-global.TRANSLATIONS = { en: { welcome: 'Welcome!' } };
-
 describe('ColorMixGame', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     describe('Constructor and Initialization', () => {
         test('should initialize with valid container id', () => {
             // This test defines expected behavior
@@ -245,7 +248,7 @@ describe('ColorMixGame', () => {
         });
 
         test('should handle missing level gracefully without console.error', () => {
-            const levels = CONFIG.LEVELS;
+            const levels = mockConfig.LEVELS;
             const level = 999;
 
             // Pattern: return early with warning instead of error
@@ -436,7 +439,7 @@ describe('Bowl-based mixing logic', () => {
                 if (colorArray.length < 2) return null;
                 const sortedColors = [...colorArray].sort();
                 const mixKey = sortedColors.join('+');
-                return CONFIG.MIXING_RULES[mixKey];
+                return mockConfig.MIXING_RULES[mixKey];
             };
 
             expect(getMixResult(colors)).toBe(null);
@@ -449,7 +452,7 @@ describe('Bowl-based mixing logic', () => {
                 if (colorArray.length < 2) return null;
                 const sortedColors = [...colorArray].sort();
                 const mixKey = sortedColors.join('+');
-                return CONFIG.MIXING_RULES[mixKey];
+                return mockConfig.MIXING_RULES[mixKey];
             };
 
             const result = getMixResult(colors);
@@ -459,16 +462,13 @@ describe('Bowl-based mixing logic', () => {
         });
 
         test('should mix red + yellow = orange', () => {
-            // Update CONFIG for this test
-            CONFIG.MIXING_RULES['red+yellow'] = { result: 'orange', type: 'secondary' };
-
             const colors = ['red', 'yellow'];
 
             const getMixResult = (colorArray) => {
                 if (colorArray.length < 2) return null;
                 const sortedColors = [...colorArray].sort();
                 const mixKey = sortedColors.join('+');
-                return CONFIG.MIXING_RULES[mixKey];
+                return mockConfig.MIXING_RULES[mixKey];
             };
 
             const result = getMixResult(colors);
@@ -477,15 +477,13 @@ describe('Bowl-based mixing logic', () => {
         });
 
         test('should mix blue + yellow = green', () => {
-            CONFIG.MIXING_RULES['blue+yellow'] = { result: 'green', type: 'secondary' };
-
             const colors = ['blue', 'yellow'];
 
             const getMixResult = (colorArray) => {
                 if (colorArray.length < 2) return null;
                 const sortedColors = [...colorArray].sort();
                 const mixKey = sortedColors.join('+');
-                return CONFIG.MIXING_RULES[mixKey];
+                return mockConfig.MIXING_RULES[mixKey];
             };
 
             const result = getMixResult(colors);
@@ -494,15 +492,13 @@ describe('Bowl-based mixing logic', () => {
         });
 
         test('should handle same color mixing (effects)', () => {
-            CONFIG.MIXING_RULES['red+red'] = { result: 'burst', type: 'effect' };
-
             const colors = ['red', 'red'];
 
             const getMixResult = (colorArray) => {
                 if (colorArray.length < 2) return null;
                 const sortedColors = [...colorArray].sort();
                 const mixKey = sortedColors.join('+');
-                return CONFIG.MIXING_RULES[mixKey];
+                return mockConfig.MIXING_RULES[mixKey];
             };
 
             const result = getMixResult(colors);
@@ -512,16 +508,13 @@ describe('Bowl-based mixing logic', () => {
         });
 
         test('should produce mud for invalid combinations', () => {
-            // Remove any rule that might exist for this combination
-            delete CONFIG.MIXING_RULES['orange+purple'];
-
             const colors = ['orange', 'purple'];
 
             const getMixResult = (colorArray) => {
                 if (colorArray.length < 2) return null;
                 const sortedColors = [...colorArray].sort();
                 const mixKey = sortedColors.join('+');
-                return CONFIG.MIXING_RULES[mixKey] || null; // null means mud
+                return mockConfig.MIXING_RULES[mixKey] || null; // null means mud
             };
 
             const result = getMixResult(colors);
@@ -537,7 +530,7 @@ describe('Bowl-based mixing logic', () => {
                 if (colorArray.length < 2) return null;
                 const sortedColors = [...colorArray].sort();
                 const mixKey = sortedColors.join('+');
-                return CONFIG.MIXING_RULES[mixKey];
+                return mockConfig.MIXING_RULES[mixKey];
             };
 
             const result1 = getMixResult(colors1);
@@ -632,7 +625,6 @@ describe('Bowl-based mixing logic', () => {
     describe('level completion', () => {
         test('should complete level when progress meets goal count', () => {
             const goal = { type: 'secondary', color: 'purple', count: 2 };
-            let progress = 0;
 
             const checkLevelComplete = (goalConfig, currentProgress) => {
                 return currentProgress >= goalConfig.count;
@@ -659,11 +651,11 @@ describe('Bowl-based mixing logic', () => {
 
 describe('Auto-clear after mixing', () => {
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     test('should clear bowl after 2 second delay', () => {
@@ -683,7 +675,7 @@ describe('Auto-clear after mixing', () => {
         expect(cleared).toBe(false);
         expect(state.colorsInBowl).toEqual(['red', 'blue']);
 
-        jest.advanceTimersByTime(2000);
+        vi.advanceTimersByTime(2000);
 
         expect(cleared).toBe(true);
         expect(state.colorsInBowl).toEqual([]);

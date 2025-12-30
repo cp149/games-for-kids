@@ -3,7 +3,7 @@
  * All user-facing strings for internationalization
  */
 
-const TRANSLATIONS = {
+export const TRANSLATIONS = {
     en: {
         // Game title
         game_title: 'Color Mix Lab',
@@ -48,7 +48,23 @@ const TRANSLATIONS = {
         // UI elements (additional)
         plus_sign: '+',
         goal_progress: '{0}/{1}',
-        level_complete: 'Level Complete!'
+        level_complete: 'Level Complete!',
+
+        // Formula overlay
+        formula_title: 'Color Magic!',
+        tap_to_continue: 'Tap anywhere to continue',
+
+        // Color names (for formula)
+        red: 'Red',
+        blue: 'Blue',
+        yellow: 'Yellow',
+        purple: 'Purple',
+        orange: 'Orange',
+        green: 'Green',
+
+        // Sticker book
+        no_stickers: 'No stickers available yet!',
+        stickers_collected: 'Stickers Collected'
     },
     zh: {
         // Game title
@@ -94,16 +110,24 @@ const TRANSLATIONS = {
         // UI elements (additional)
         plus_sign: '+',
         goal_progress: '{0}/{1}',
-        level_complete: '过关啦！'
+        level_complete: '过关啦！',
+
+        // Formula overlay
+        formula_title: '颜色魔法！',
+        tap_to_continue: '点击任意位置继续',
+
+        // Color names (for formula)
+        red: '红色',
+        blue: '蓝色',
+        yellow: '黄色',
+        purple: '紫色',
+        orange: '橙色',
+        green: '绿色',
+
+        // Sticker book
+        no_stickers: '还没有贴纸哦！',
+        stickers_collected: '已收集贴纸'
     }
 };
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = TRANSLATIONS;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.TRANSLATIONS = TRANSLATIONS;
-}
+export default TRANSLATIONS;

@@ -3,7 +3,7 @@
  * Handles language detection, switching, and translation
  */
 
-class I18n {
+export class I18n {
     constructor(messages, defaultLang = 'en') {
         this.messages = messages;
         this.defaultLang = defaultLang;
@@ -55,13 +55,9 @@ class I18n {
      */
     setLanguage(lang) {
         if (!this.messages[lang]) {
-            // Safe logging - don't throw in production
-            if (typeof console !== 'undefined' && console.warn) {
-                try {
-                    console.warn(`[I18n] Language "${lang}" not supported`);
-                } catch {
-                    // Ignore logging failures
-                }
+            // Safe logging - Logger auto-detects environment
+            if (typeof Logger !== 'undefined') {
+                Logger.warn(`[I18n] Language "${lang}" not supported`);
             }
             return;
         }
@@ -145,7 +141,7 @@ let i18nInstance = null;
  * @param {string} defaultLang - Default language
  * @returns {I18n} I18n instance
  */
-function initI18n(messages, defaultLang = 'en') {
+export function initI18n(messages, defaultLang = 'en') {
     i18nInstance = new I18n(messages, defaultLang);
     return i18nInstance;
 }
@@ -154,18 +150,8 @@ function initI18n(messages, defaultLang = 'en') {
  * Get global i18n instance
  * @returns {I18n|null} I18n instance
  */
-function getI18n() {
+export function getI18n() {
     return i18nInstance;
 }
 
-// Browser export
-if (typeof window !== 'undefined') {
-    window.I18n = I18n;
-    window.initI18n = initI18n;
-    window.getI18n = getI18n;
-}
-
-// Node.js export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { I18n, initI18n, getI18n };
-}
+export default I18n;

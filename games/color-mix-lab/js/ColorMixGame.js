@@ -4,7 +4,16 @@
  * Uses bowl-based mixing instead of slots
  */
 
-class ColorMixGame {
+import { CONFIG } from './config.js';
+import { I18n, getI18n } from './i18n/index.js';
+import { TRANSLATIONS } from './i18n/translations.js';
+import { UIManager } from './managers/UIManager.js';
+import { DragManager } from './managers/DragManager.js';
+import { AudioManager } from './managers/AudioManager.js';
+import { MixingSystem } from './systems/MixingSystem.js';
+import { TutorialSystem } from './systems/TutorialSystem.js';
+
+export class ColorMixGame {
     constructor(containerId, i18nInstance = null) {
         // Initialize i18n
         this.i18n = i18nInstance || (typeof getI18n === 'function' ? getI18n() : null) || this.createDefaultI18n();
@@ -17,11 +26,17 @@ class ColorMixGame {
             onDragEnd: (element, data) => this.onDragEnd(element, data)
         });
 
+        // Initialize AudioManager for musical color drops
+        this.audio = new AudioManager(CONFIG);
+        if (this.audio) {
+            this.audio.load();
+        }
+
         // Initialize MixingSystem (extracted mixing logic)
         this.mixing = new MixingSystem(CONFIG);
 
         // Initialize TutorialSystem
-        this.tutorial = typeof TutorialSystem !== 'undefined' ? new TutorialSystem(CONFIG) : null;
+        this.tutorial = new TutorialSystem(CONFIG);
 
         // Game state
         this.state = {
@@ -41,7 +56,7 @@ class ColorMixGame {
      * @returns {Object} i18n instance
      */
     createDefaultI18n() {
-        // Try to use global I18n class with TRANSLATIONS
+        // Try to use I18n class with TRANSLATIONS
         if (typeof I18n !== 'undefined' && typeof TRANSLATIONS !== 'undefined') {
             return new I18n(TRANSLATIONS, 'en');
         }
@@ -99,8 +114,8 @@ class ColorMixGame {
     setupLevel(level) {
         const config = CONFIG.LEVELS[level];
         if (!config) {
-            if (typeof console !== 'undefined' && console.warn) {
-                try { console.warn('[ColorMixGame]', this.i18n.t('level_not_found')); } catch { /* ignore */ }
+            if (typeof Logger !== 'undefined') {
+                Logger.warn('[ColorMixGame]', this.i18n.t('level_not_found'));
             }
             return;
         }
@@ -135,11 +150,90 @@ class ColorMixGame {
         this.mixing.clear();
         this.ui.clearBowl();
 
+        // Hide any existing hints
+        this.ui.hideFireflyHint();
+
         // Setup and start tutorial for this level
         if (this.tutorial) {
             this.tutorial.setupLevel(level);
             this.tutorial.start(this.ui.container);
         }
+
+        // Start idle hint timer (show hint after 8 seconds of inactivity)
+        this.startIdleHintTimer();
+    }
+
+    /**
+     * Start idle hint timer - shows firefly hint after inactivity
+     */
+    startIdleHintTimer() {
+        // Clear existing timer
+        this.clearIdleHintTimer();
+
+        // Don't show hints in free play mode
+        if (this.state.isFreeMode) return;
+
+        // Set timer for 8 seconds
+        this.idleHintTimer = setTimeout(() => {
+            this.showIdleHint();
+        }, 8000);
+    }
+
+    /**
+     * Clear idle hint timer
+     */
+    clearIdleHintTimer() {
+        if (this.idleHintTimer) {
+            clearTimeout(this.idleHintTimer);
+            this.idleHintTimer = null;
+        }
+    }
+
+    /**
+     * Show firefly hint based on current goal
+     */
+    showIdleHint() {
+        if (this.state.isFreeMode) return;
+
+        const goal = this.state.currentGoal;
+        if (!goal) return;
+
+        // Determine which color to hint based on goal
+        let hintColor = null;
+
+        if (goal.type === 'secondary' && goal.color) {
+            // Find colors needed for this secondary color
+            const neededColors = this.getColorsForSecondary(goal.color);
+            if (neededColors.length > 0) {
+                hintColor = neededColors[0];
+            }
+        } else if (goal.type === 'multiple' && goal.colors && goal.colors[0]) {
+            const neededColors = this.getColorsForSecondary(goal.colors[0]);
+            if (neededColors.length > 0) {
+                hintColor = neededColors[0];
+            }
+        }
+
+        if (hintColor) {
+            if (this.audio) {
+                this.audio.play('hint_appear');
+            }
+            this.ui.showFireflyHint(hintColor);
+        }
+    }
+
+    /**
+     * Get primary colors needed to make a secondary color
+     * @param {string} secondaryColor - The secondary color name
+     * @returns {string[]} Array of primary color names
+     */
+    getColorsForSecondary(secondaryColor) {
+        const recipes = {
+            orange: ['red', 'yellow'],
+            green: ['blue', 'yellow'],
+            purple: ['red', 'blue']
+        };
+        return recipes[secondaryColor] || [];
     }
 
     /**
@@ -150,6 +244,12 @@ class ColorMixGame {
         const clearBtn = this.ui.getElement('clearBtn');
         if (clearBtn) {
             clearBtn.addEventListener('click', () => this.clearBowl());
+        }
+
+        // Undo button
+        const undoBtn = this.ui.getUndoButton();
+        if (undoBtn) {
+            undoBtn.addEventListener('click', () => this.undoLastColor());
         }
 
         // Settings button
@@ -198,6 +298,9 @@ class ColorMixGame {
      * Show sticker book with current collection
      */
     showStickerBook() {
+        if (this.audio) {
+            this.audio.play('sticker_book_open');
+        }
         this.ui.showStickerBook(this.state.stickers, CONFIG.STICKERS);
     }
 
@@ -258,8 +361,20 @@ class ColorMixGame {
      * @param {Object} data - Drag data
      */
     onDragStart(element, data) {
+        // Hide any firefly hints and reset timer
+        this.ui.hideFireflyHint();
+        this.startIdleHintTimer();
+
+        // Play pickup sound for the color
+        if (this.audio && data.color) {
+            this.audio.play(`pickup_${data.color}`);
+        }
+
         // Visual feedback
         element.style.cursor = 'grabbing';
+
+        // Chameleon starts watching
+        this.ui.setChameleonMood('watching');
 
         // Stop tutorial when user starts interacting
         if (this.tutorial && this.tutorial.isRunning()) {
@@ -273,6 +388,9 @@ class ColorMixGame {
      * @param {Object} data - Drag data with coordinates and drop target
      */
     onDragMove(element, data) {
+        // Eye tracking - chameleon watches the dragged color
+        this.ui.updateEyeTracking(data.x, data.y);
+
         // Check if over bowl
         const bowl = this.ui.getBowl();
         if (!bowl) return;
@@ -282,6 +400,17 @@ class ColorMixGame {
                           data.y >= rect.top && data.y <= rect.bottom;
 
         bowl.classList.toggle('drag-over', isOverBowl);
+
+        // Emotional feedback: eager if color could help reach goal
+        if (isOverBowl && data.data.color) {
+            const currentColors = this.ui.bowlColors || [];
+            const potentialMix = [...currentColors, data.data.color];
+            const wouldHelp = this.checkIfColorHelpsGoal(data.data.color);
+
+            if (wouldHelp) {
+                this.ui.setChameleonMood('eager');
+            }
+        }
     }
 
     /**
@@ -292,6 +421,9 @@ class ColorMixGame {
     onDragEnd(element, data) {
         // Remove cursor style
         element.style.cursor = '';
+
+        // Reset chameleon to neutral
+        this.ui.setChameleonMood('neutral');
 
         // Remove drag-over highlight
         const bowl = this.ui.getBowl();
@@ -314,6 +446,38 @@ class ColorMixGame {
         return false;
     }
 
+
+    /**
+     * Check if adding a color could help reach the current goal
+     * @param {string} color - The color being dragged (red, blue, yellow)
+     * @returns {boolean} - True if this color could help make the goal color
+     */
+    checkIfColorHelpsGoal(color) {
+        // In free play mode, always return true (any color is fun!)
+        if (this.state.isFreeMode) {
+            return true;
+        }
+
+        const goal = this.state.currentGoal;
+        if (!goal || !goal.targetColor) {
+            return false;
+        }
+
+        // Map goal colors to their component primary colors
+        const colorComponents = {
+            purple: ['red', 'blue'],
+            green: ['blue', 'yellow'],
+            orange: ['red', 'yellow'],
+            // Primary colors need themselves
+            red: ['red'],
+            blue: ['blue'],
+            yellow: ['yellow']
+        };
+
+        const neededColors = colorComponents[goal.targetColor] || [];
+        return neededColors.includes(color);
+    }
+
     /**
      * Add color to the mixing bowl
      * @param {string} color - Color name (red, blue, yellow)
@@ -328,16 +492,23 @@ class ColorMixGame {
             return;
         }
 
+        // Play drop sound for the color
+        if (this.audio) {
+            this.audio.play(`drop_${color}`);
+        }
+
         // Update UI - add color particle animation
         this.ui.addColorToBowl(color);
 
-        // If one color, show that color in bowl
+        // Show undo button when first color is added
         if (result.colorsInBowl.length === 1) {
             this.ui.setBowlColor(result.colorHex);
+            this.ui.showUndoButton();
         }
 
-        // If auto-mixed, handle the result
+        // If auto-mixed, handle the result (undo hidden after mix)
         if (result.mixed && result.mixResult) {
+            this.ui.hideUndoButton();
             this.handleMixResult(result.mixResult);
         }
     }
@@ -346,9 +517,46 @@ class ColorMixGame {
      * Clear the mixing bowl
      */
     clearBowl() {
+        // Play clear sound
+        if (this.audio) {
+            this.audio.play('clear_bowl');
+        }
+
         this.mixing.clear();
         this.ui.clearBowl();
+        this.ui.hideUndoButton();
         this.ui.setChameleonColor('#D4C5B9'); // Reset to gray
+    }
+
+    /**
+     * Undo the last color added to bowl
+     */
+    undoLastColor() {
+        const result = this.mixing.undo();
+
+        if (!result.success) {
+            return;
+        }
+
+        // Play undo sound
+        if (this.audio) {
+            this.audio.play('undo');
+        }
+
+        // Update bowl visual
+        if (result.bowlEmpty) {
+            this.ui.clearBowl();
+            this.ui.hideUndoButton();
+        } else {
+            // Show the remaining color
+            this.ui.setBowlColor(result.remainingColorHex);
+        }
+
+        // Reset chameleon color
+        this.ui.setChameleonColor('#D4C5B9');
+
+        // Restart idle hint timer
+        this.startIdleHintTimer();
     }
 
     /**
@@ -362,12 +570,34 @@ class ColorMixGame {
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
 
+        // Show swirl effect during mixing
+        this.ui.showSwirlEffect(mixResult.resultHex);
+
+        // Play mix sound based on result
+        if (this.audio) {
+            if (mixResult.type === 'mud') {
+                this.audio.play('mix_mud');
+            } else {
+                // Play color-specific mix sound
+                this.audio.play(`mix_${mixResult.result}`);
+            }
+        }
+
         if (mixResult.type !== 'mud') {
             // Valid mix result
             this.ui.setBowlColor(mixResult.resultHex);
             this.ui.setChameleonColor(mixResult.resultHex);
             this.ui.setChameleonMood('happy');
             this.ui.showSplashIcon(mixResult.emoji, mixResult.resultHex);
+
+            // Show educational formula overlay for secondary colors
+            if (mixResult.type === 'secondary' && mixResult.inputColors && mixResult.inputColors.length === 2) {
+                this.ui.showFormulaOverlay(
+                    mixResult.inputColors[0],
+                    mixResult.inputColors[1],
+                    mixResult.result
+                );
+            }
 
             // Record success in tutorial system (resets failure count)
             if (this.tutorial) {
@@ -387,8 +617,14 @@ class ColorMixGame {
                     // Check level complete using MixingSystem
                     if (this.mixing.isLevelComplete(goal, this.state.progress)) {
                         this.handleLevelComplete();
+                    } else {
+                        // Mini celebration for goal match (not level complete)
+                        this.ui.showMiniCelebration(centerX, centerY, mixResult.resultHex);
                     }
                 }
+            } else {
+                // In free play mode, always celebrate a valid mix!
+                this.ui.showMiniCelebration(centerX, centerY, mixResult.resultHex);
             }
         } else {
             // Mud!
@@ -413,6 +649,14 @@ class ColorMixGame {
      * Handle level completion
      */
     handleLevelComplete() {
+        // Play celebration sounds
+        if (this.audio) {
+            this.audio.play('level_complete');
+            setTimeout(() => {
+                this.audio.play('celebration');
+            }, 300);
+        }
+
         // Show celebration
         this.ui.showLevelComplete();
 
@@ -422,6 +666,9 @@ class ColorMixGame {
             const stickerInfo = CONFIG.STICKERS[levelConfig.sticker];
             if (stickerInfo && !this.state.stickers.includes(levelConfig.sticker)) {
                 this.state.stickers.push(levelConfig.sticker);
+                if (this.audio) {
+                    this.audio.play('sticker_earned');
+                }
                 this.ui.showToast(`${this.i18n.t('sticker_earned')} ${stickerInfo.emoji}`, 'success');
             }
         }
@@ -442,7 +689,7 @@ class ColorMixGame {
                 this.state.currentLevel++;
                 this.saveProgress();
                 this.setupLevel(this.state.currentLevel);
-                this.ui.showToast(`${this.i18n.t('level')} ${this.state.currentLevel}!`, 'info');
+                this.ui.showToast(`${this.i18n.t('level', { '0': this.state.currentLevel })}!`, 'info');
             }, 2500);
         }
     }
@@ -488,6 +735,9 @@ class ColorMixGame {
      * Handles null checks and prevents double-destroy errors
      */
     destroy() {
+        // Clear idle hint timer
+        this.clearIdleHintTimer();
+
         // Destroy drag manager with null check
         if (this.drag && typeof this.drag.destroy === 'function') {
             try {
@@ -508,6 +758,16 @@ class ColorMixGame {
         }
         this.ui = null;
 
+        // Destroy AudioManager with null check
+        if (this.audio && typeof this.audio.destroy === 'function') {
+            try {
+                this.audio.destroy();
+            } catch {
+                // Silent failure - audio manager may already be destroyed
+            }
+        }
+        this.audio = null;
+
         // Clear MixingSystem
         this.mixing = null;
 
@@ -527,12 +787,4 @@ class ColorMixGame {
     }
 }
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ColorMixGame;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.ColorMixGame = ColorMixGame;
-}
+export default ColorMixGame;

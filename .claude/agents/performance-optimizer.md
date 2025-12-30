@@ -2,7 +2,6 @@
 name: performance-optimizer
 description: Performance optimization specialist for web games, focusing on FPS optimization, memory management, and browser performance
 tools: Read, Edit, Glob, Grep, Bash
-model: sonnet
 ---
 
 # Performance Optimizer Agent

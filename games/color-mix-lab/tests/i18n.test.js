@@ -3,8 +3,9 @@
  * Contract tests for internationalization system
  */
 
-const TRANSLATIONS = require('../js/i18n/translations.js');
-const { I18n } = require('../js/i18n/index.js');
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TRANSLATIONS } from '../js/i18n/translations.js';
+import { I18n } from '../js/i18n/index.js';
 
 describe('I18n Infrastructure', () => {
     describe('Translations Completeness', () => {
@@ -80,25 +81,7 @@ describe('I18n Infrastructure', () => {
         let i18n;
 
         beforeEach(() => {
-            // Mock window and localStorage for Node.js
-            global.window = {
-                _initialLang: 'en'
-            };
-            global.navigator = {
-                language: 'en-US'
-            };
-            global.localStorage = {
-                getItem: jest.fn(() => null),
-                setItem: jest.fn()
-            };
-
             i18n = new I18n(TRANSLATIONS, 'en');
-        });
-
-        afterEach(() => {
-            delete global.window;
-            delete global.navigator;
-            delete global.localStorage;
         });
 
         test('should have t() method for translation', () => {
@@ -150,19 +133,8 @@ describe('I18n Infrastructure', () => {
         });
 
         test('I18n should be instantiable', () => {
-            global.window = { _initialLang: 'en' };
-            global.navigator = { language: 'en-US' };
-            global.localStorage = {
-                getItem: jest.fn(() => null),
-                setItem: jest.fn()
-            };
-
             const instance = new I18n(TRANSLATIONS, 'en');
             expect(instance).toBeInstanceOf(I18n);
-
-            delete global.window;
-            delete global.navigator;
-            delete global.localStorage;
         });
     });
 });

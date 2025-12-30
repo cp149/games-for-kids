@@ -171,12 +171,14 @@ const LoggerInstance = new Logger();
 // Check for debug parameter
 LoggerInstance.enableDebugMode();
 
-// Export for use
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = LoggerInstance;
-}
+// ES Module exports
+export { LoggerInstance as Logger };
+export const setLogLevel = (isDev) => {
+    LoggerInstance.isDevelopment = isDev;
+};
+export default LoggerInstance;
 
-// Also expose globally for easy access
+// Also expose globally for easy access (browser compatibility)
 if (typeof window !== 'undefined') {
     window.Logger = LoggerInstance;
 }

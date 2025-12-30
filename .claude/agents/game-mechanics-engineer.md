@@ -2,7 +2,6 @@
 name: game-mechanics-engineer
 description: Game mechanics specialist with dual-export for testability
 tools: Read, Write, Edit, Glob, Grep, Bash
-model: sonnet
 ---
 
 # Game Mechanics Engineer Agent

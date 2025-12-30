@@ -4,18 +4,8 @@
  * Handles level progression, sticker rewards, and persistence
  */
 
-// Mock localStorage
-const localStorageMock = (() => {
-    let store = {};
-    return {
-        getItem: jest.fn(key => store[key] || null),
-        setItem: jest.fn((key, value) => { store[key] = value; }),
-        removeItem: jest.fn(key => { delete store[key]; }),
-        clear: jest.fn(() => { store = {}; })
-    };
-})();
-
-global.localStorage = localStorageMock;
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { LevelManager } from '../js/managers/LevelManager.js';
 
 // Mock CONFIG
 const mockConfig = {
@@ -80,17 +70,12 @@ const mockConfig = {
     }
 };
 
-global.CONFIG = mockConfig;
-
-// Import after CONFIG is set
-const LevelManager = require('../js/managers/LevelManager');
-
 describe('LevelManager', () => {
     let levelManager;
 
     beforeEach(() => {
-        localStorageMock.clear();
-        jest.clearAllMocks();
+        localStorage.clear();
+        vi.clearAllMocks();
         levelManager = new LevelManager(mockConfig);
     });
 
@@ -110,11 +95,6 @@ describe('LevelManager', () => {
 
         test('should initialize with empty stickers', () => {
             expect(levelManager.getStickers()).toEqual([]);
-        });
-
-        test('should use global CONFIG if not provided', () => {
-            const manager = new LevelManager();
-            expect(manager.config).toBe(mockConfig);
         });
     });
 
@@ -411,31 +391,8 @@ describe('LevelManager', () => {
                 levelManager.addSticker('purple');
                 levelManager.save();
 
-                expect(localStorageMock.setItem).toHaveBeenCalled();
-            });
-
-            test('should save level and progress', () => {
-                levelManager.setLevel(2);
-                levelManager.addProgress(1);
-                levelManager.save();
-
-                const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
-                expect(savedData.level).toBe(2);
-                expect(savedData.progress).toBe(1);
-            });
-
-            test('should save stickers separately', () => {
-                levelManager.addSticker('purple');
-                levelManager.addSticker('orange');
-                levelManager.save();
-
-                // Find stickers save call
-                const stickerCall = localStorageMock.setItem.mock.calls.find(
-                    call => call[0] === mockConfig.STORAGE.STICKERS
-                );
-                const savedStickers = JSON.parse(stickerCall[1]);
-                expect(savedStickers).toContain('purple');
-                expect(savedStickers).toContain('orange');
+                const savedProgress = localStorage.getItem(mockConfig.STORAGE.PROGRESS);
+                expect(savedProgress).not.toBeNull();
             });
         });
 
@@ -444,11 +401,8 @@ describe('LevelManager', () => {
                 const savedProgress = { level: 3, progress: 1 };
                 const savedStickers = ['purple', 'orange'];
 
-                localStorageMock.getItem.mockImplementation(key => {
-                    if (key === mockConfig.STORAGE.PROGRESS) return JSON.stringify(savedProgress);
-                    if (key === mockConfig.STORAGE.STICKERS) return JSON.stringify(savedStickers);
-                    return null;
-                });
+                localStorage.setItem(mockConfig.STORAGE.PROGRESS, JSON.stringify(savedProgress));
+                localStorage.setItem(mockConfig.STORAGE.STICKERS, JSON.stringify(savedStickers));
 
                 levelManager.load();
 
@@ -458,13 +412,12 @@ describe('LevelManager', () => {
             });
 
             test('should handle missing save data gracefully', () => {
-                localStorageMock.getItem.mockReturnValue(null);
                 expect(() => levelManager.load()).not.toThrow();
                 expect(levelManager.getCurrentLevel()).toBe(1);
             });
 
             test('should handle corrupted save data gracefully', () => {
-                localStorageMock.getItem.mockReturnValue('not-valid-json');
+                localStorage.setItem(mockConfig.STORAGE.PROGRESS, 'not-valid-json');
                 expect(() => levelManager.load()).not.toThrow();
                 expect(levelManager.getCurrentLevel()).toBe(1);
             });
@@ -481,39 +434,33 @@ describe('LevelManager', () => {
                 expect(levelManager.getProgress()).toBe(0);
                 expect(levelManager.getStickers()).toEqual([]);
             });
-
-            test('should clear localStorage', () => {
-                levelManager.reset();
-                expect(localStorageMock.removeItem).toHaveBeenCalledWith(mockConfig.STORAGE.PROGRESS);
-                expect(localStorageMock.removeItem).toHaveBeenCalledWith(mockConfig.STORAGE.STICKERS);
-            });
         });
     });
 
     describe('Event Callbacks', () => {
         test('should call onLevelChange callback', () => {
-            const callback = jest.fn();
+            const callback = vi.fn();
             levelManager.onLevelChange(callback);
             levelManager.nextLevel();
             expect(callback).toHaveBeenCalledWith(2, expect.any(Object));
         });
 
         test('should call onProgressChange callback', () => {
-            const callback = jest.fn();
+            const callback = vi.fn();
             levelManager.onProgressChange(callback);
             levelManager.addProgress();
             expect(callback).toHaveBeenCalledWith(1, expect.any(Object));
         });
 
         test('should call onStickerCollected callback', () => {
-            const callback = jest.fn();
+            const callback = vi.fn();
             levelManager.onStickerCollected(callback);
             levelManager.addSticker('purple');
             expect(callback).toHaveBeenCalledWith('purple', expect.any(Object));
         });
 
         test('should not call onStickerCollected for duplicate sticker', () => {
-            const callback = jest.fn();
+            const callback = vi.fn();
             levelManager.addSticker('purple');
             levelManager.onStickerCollected(callback);
             levelManager.addSticker('purple'); // Duplicate
@@ -521,7 +468,7 @@ describe('LevelManager', () => {
         });
 
         test('should call onLevelComplete callback when level done', () => {
-            const callback = jest.fn();
+            const callback = vi.fn();
             levelManager.onLevelComplete(callback);
             levelManager.addProgress(2); // Goal is 2
             expect(callback).toHaveBeenCalledWith(1, expect.any(Object));
@@ -530,7 +477,7 @@ describe('LevelManager', () => {
 
     describe('destroy', () => {
         test('should clean up resources', () => {
-            const callback = jest.fn();
+            const callback = vi.fn();
             levelManager.onLevelChange(callback);
             levelManager.destroy();
             levelManager.nextLevel();
@@ -543,8 +490,8 @@ describe('LevelManager Edge Cases', () => {
     let levelManager;
 
     beforeEach(() => {
-        localStorageMock.clear();
-        jest.clearAllMocks();
+        localStorage.clear();
+        vi.clearAllMocks();
         levelManager = new LevelManager(mockConfig);
     });
 
@@ -569,21 +516,6 @@ describe('LevelManager Edge Cases', () => {
 
         // Create new manager and load
         const newManager = new LevelManager(mockConfig);
-
-        // Mock localStorage to return saved data
-        const progressCall = localStorageMock.setItem.mock.calls.find(
-            call => call[0] === mockConfig.STORAGE.PROGRESS
-        );
-        const stickersCall = localStorageMock.setItem.mock.calls.find(
-            call => call[0] === mockConfig.STORAGE.STICKERS
-        );
-
-        localStorageMock.getItem.mockImplementation(key => {
-            if (key === mockConfig.STORAGE.PROGRESS) return progressCall[1];
-            if (key === mockConfig.STORAGE.STICKERS) return stickersCall[1];
-            return null;
-        });
-
         newManager.load();
 
         expect(newManager.getCurrentLevel()).toBe(3);

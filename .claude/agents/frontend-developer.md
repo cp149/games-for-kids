@@ -2,7 +2,6 @@
 name: frontend-developer
 description: Frontend developer with dual-export pattern and Layer 1 verification
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch
-model: sonnet
 ---
 
 # Frontend Developer Agent

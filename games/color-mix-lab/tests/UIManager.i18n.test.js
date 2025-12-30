@@ -3,68 +3,33 @@
  * Verify UIManager uses i18n for all user-facing strings
  */
 
-const TRANSLATIONS = require('../js/i18n/translations.js');
-const { I18n } = require('../js/i18n/index.js');
+import { describe, test, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
+import { TRANSLATIONS } from '../js/i18n/translations.js';
+import { I18n } from '../js/i18n/index.js';
+import { UIManager } from '../js/managers/UIManager.js';
 
-// Mock DOM environment
-const setupDOM = () => {
-    const mockElement = () => ({
-        className: '',
-        innerHTML: '',
-        textContent: '',
-        style: { setProperty: jest.fn() },
-        classList: { add: jest.fn(), remove: jest.fn() },
-        setAttribute: jest.fn(),
-        appendChild: jest.fn(),
-        querySelector: jest.fn(() => mockElement()),
-        querySelectorAll: jest.fn(() => []),
-        remove: jest.fn(),
-        addEventListener: jest.fn()
-    });
-    global.document = {
-        getElementById: jest.fn(() => mockElement()),
-        createElement: jest.fn(() => mockElement()),
-        querySelector: jest.fn(() => null),
-        querySelectorAll: jest.fn(() => []),
-        body: { appendChild: jest.fn() }
-    };
-    global.window = { _initialLang: 'en' };
-    global.navigator = { language: 'en-US' };
-    global.localStorage = {
-        getItem: jest.fn(() => null),
-        setItem: jest.fn()
-    };
-    global.CONFIG = {
-        UI: {
-            TOAST_DURATION: 3000,
-            CELEBRATION_DURATION: 1500
-        }
-    };
-};
-
-const cleanupDOM = () => {
-    delete global.document;
-    delete global.window;
-    delete global.navigator;
-    delete global.localStorage;
-    delete global.CONFIG;
+// Mock CONFIG
+const mockConfig = {
+    UI: {
+        TOAST_DURATION: 3000,
+        CELEBRATION_DURATION: 1500
+    }
 };
 
 describe('UIManager I18n Integration', () => {
-    let UIManager;
     let i18n;
 
     beforeAll(() => {
-        setupDOM();
-        UIManager = require('../js/managers/UIManager.js');
+        global.CONFIG = mockConfig;
     });
 
     afterAll(() => {
-        cleanupDOM();
+        delete global.CONFIG;
     });
 
     beforeEach(() => {
-        setupDOM();
+        // Reset DOM
+        document.body.innerHTML = '<div id="game"></div>';
         i18n = new I18n(TRANSLATIONS, 'en');
     });
 
@@ -94,31 +59,30 @@ describe('UIManager I18n Integration', () => {
 
     describe('UIManager Translation Method', () => {
         test('should have t() method', () => {
-            const container = document.getElementById('game');
             const manager = new UIManager('game', i18n);
 
             expect(typeof manager.t).toBe('function');
+            manager.destroy();
         });
 
         test('t() should use provided i18n instance', () => {
             const mockI18n = {
-                t: jest.fn((key) => `translated:${key}`)
+                t: vi.fn((key) => `translated:${key}`)
             };
 
-            const container = document.getElementById('game');
             const manager = new UIManager('game', mockI18n);
 
             const result = manager.t('test_key');
             expect(mockI18n.t).toHaveBeenCalledWith('test_key', {});
             expect(result).toBe('translated:test_key');
+            manager.destroy();
         });
 
         test('t() should return key if no i18n provided', () => {
-            global.getI18n = undefined;
-            const container = document.getElementById('game');
             const manager = new UIManager('game', null);
 
             expect(manager.t('some_key')).toBe('some_key');
+            manager.destroy();
         });
     });
 

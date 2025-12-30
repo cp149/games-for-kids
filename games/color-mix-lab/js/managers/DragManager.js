@@ -3,7 +3,9 @@
  * Supports both mouse and touch events with GPU-accelerated transforms
  */
 
-class DragManager {
+import { CONFIG } from '../config.js';
+
+export class DragManager {
     constructor(options = {}) {
         this.options = {
             threshold: CONFIG.DRAG.THRESHOLD,
@@ -218,9 +220,9 @@ class DragManager {
         this.dragState.isDragging = true;
         const element = this.dragState.element;
 
-        // Add jiggle effect to original
-        element.classList.add('jiggle');
-        setTimeout(() => element.classList.remove('jiggle'), 300);
+        // Add pickup squish effect to original (jelly physics)
+        element.classList.add('pickup-squish');
+        setTimeout(() => element.classList.remove('pickup-squish'), 250);
 
         // Create clone for dragging
         const clone = element.cloneNode(true);
@@ -232,10 +234,18 @@ class DragManager {
         clone.style.top = '0';
         clone.style.width = this.dragState.originalRect.width + 'px';
         clone.style.height = this.dragState.originalRect.height + 'px';
-        
+
         // CRITICAL FIX: Remove transition immediately to prevent "springy" lag
         clone.style.transition = 'none';
         clone.style.webkitTransition = 'none';
+
+        // Start with pickup squish, then transition to jelly wobble
+        clone.classList.remove('dragging');
+        clone.classList.add('pickup-squish');
+        setTimeout(() => {
+            clone.classList.remove('pickup-squish');
+            clone.classList.add('jelly-wobble');
+        }, 250);
 
         // Set initial position
         const x = this.dragState.currentX - this.dragState.offsetX;
@@ -276,8 +286,15 @@ class DragManager {
                 data: element._dragData || {}
             });
 
-            // Animate back if drop failed
-            if (!result || !dropTarget) {
+            // Animate based on drop result
+            if (result && dropTarget) {
+                // Successful drop - add drop bounce effect
+                element.classList.add('drop-bounce');
+                setTimeout(() => element.classList.remove('drop-bounce'), 500);
+            } else {
+                // Failed drop - snap back with jelly return
+                element.classList.add('jelly-return');
+                setTimeout(() => element.classList.remove('jelly-return'), 400);
                 this.snapBack();
             }
 
@@ -418,12 +435,4 @@ class DragManager {
     }
 }
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = DragManager;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.DragManager = DragManager;
-}
+export default DragManager;

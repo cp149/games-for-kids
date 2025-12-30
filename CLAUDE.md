@@ -4,7 +4,8 @@
 
 **首次对话必须激活 Serena**:
 ```
-mcp__plugin_serena_serena__activate_project(project="mgame")
+首先获取当前目录
+mcp__plugin_serena_serena__activate_project(project="当前目录")
 ```
 
 ---

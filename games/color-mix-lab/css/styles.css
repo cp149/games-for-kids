@@ -158,12 +158,120 @@ body::after {
 }
 
 /* ===== Game Container ===== */
+/* ===== Living Background ===== */
+.living-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.living-bg .cloud {
+  position: absolute;
+  font-size: 60px;
+  opacity: 0.4;
+  filter: blur(1px);
+  animation: cloud-float linear infinite;
+}
+
+.living-bg .cloud-1 {
+  top: 10%;
+  animation-duration: 45s;
+  font-size: 80px;
+}
+
+.living-bg .cloud-2 {
+  top: 25%;
+  animation-duration: 60s;
+  animation-delay: -20s;
+  font-size: 50px;
+  opacity: 0.3;
+}
+
+@keyframes cloud-float {
+  0% {
+    left: -20%;
+  }
+  100% {
+    left: 120%;
+  }
+}
+
+.living-bg .butterfly {
+  position: absolute;
+  font-size: 24px;
+  animation: butterfly-fly 20s ease-in-out infinite;
+}
+
+.living-bg .butterfly-1 {
+  top: 40%;
+  animation-delay: 0s;
+}
+
+.living-bg .butterfly-2 {
+  top: 60%;
+  animation-delay: -10s;
+  font-size: 20px;
+}
+
+@keyframes butterfly-fly {
+  0%, 100% {
+    left: -5%;
+    transform: translateY(0) rotate(15deg);
+  }
+  25% {
+    transform: translateY(-30px) rotate(-15deg);
+  }
+  50% {
+    left: 105%;
+    transform: translateY(20px) rotate(15deg);
+  }
+  75% {
+    transform: translateY(-20px) rotate(-15deg);
+  }
+}
+
+.living-bg .leaf {
+  position: absolute;
+  font-size: 28px;
+  opacity: 0.5;
+  animation: leaf-fall 15s ease-in-out infinite;
+}
+
+.living-bg .leaf-1 {
+  right: 15%;
+  animation-delay: -5s;
+}
+
+@keyframes leaf-fall {
+  0% {
+    top: -10%;
+    transform: rotate(0deg) translateX(0);
+  }
+  25% {
+    transform: rotate(90deg) translateX(30px);
+  }
+  50% {
+    transform: rotate(180deg) translateX(-20px);
+  }
+  75% {
+    transform: rotate(270deg) translateX(40px);
+  }
+  100% {
+    top: 110%;
+    transform: rotate(360deg) translateX(0);
+  }
+}
+
 .game-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   padding: var(--space-md);
   gap: var(--space-lg);
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== Header - Playful & Minimal ===== */
@@ -300,27 +408,64 @@ body::after {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-xl);
-  padding-top: calc(var(--space-xl) + 80px); /* Space for thought bubble */
+  gap: var(--space-md);
+  padding: var(--space-md);
   position: relative;
+}
+
+/* Target Leaf - Chameleon sits on this, shows target color */
+.target-leaf {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  background: var(--target-color, #88CC88);
+  border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 15px 35px rgba(0,0,0,0.2),
+    inset 0 -8px 20px rgba(0,0,0,0.15),
+    inset 0 8px 20px rgba(255,255,255,0.2);
+  transition: background-color 0.5s ease;
+  animation: leaf-sway 4s ease-in-out infinite;
+}
+
+.target-leaf::before {
+  content: '';
+  position: absolute;
+  top: 45%;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+  transform: rotate(-5deg);
+}
+
+@keyframes leaf-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
 }
 
 /* Chameleon Parts */
 .chameleon {
   position: relative;
-  width: 180px;
-  height: 180px;
+  width: 120px;
+  height: 120px;
 }
 
 .chameleon-body {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   border-radius: var(--radius-full);
   background-color: var(--chameleon-color, #D4C5B9);
   background-image:
     radial-gradient(circle at 32% 22%, rgba(255,255,255,0.9) 8%, transparent 28%),
-    radial-gradient(circle at 68% 78%, rgba(255,255,255,0.4) 0%, transparent 35%);
+    radial-gradient(circle at 68% 78%, rgba(255,255,255,0.4) 0%, transparent 35%),
+    radial-gradient(circle at 50% 50%, rgba(0,0,0,0.05) 60%, transparent 100%);
   transition: background-color 0.6s ease;
   box-shadow:
     0 18px 40px rgba(0,0,0,0.3),
@@ -329,69 +474,97 @@ body::after {
   animation: chameleon-breathe 4s ease-in-out infinite;
 }
 
+@keyframes chameleon-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Chameleon mood states */
+.chameleon.celebrating {
+  animation: chameleon-celebrate 0.8s ease-in-out;
+}
+
+@keyframes chameleon-celebrate {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  25% {
+    transform: scale(1.1) rotate(-5deg);
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.8));
+  }
+  75% {
+    transform: scale(1.1) rotate(5deg);
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+  }
+}
+
+.chameleon.sad-wiggle {
+  animation: chameleon-sad 0.5s ease-in-out;
+}
+
+@keyframes chameleon-sad {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
 .chameleon-eyes {
   position: absolute;
   top: 30%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 30px;
+  left: 0;
+  width: 100%;
+  height: 40px;
   display: flex;
-  justify-content: space-between;
-}
-
-.chameleon-eyes::before,
-.chameleon-eyes::after {
-  content: '';
-  width: 28px;
-  height: 28px;
-  background: white;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 10px #333;
-}
-
-.chameleon-tongue {
-  position: absolute;
-  bottom: 35%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 8px;
-  background: #FF6B9D;
-  border-radius: 0 0 10px 10px;
-}
-
-/* Thought Bubble */
-.thought-bubble {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90px;
-  height: 90px;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  box-shadow:
-    0 8px 25px rgba(0,0,0,0.15),
-    0 0 0 4px rgba(255,255,255,0.8);
-  animation: bubble-float 3s ease-in-out infinite;
+  gap: 25px;
+  pointer-events: none;
 }
 
-.thought-bubble::after {
+/* Eyes now created via JavaScript for tracking */
+.chameleon-eye {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 50%;
+  box-shadow:
+    0 3px 8px rgba(0,0,0,0.2),
+    inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chameleon-pupil {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle at 30% 30%, #555, #222);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.08s ease-out;
+}
+
+.chameleon-pupil::after {
   content: '';
   position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-top: 22px solid white;
+  width: 5px;
+  height: 5px;
+  background: white;
+  border-radius: 50%;
+  top: 20%;
+  left: 20%;
 }
+
+/* Tongue removed - chameleon now uses camouflage design */
 
 .goal-color {
   width: 55px;
@@ -477,6 +650,57 @@ body::after {
   transition: all 0.5s ease;
 }
 
+/* Swirl effect when mixing */
+.bowl .swirl {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.bowl .swirl.active {
+  animation: swirl-spin 0.8s ease-out forwards;
+}
+
+.bowl .swirl::before,
+.bowl .swirl::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  border-top-color: currentColor;
+}
+
+.bowl .swirl::after {
+  inset: 10px;
+  animation: swirl-inner 0.8s ease-out;
+}
+
+@keyframes swirl-spin {
+  0% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(360deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(720deg) scale(0.3);
+  }
+}
+
+@keyframes swirl-inner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-540deg); }
+}
+
 .bowl .particles {
   position: absolute;
   inset: 0;
@@ -503,6 +727,39 @@ body::after {
     transform: translateX(-50%) scale(0);
     opacity: 0;
   }
+}
+
+/* Bowl Controls Container */
+.bowl-controls {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* Undo Button */
+.mixing-area .undo-btn {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow:
+    0 6px 0 #7D3C98,
+    0 10px 25px rgba(155, 89, 182, 0.4);
+  transition: all 0.3s var(--elastic);
+}
+
+.mixing-area .undo-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow:
+    0 9px 0 #7D3C98,
+    0 14px 35px rgba(155, 89, 182, 0.5);
+}
+
+.mixing-area .undo-btn.hidden {
+  display: none;
 }
 
 /* Clear Button in Mixing Area */
@@ -629,53 +886,7 @@ body::after {
   border-color: rgba(78, 205, 196, 0.4);
 }
 
-/* Chameleon Container */
-.chameleon-container {
-  width: 220px;
-  height: 220px;
-  position: relative;
-  margin: 0 auto;
-}
-
-/* Chameleon - Maximum Juicy Ball */
-.chameleon {
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-full);
-  background:
-    radial-gradient(circle at 32% 22%, rgba(255,255,255,0.9) 8%, transparent 28%),
-    radial-gradient(circle at 68% 78%, rgba(255,255,255,0.4) 0%, transparent 35%),
-    radial-gradient(circle at 50% 50%, rgba(0,0,0,0.05) 60%, transparent 100%),
-    var(--chameleon-color, #D4C5B9);
-  transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s var(--elastic);
-  box-shadow:
-    0 18px 40px rgba(0,0,0,0.3),
-    inset 0 -5px 15px rgba(0,0,0,0.15),
-    0 0 0 5px rgba(255,255,255,0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 100px;
-  animation: chameleon-breathe 4s ease-in-out infinite;
-  cursor: pointer;
-}
-
-@keyframes chameleon-breathe {
-  0%, 100% {
-    transform: scale(1) translateY(0);
-    box-shadow:
-      0 18px 40px rgba(0,0,0,0.3),
-      inset 0 -5px 15px rgba(0,0,0,0.15),
-      0 0 0 5px rgba(255,255,255,0.3);
-  }
-  50% {
-    transform: scale(1.08) translateY(-12px);
-    box-shadow:
-      0 25px 55px rgba(0,0,0,0.35),
-      inset 0 -5px 15px rgba(0,0,0,0.15),
-      0 0 0 8px rgba(255,255,255,0.5);
-  }
-}
+/* Note: Main .chameleon styles are defined in "Chameleon Parts" section (line ~310) */
 
 .chameleon:hover {
   transform: scale(1.12) translateY(-15px);
@@ -712,6 +923,34 @@ body::after {
   45% { transform: translateX(-15px) rotate(-8deg) scale(0.97); }
   60% { transform: translateX(15px) rotate(8deg) scale(1.03); }
   75% { transform: translateX(-8px) rotate(-4deg) scale(0.99); }
+}
+
+/* Emotional Chameleon - Eager state (correct color nearby) */
+.chameleon.eager {
+  animation: eager-bounce 0.4s ease infinite;
+  filter: brightness(1.1);
+}
+
+@keyframes eager-bounce {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.05) translateY(-8px); }
+}
+
+/* Emotional Chameleon - Confused state (wrong color) */
+.chameleon.confused {
+  animation: confused-tilt 0.6s ease;
+}
+
+@keyframes confused-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+/* Emotional Chameleon - Watching state (tracking drag) */
+.chameleon.watching {
+  animation: none;
+  transition: transform 0.1s ease-out;
 }
 
 /* Target Thought Bubble - Bouncy & Glowing */
@@ -1173,6 +1412,74 @@ body::after {
   50% { transform: scale(1.22) rotate(-8deg); }
 }
 
+/* ===== Squishy Jelly Physics ===== */
+
+/* Pickup squish - compress vertically, expand horizontally */
+.color-ball.pickup-squish {
+  animation: jelly-pickup 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes jelly-pickup {
+  0% { transform: scale(1, 1); }
+  30% { transform: scale(1.3, 0.7); }
+  50% { transform: scale(0.9, 1.15); }
+  70% { transform: scale(1.15, 0.92); }
+  100% { transform: scale(1.2, 1.2) rotate(8deg); }
+}
+
+/* Enhanced jelly wobble during drag */
+.color-ball.jelly-wobble {
+  animation: jelly-drag 0.4s ease-in-out infinite;
+}
+
+@keyframes jelly-drag {
+  0% { transform: scale(1.2, 1.2) rotate(5deg) skewX(0deg); }
+  25% { transform: scale(1.25, 1.15) rotate(-3deg) skewX(3deg); }
+  50% { transform: scale(1.18, 1.25) rotate(5deg) skewX(-3deg); }
+  75% { transform: scale(1.25, 1.18) rotate(-5deg) skewX(2deg); }
+  100% { transform: scale(1.2, 1.2) rotate(5deg) skewX(0deg); }
+}
+
+/* Drop bounce - stretch then squish then settle */
+.color-ball.drop-bounce {
+  animation: jelly-drop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes jelly-drop {
+  0% { transform: scale(1.2, 1.2); }
+  20% { transform: scale(0.8, 1.4); }
+  40% { transform: scale(1.3, 0.75); }
+  55% { transform: scale(0.92, 1.12); }
+  70% { transform: scale(1.08, 0.95); }
+  85% { transform: scale(0.98, 1.03); }
+  100% { transform: scale(1, 1); }
+}
+
+/* Return to palette with jelly settle */
+.color-ball.jelly-return {
+  animation: jelly-settle 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes jelly-settle {
+  0% { transform: scale(1.2, 1.2); }
+  30% { transform: scale(1.15, 0.9); }
+  50% { transform: scale(0.95, 1.08); }
+  70% { transform: scale(1.03, 0.97); }
+  100% { transform: scale(1, 1); }
+}
+
+/* Bowl squish when color is added */
+.mixing-bowl.squish {
+  animation: bowl-squish 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bowl-squish {
+  0% { transform: scale(1, 1); }
+  30% { transform: scale(1.08, 0.92); }
+  60% { transform: scale(0.95, 1.05); }
+  100% { transform: scale(1, 1); }
+}
+
 /* Color-specific styles */
 .color-ball.red { --ball-color: var(--color-red); }
 .color-ball.blue { --ball-color: var(--color-blue); }
@@ -1372,7 +1679,7 @@ body::after {
   animation: rainbow-border 4s linear infinite;
 }
 
-.game-container.free-play-mode .thought-bubble.hidden,
+.game-container.free-play-mode .target-leaf.hidden,
 .game-container.free-play-mode .progress-stars.hidden {
   opacity: 0;
   transform: scale(0.8);
@@ -1523,18 +1830,152 @@ body::after {
 .splash-text.green { color: var(--color-green); }
 .splash-text.mud { color: var(--color-mud); }
 
-/* Confetti Celebration */
+/* ===== Confetti Celebration System ===== */
+
+/* Base confetti piece */
 .confetti-piece {
   position: fixed;
-  width: 14px;
-  height: 14px;
+  width: var(--confetti-w, 14px);
+  height: var(--confetti-h, 14px);
   background: var(--confetti-color);
-  animation: confetti-explosion 3s ease-out forwards;
+  animation: var(--confetti-anim, confetti-fall) var(--confetti-duration, 3s) ease-out forwards;
+  animation-delay: var(--confetti-delay, 0s);
   pointer-events: none;
   z-index: var(--z-particles);
-  border-radius: 3px;
+  border-radius: var(--confetti-radius, 3px);
+  transform-origin: center center;
 }
 
+/* Shape variants */
+.confetti-piece.square {
+  --confetti-w: 12px;
+  --confetti-h: 12px;
+  --confetti-radius: 2px;
+}
+
+.confetti-piece.rectangle {
+  --confetti-w: 8px;
+  --confetti-h: 16px;
+  --confetti-radius: 2px;
+}
+
+.confetti-piece.circle {
+  --confetti-w: 10px;
+  --confetti-h: 10px;
+  --confetti-radius: 50%;
+}
+
+.confetti-piece.star {
+  --confetti-w: 0;
+  --confetti-h: 0;
+  background: transparent;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 12px solid var(--confetti-color);
+}
+
+/* Level complete - cascade from top */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-50px) translateX(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: translateY(25vh) translateX(var(--confetti-drift, 30px)) rotate(360deg) scale(1);
+  }
+  50% {
+    transform: translateY(50vh) translateX(calc(var(--confetti-drift, 30px) * -0.5)) rotate(720deg) scale(0.9);
+  }
+  75% {
+    transform: translateY(80vh) translateX(var(--confetti-drift, 30px)) rotate(1080deg) scale(0.7);
+  }
+  100% {
+    transform: translateY(120vh) translateX(0) rotate(1440deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Burst from center - for goal match mini celebration */
+@keyframes confetti-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(
+      calc(-50% + var(--burst-x, 0px) * 0.5),
+      calc(-50% + var(--burst-y, 0px) * 0.5)
+    ) scale(1.2) rotate(180deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--burst-x, 0px)),
+      calc(-50% + var(--burst-y, 0px) + 200px)
+    ) scale(0.3) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Spiral effect for special celebrations */
+@keyframes confetti-spiral {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) translateX(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(calc(var(--spiral-turns, 3) * 360deg))
+               translateX(var(--spiral-radius, 150px)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+/* Firework burst upward then fall */
+@keyframes confetti-firework {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.3);
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(calc(var(--firework-height, -150px)))
+               translateX(var(--firework-spread, 0px)) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(var(--firework-height, -150px) + 300px))
+               translateX(calc(var(--firework-spread, 0px) * 1.5))
+               rotate(540deg) scale(0.2);
+    opacity: 0;
+  }
+}
+
+/* Mini celebration container */
+.mini-celebration {
+  position: fixed;
+  pointer-events: none;
+  z-index: var(--z-particles);
+}
+
+/* Screen flash for big celebrations */
+.celebration-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(255,255,100,0.3) 0%, transparent 70%);
+  animation: celebration-flash 0.5s ease-out forwards;
+  pointer-events: none;
+  z-index: calc(var(--z-particles) - 1);
+}
+
+@keyframes celebration-flash {
+  0% { opacity: 0; transform: scale(0.5); }
+  30% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* Backwards compatible animation name */
 @keyframes confetti-explosion {
   0% {
     transform: translateY(-50px) rotate(0deg) scale(1);
@@ -2130,6 +2571,347 @@ body::after {
   color: var(--color-purple);
 }
 
+/* Enhanced Sticker Book */
+.sticker-book-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  border-radius: 20px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2E7D32;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+}
+
+.sticker-book-stats .stats-icon {
+  font-size: 20px;
+}
+
+.sticker-book-stats .stats-text {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.sticker-book-stats .stats-earned {
+  font-size: 24px;
+  color: var(--color-purple);
+}
+
+.sticker-item.earned:hover {
+  animation: sticker-wiggle 0.4s ease-in-out;
+}
+
+@keyframes sticker-wiggle {
+  0%, 100% { transform: translateY(-4px) scale(1.05) rotate(0deg); }
+  25% { transform: translateY(-4px) scale(1.05) rotate(-5deg); }
+  75% { transform: translateY(-4px) scale(1.05) rotate(5deg); }
+}
+
+.sticker-item.earned .sticker-emoji {
+  position: relative;
+}
+
+.sticker-item.earned .sticker-emoji::after {
+  content: '✨';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 16px;
+  animation: sparkle-float 2s ease-in-out infinite;
+}
+
+@keyframes sparkle-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-4px) scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+.sticker-item.new-earned {
+  animation: new-sticker-glow 1.5s ease-in-out infinite;
+}
+
+.sticker-item.new-earned::before {
+  content: 'NEW!';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--color-red);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 8px;
+  animation: new-badge-bounce 1s ease-in-out infinite;
+}
+
+@keyframes new-sticker-glow {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 24px rgba(255, 107, 107, 0.8);
+  }
+}
+
+@keyframes new-badge-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Empty state */
+.sticker-book-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #888;
+}
+
+.sticker-book-empty .empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.sticker-book-empty .empty-text {
+  font-size: 14px;
+}
+
+/* ===== Firefly Hint System ===== */
+.firefly-hint {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.firefly-hint .firefly {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: radial-gradient(circle, #FFE66D 0%, #FFAA00 40%, transparent 70%);
+  border-radius: 50%;
+  animation: firefly-float 2s ease-in-out infinite, firefly-glow 1s ease-in-out infinite;
+  box-shadow: 0 0 10px #FFE66D, 0 0 20px #FFAA00, 0 0 30px #FF8800;
+}
+
+.firefly-hint .firefly:nth-child(2) {
+  animation-delay: 0.5s;
+  left: 15px;
+  top: -10px;
+}
+
+.firefly-hint .firefly:nth-child(3) {
+  animation-delay: 1s;
+  left: -5px;
+  top: 10px;
+}
+
+@keyframes firefly-float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(8px, -12px) scale(1.1);
+  }
+  50% {
+    transform: translate(-5px, -8px) scale(0.9);
+  }
+  75% {
+    transform: translate(10px, 5px) scale(1.05);
+  }
+}
+
+@keyframes firefly-glow {
+  0%, 100% {
+    opacity: 0.7;
+    box-shadow: 0 0 10px #FFE66D, 0 0 20px #FFAA00;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 15px #FFE66D, 0 0 30px #FFAA00, 0 0 40px #FF8800;
+  }
+}
+
+.color-source.hint-active {
+  animation: hint-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.1);
+    filter: brightness(1.3);
+  }
+}
+
+/* ===== Educational Formula Overlay ===== */
+.formula-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.formula-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.formula-card {
+  background: linear-gradient(135deg, #FFFDE7 0%, #FFF9C4 100%);
+  border-radius: 24px;
+  padding: 32px 48px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+              0 0 0 4px rgba(255, 255, 255, 0.8);
+  text-align: center;
+  transform: scale(0.8) translateY(20px);
+  transition: transform 0.4s var(--bounce);
+  max-width: 90vw;
+}
+
+.formula-overlay.active .formula-card {
+  transform: scale(1) translateY(0);
+}
+
+.formula-title {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.formula-equation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 20px 0;
+}
+
+.formula-color {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.formula-color-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 2px 4px rgba(255, 255, 255, 0.5);
+  animation: formula-pop 0.5s var(--bounce);
+}
+
+.formula-color-circle.red { background: var(--color-red); }
+.formula-color-circle.blue { background: var(--color-blue); }
+.formula-color-circle.yellow { background: var(--color-yellow); }
+.formula-color-circle.purple { background: var(--color-purple); }
+.formula-color-circle.orange { background: var(--color-orange); }
+.formula-color-circle.green { background: var(--color-green); }
+
+.formula-color-name {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.formula-operator {
+  font-size: 36px;
+  color: #888;
+  font-weight: 300;
+}
+
+.formula-result {
+  animation: formula-result-pop 0.6s var(--bounce) 0.3s both;
+}
+
+@keyframes formula-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes formula-result-pop {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.3) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.formula-celebration {
+  font-size: 32px;
+  margin-top: 16px;
+  animation: celebration-bounce 0.8s var(--bounce) 0.5s both;
+}
+
+@keyframes celebration-bounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.formula-tap-hint {
+  font-size: 14px;
+  color: #999;
+  margin-top: 20px;
+  animation: hint-fade 1.5s ease-in-out infinite;
+}
+
+@keyframes hint-fade {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 /* ===== High Contrast Mode ===== */
 @media (prefers-contrast: high) {
   .color-ball,
@@ -2148,5 +2930,86 @@ body::after {
 
   .sticker-item {
     border: 2px solid black;
+  }
+
+  .formula-card {
+    border: 4px solid black;
+  }
+
+  .formula-color-circle {
+    border: 3px solid black;
+  }
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .living-bg {
+    display: none;
+  }
+
+  .color-source,
+  .bowl,
+  .chameleon,
+  .sticker-item {
+    animation: none !important;
+  }
+
+  .firefly-hint {
+    opacity: 0.8;
+  }
+}
+
+/* ===== Focus States for Keyboard Navigation ===== */
+.icon-btn:focus-visible,
+.color-source:focus-visible {
+  outline: 3px solid var(--color-purple);
+  outline-offset: 3px;
+}
+
+button:focus-visible {
+  outline: 3px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+/* ===== Touch Feedback ===== */
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+.color-source:active {
+  transform: scale(0.98);
+}
+
+/* ===== Performance Optimizations ===== */
+.living-bg,
+.living-bg * {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.color-source,
+.bowl,
+.chameleon {
+  contain: layout style paint;
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  .living-bg,
+  .header-area,
+  .bowl-controls {
+    display: none;
+  }
+
+  .game-container {
+    background: white;
   }
 }

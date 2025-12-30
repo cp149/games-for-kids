@@ -4,13 +4,15 @@
  * Single Responsibility: All mixing-related logic
  */
 
-class MixingSystem {
+import { CONFIG } from '../config.js';
+
+export class MixingSystem {
     /**
      * Create MixingSystem instance
      * @param {Object} config - Optional config, uses global CONFIG if not provided
      */
     constructor(config = null) {
-        this.config = config || (typeof CONFIG !== 'undefined' ? CONFIG : null);
+        this.config = config || CONFIG;
         this.colorsInBowl = [];
         this.maxColors = 2;
     }
@@ -107,6 +109,27 @@ class MixingSystem {
      */
     clear() {
         this.colorsInBowl = [];
+    }
+
+    /**
+     * Undo the last added color (remove last color from bowl)
+     * @returns {Object} Result with removed color info
+     */
+    undo() {
+        if (this.colorsInBowl.length === 0) {
+            return { success: false, reason: 'bowl_empty' };
+        }
+
+        const removedColor = this.colorsInBowl.pop();
+        const remainingColor = this.colorsInBowl.length > 0 ? this.colorsInBowl[0] : null;
+
+        return {
+            success: true,
+            removedColor,
+            remainingColor,
+            remainingColorHex: remainingColor ? this.getPrimaryColorHex(remainingColor) : null,
+            bowlEmpty: this.colorsInBowl.length === 0
+        };
     }
 
     /**
@@ -222,12 +245,4 @@ class MixingSystem {
     }
 }
 
-// Export for Node.js tests
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = MixingSystem;
-}
-
-// Export for browser
-if (typeof window !== 'undefined') {
-    window.MixingSystem = MixingSystem;
-}
+export default MixingSystem;

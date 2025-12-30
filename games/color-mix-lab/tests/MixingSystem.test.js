@@ -4,6 +4,9 @@
  * Extracted from ColorMixGame mixing logic
  */
 
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { MixingSystem } from '../js/systems/MixingSystem.js';
+
 // Mock CONFIG - matches new v2.0 design (no same-color effects)
 const mockConfig = {
     COLORS: {
@@ -34,11 +37,6 @@ const mockConfig = {
     }
 };
 
-global.CONFIG = mockConfig;
-
-// Import after CONFIG is set
-const MixingSystem = require('../js/systems/MixingSystem');
-
 describe('MixingSystem', () => {
     let mixingSystem;
 
@@ -54,11 +52,6 @@ describe('MixingSystem', () => {
 
         test('should initialize with empty bowl', () => {
             expect(mixingSystem.getColorsInBowl()).toEqual([]);
-        });
-
-        test('should use global CONFIG if not provided', () => {
-            const system = new MixingSystem();
-            expect(system.config).toBe(mockConfig);
         });
     });
 
