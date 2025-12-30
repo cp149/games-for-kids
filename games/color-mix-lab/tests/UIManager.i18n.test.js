@@ -8,23 +8,22 @@ const { I18n } = require('../js/i18n/index.js');
 
 // Mock DOM environment
 const setupDOM = () => {
+    const mockElement = () => ({
+        className: '',
+        innerHTML: '',
+        textContent: '',
+        style: { setProperty: jest.fn() },
+        classList: { add: jest.fn(), remove: jest.fn() },
+        setAttribute: jest.fn(),
+        appendChild: jest.fn(),
+        querySelector: jest.fn(() => mockElement()),
+        querySelectorAll: jest.fn(() => []),
+        remove: jest.fn(),
+        addEventListener: jest.fn()
+    });
     global.document = {
-        getElementById: jest.fn(() => ({
-            className: '',
-            innerHTML: '',
-            appendChild: jest.fn()
-        })),
-        createElement: jest.fn(() => ({
-            className: '',
-            innerHTML: '',
-            textContent: '',
-            style: { setProperty: jest.fn() },
-            classList: { add: jest.fn(), remove: jest.fn() },
-            setAttribute: jest.fn(),
-            appendChild: jest.fn(),
-            querySelectorAll: jest.fn(() => []),
-            remove: jest.fn()
-        })),
+        getElementById: jest.fn(() => mockElement()),
+        createElement: jest.fn(() => mockElement()),
         querySelector: jest.fn(() => null),
         querySelectorAll: jest.fn(() => []),
         body: { appendChild: jest.fn() }

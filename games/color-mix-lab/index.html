@@ -9,7 +9,67 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div id="game-container"></div>
+    <div id="game-container" class="game-container">
+        <!-- Header Area: Settings, Sound, Sticker Book, Free Play -->
+        <header class="header-area">
+            <button class="icon-btn sticker-book-btn" aria-label="Sticker Book">
+                <span class="icon-sticker">📖</span>
+            </button>
+            <button class="icon-btn free-play-btn hidden" aria-label="Free Play Mode">
+                <span class="icon-free-play">🎨</span>
+            </button>
+            <button class="icon-btn settings-btn" aria-label="Settings">
+                <span class="icon-settings"></span>
+            </button>
+            <button class="icon-btn sound-btn" aria-label="Toggle Sound">
+                <span class="icon-sound"></span>
+            </button>
+        </header>
+
+        <!-- Chameleon Area: Character & Goal -->
+        <section class="chameleon-area">
+            <div class="thought-bubble">
+                <div class="goal-color"></div>
+            </div>
+            <div class="chameleon">
+                <div class="chameleon-body"></div>
+                <div class="chameleon-eyes"></div>
+                <div class="chameleon-tongue"></div>
+            </div>
+            <div class="progress-stars">
+                <span class="star"></span>
+                <span class="star"></span>
+                <span class="star"></span>
+            </div>
+        </section>
+
+        <!-- Mixing Area: Bowl & Clear Button -->
+        <section class="mixing-area">
+            <div class="bowl">
+                <div class="liquid"></div>
+                <div class="particles"></div>
+            </div>
+            <button class="icon-btn clear-btn" aria-label="Clear Bowl">
+                <span class="icon-clear"></span>
+            </button>
+        </section>
+
+        <!-- Palette Area: Color Sources -->
+        <section class="palette-area">
+            <div class="color-source red-source" data-color="red" draggable="true">
+                <div class="color-blob"></div>
+                <div class="color-pattern pattern-zigzag"></div>
+            </div>
+            <div class="color-source blue-source" data-color="blue" draggable="true">
+                <div class="color-blob"></div>
+                <div class="color-pattern pattern-waves"></div>
+            </div>
+            <div class="color-source yellow-source" data-color="yellow" draggable="true">
+                <div class="color-blob"></div>
+                <div class="color-pattern pattern-dots"></div>
+            </div>
+        </section>
+    </div>
 
     <!-- Load scripts in dependency order -->
     <script src="js/i18n/translations.js"></script>
@@ -17,6 +77,9 @@
     <script src="js/config.js"></script>
     <script src="js/managers/UIManager.js"></script>
     <script src="js/managers/DragManager.js"></script>
+    <script src="js/managers/LevelManager.js"></script>
+    <script src="js/systems/MixingSystem.js"></script>
+    <script src="js/systems/TutorialSystem.js"></script>
     <script src="js/ColorMixGame.js"></script>
 
     <!-- Initialize game -->

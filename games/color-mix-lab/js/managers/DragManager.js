@@ -108,19 +108,22 @@ class DragManager {
         // Prevent if already dragging
         if (this.dragState.isDragging) return;
 
+        // Find the actual draggable element (might be clicked on child)
+        const draggable = element.closest('[data-draggable="true"]') || element;
+
         // Get touch or mouse coordinates
         const point = e.touches ? e.touches[0] : e;
-        const rect = element.getBoundingClientRect();
+        const rect = draggable.getBoundingClientRect();
 
-        // Initialize drag state
-        this.dragState.element = element;
+        // Initialize drag state - use draggable element, not clicked child
+        this.dragState.element = draggable;
         this.dragState.startX = point.clientX;
         this.dragState.startY = point.clientY;
         this.dragState.currentX = point.clientX;
         this.dragState.currentY = point.clientY;
         this.dragState.offsetX = point.clientX - rect.left;
         this.dragState.offsetY = point.clientY - rect.top;
-        this.dragState.originalParent = element.parentElement;
+        this.dragState.originalParent = draggable.parentElement;
         this.dragState.isDragging = false; // Will be set to true after threshold
 
         // Store original position for snap back
@@ -229,6 +232,10 @@ class DragManager {
         clone.style.top = '0';
         clone.style.width = this.dragState.originalRect.width + 'px';
         clone.style.height = this.dragState.originalRect.height + 'px';
+        
+        // CRITICAL FIX: Remove transition immediately to prevent "springy" lag
+        clone.style.transition = 'none';
+        clone.style.webkitTransition = 'none';
 
         // Set initial position
         const x = this.dragState.currentX - this.dragState.offsetX;
@@ -305,30 +312,29 @@ class DragManager {
     }
 
     /**
-     * Find valid drop target at coordinates
+     * Find valid drop target at coordinates using geometry-based detection
      * @param {number} x - X coordinate
      * @param {number} y - Y coordinate
      */
     findDropTarget(x, y) {
-        // Hide clone temporarily to get element underneath
-        if (this.dragState.clone) {
-            this.dragState.clone.style.display = 'none';
+        // Check bowl first (primary drop target)
+        const bowl = document.querySelector('.bowl');
+        if (bowl) {
+            const rect = bowl.getBoundingClientRect();
+            if (x >= rect.left && x <= rect.right &&
+                y >= rect.top && y <= rect.bottom) {
+                return bowl;
+            }
         }
 
-        const target = document.elementFromPoint(x, y);
-
-        if (this.dragState.clone) {
-            this.dragState.clone.style.display = '';
-        }
-
-        // Check if target is a valid drop zone
-        if (target && (
-            target.classList.contains('mixing-slot') ||
-            target.closest('.mixing-slot')
-        )) {
-            return target.classList.contains('mixing-slot')
-                ? target
-                : target.closest('.mixing-slot');
+        // Check mixing slots as fallback
+        const slots = document.querySelectorAll('.mixing-slot');
+        for (const slot of slots) {
+            const rect = slot.getBoundingClientRect();
+            if (x >= rect.left && x <= rect.right &&
+                y >= rect.top && y <= rect.bottom) {
+                return slot;
+            }
         }
 
         return null;

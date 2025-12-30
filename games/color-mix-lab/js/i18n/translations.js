@@ -26,8 +26,11 @@ const TRANSLATIONS = {
         settings_coming: 'Settings coming soon!',
         sticker_coming: 'Sticker book coming soon!',
         slot_full: 'Slot is full! Clear first.',
+        bowl_full: 'Bowl is full! Clear first.',
         mud_message: 'Eww! Mud!',
         mixed_color: 'Mixed {0}!',
+        sticker_earned: 'Sticker earned!',
+        game_complete: 'Game Complete! Free mode unlocked!',
 
         // Color names
         color_purple: 'PURPLE',
@@ -69,8 +72,11 @@ const TRANSLATIONS = {
         settings_coming: '设置功能即将推出！',
         sticker_coming: '贴纸册即将推出！',
         slot_full: '槽位已满！请先清除。',
+        bowl_full: '碗已满！请先清除。',
         mud_message: '呃！变成泥巴了！',
         mixed_color: '混出了{0}！',
+        sticker_earned: '获得贴纸！',
+        game_complete: '游戏通关！自由模式已解锁！',
 
         // Color names
         color_purple: '紫色',

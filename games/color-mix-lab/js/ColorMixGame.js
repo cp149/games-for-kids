@@ -1,6 +1,7 @@
 /**
  * ColorMixGame - Main game controller
  * Coordinates UI, drag interactions, and game logic
+ * Uses bowl-based mixing instead of slots
  */
 
 class ColorMixGame {
@@ -16,12 +17,19 @@ class ColorMixGame {
             onDragEnd: (element, data) => this.onDragEnd(element, data)
         });
 
+        // Initialize MixingSystem (extracted mixing logic)
+        this.mixing = new MixingSystem(CONFIG);
+
+        // Initialize TutorialSystem
+        this.tutorial = typeof TutorialSystem !== 'undefined' ? new TutorialSystem(CONFIG) : null;
+
         // Game state
         this.state = {
             currentLevel: 1,
-            mixingSlots: [],
             progress: 0,
-            stickers: []
+            stickers: [],
+            freePlayUnlocked: false,
+            isFreeMode: false
         };
 
         // Initialize game
@@ -63,11 +71,25 @@ class ColorMixGame {
         // Setup level
         this.setupLevel(this.state.currentLevel);
 
+        // Setup drag for color sources
+        this.setupColorSources();
+
         // Setup event listeners
         this.setupEventListeners();
 
         // Show welcome message
         this.ui.showToast(this.i18n.t('welcome') + ' 🦎', 'info');
+    }
+
+    /**
+     * Setup color sources for dragging
+     */
+    setupColorSources() {
+        const colorSources = this.ui.getColorSources();
+        colorSources.forEach(source => {
+            const color = source.dataset.color;
+            this.drag.enableDrag(source, { color });
+        });
     }
 
     /**
@@ -77,7 +99,6 @@ class ColorMixGame {
     setupLevel(level) {
         const config = CONFIG.LEVELS[level];
         if (!config) {
-            // Safe logging - use warn instead of error
             if (typeof console !== 'undefined' && console.warn) {
                 try { console.warn('[ColorMixGame]', this.i18n.t('level_not_found')); } catch { /* ignore */ }
             }
@@ -87,16 +108,8 @@ class ColorMixGame {
         // Update UI
         this.ui.updateLevel(level);
 
-        // Create mixing slots
-        const slots = this.ui.createMixingSlots(config.slots);
-        this.state.mixingSlots = slots.map(() => null);
-
-        // Add color balls
-        this.ui.getElement('colorPalette').innerHTML = '';
-        config.availableColors.forEach(color => {
-            const ball = this.ui.addColorBall(color);
-            this.drag.enableDrag(ball, { color });
-        });
+        // Set available colors for this level
+        this.ui.setAvailableColors(config.availableColors);
 
         // Set goal
         const goal = config.goal;
@@ -117,8 +130,16 @@ class ColorMixGame {
         // Store current goal for validation
         this.state.currentGoal = goal;
 
-        // Reset progress
+        // Reset progress and bowl
         this.state.progress = 0;
+        this.mixing.clear();
+        this.ui.clearBowl();
+
+        // Setup and start tutorial for this level
+        if (this.tutorial) {
+            this.tutorial.setupLevel(level);
+            this.tutorial.start(this.ui.container);
+        }
     }
 
     /**
@@ -128,7 +149,7 @@ class ColorMixGame {
         // Clear button
         const clearBtn = this.ui.getElement('clearBtn');
         if (clearBtn) {
-            clearBtn.addEventListener('click', () => this.clearSlots());
+            clearBtn.addEventListener('click', () => this.clearBowl());
         }
 
         // Settings button
@@ -139,13 +160,96 @@ class ColorMixGame {
             });
         }
 
-        // Sticker book button
-        const stickerBtn = this.ui.getElement('stickerBtn');
-        if (stickerBtn) {
-            stickerBtn.addEventListener('click', () => {
-                this.ui.showToast(this.i18n.t('sticker_coming') + ' 📒', 'info');
+        // Sound button
+        const soundBtn = this.ui.getElement('soundBtn');
+        if (soundBtn) {
+            soundBtn.addEventListener('click', () => {
+                this.ui.showToast('Sound toggle coming soon! 🔊', 'info');
             });
         }
+
+        // Sticker book button
+        const stickerBookBtn = this.ui.getElement('stickerBookBtn');
+        if (stickerBookBtn) {
+            stickerBookBtn.addEventListener('click', () => {
+                this.showStickerBook();
+            });
+        }
+
+        // Free play button
+        const freePlayBtn = this.ui.getElement('freePlayBtn');
+        if (freePlayBtn) {
+            freePlayBtn.addEventListener('click', () => {
+                if (this.state.isFreeMode) {
+                    this.exitFreePlay();
+                } else {
+                    this.enterFreePlay();
+                }
+            });
+        }
+
+        // Show free play button if unlocked
+        if (this.state.freePlayUnlocked) {
+            this.ui.showFreePlayButton(true);
+        }
+    }
+
+    /**
+     * Show sticker book with current collection
+     */
+    showStickerBook() {
+        this.ui.showStickerBook(this.state.stickers, CONFIG.STICKERS);
+    }
+
+    /**
+     * Enter free play mode
+     */
+    enterFreePlay() {
+        if (!this.state.freePlayUnlocked) {
+            this.ui.showToast(this.i18n.t('free_play_locked') || 'Complete all levels first! 🔒', 'info');
+            return;
+        }
+
+        this.state.isFreeMode = true;
+
+        // Clear any goal
+        this.state.currentGoal = null;
+        this.state.progress = 0;
+
+        // Set all colors available
+        const freeColors = CONFIG.FREE_MODE.availableColors;
+        this.ui.setAvailableColors(freeColors);
+
+        // Update UI for free play
+        this.ui.setFreePlayMode(true);
+        this.ui.setChameleonTarget(null); // No target
+        this.ui.setChameleonColor('#D4C5B9'); // Reset to gray
+
+        // Clear bowl
+        this.mixing.clear();
+        this.ui.clearBowl();
+
+        // Stop tutorial if running
+        if (this.tutorial && this.tutorial.isRunning()) {
+            this.tutorial.stop();
+        }
+
+        this.ui.showToast(this.i18n.t('free_play_started') || 'Free Play! Mix any colors! 🎨', 'success');
+    }
+
+    /**
+     * Exit free play mode and return to levels
+     */
+    exitFreePlay() {
+        this.state.isFreeMode = false;
+
+        // Update UI
+        this.ui.setFreePlayMode(false);
+
+        // Return to current level
+        this.setupLevel(this.state.currentLevel);
+
+        this.ui.showToast(this.i18n.t('back_to_levels') || 'Back to levels! 📚', 'info');
     }
 
     /**
@@ -156,6 +260,11 @@ class ColorMixGame {
     onDragStart(element, data) {
         // Visual feedback
         element.style.cursor = 'grabbing';
+
+        // Stop tutorial when user starts interacting
+        if (this.tutorial && this.tutorial.isRunning()) {
+            this.tutorial.stop();
+        }
     }
 
     /**
@@ -164,30 +273,15 @@ class ColorMixGame {
      * @param {Object} data - Drag data with coordinates and drop target
      */
     onDragMove(element, data) {
-        // Cache slots on first drag
-        if (!this._cachedSlots) {
-            this._cachedSlots = Array.from(document.querySelectorAll('.mixing-slot'));
-            this._cachedRects = this._cachedSlots.map(slot => {
-                const rect = slot.getBoundingClientRect();
-                return {
-                    slot,
-                    centerX: rect.left + rect.width / 2,
-                    centerY: rect.top + rect.height / 2
-                };
-            });
-        }
+        // Check if over bowl
+        const bowl = this.ui.getBowl();
+        if (!bowl) return;
 
-        // Batch DOM updates
-        const snapDist = CONFIG.DRAG.SNAP_DISTANCE;
-        this._cachedRects.forEach(({ slot, centerX, centerY }) => {
-            const distance = Math.hypot(data.x - centerX, data.y - centerY);
-            const shouldHighlight = distance < snapDist;
-            const isHighlighted = slot.classList.contains('drag-over');
+        const rect = bowl.getBoundingClientRect();
+        const isOverBowl = data.x >= rect.left && data.x <= rect.right &&
+                          data.y >= rect.top && data.y <= rect.bottom;
 
-            if (shouldHighlight !== isHighlighted) {
-                slot.classList.toggle('drag-over', shouldHighlight);
-            }
-        });
+        bowl.classList.toggle('drag-over', isOverBowl);
     }
 
     /**
@@ -199,29 +293,21 @@ class ColorMixGame {
         // Remove cursor style
         element.style.cursor = '';
 
-        // Clear cache for next drag
-        this._cachedSlots = null;
-        this._cachedRects = null;
-
-        // Remove all drag-over highlights (batch update)
-        if (this._cachedSlots) {
-            this._cachedSlots.forEach(slot => slot.classList.remove('drag-over'));
-        } else {
-            document.querySelectorAll('.mixing-slot').forEach(slot => {
-                slot.classList.remove('drag-over');
-            });
+        // Remove drag-over highlight
+        const bowl = this.ui.getBowl();
+        if (bowl) {
+            bowl.classList.remove('drag-over');
         }
 
-        // Check if dropped on valid target
-        if (data.dropTarget && data.dropTarget.classList.contains('mixing-slot')) {
-            const slotIndex = parseInt(data.dropTarget.dataset.slotIndex);
+        // Check if dropped on bowl
+        if (bowl) {
+            const rect = bowl.getBoundingClientRect();
+            const isOverBowl = data.x >= rect.left && data.x <= rect.right &&
+                              data.y >= rect.top && data.y <= rect.bottom;
 
-            // Check if slot is empty
-            if (!this.state.mixingSlots[slotIndex]) {
-                this.fillSlot(slotIndex, data.data.color);
+            if (isOverBowl && data.data.color) {
+                this.addColorToBowl(data.data.color);
                 return true;
-            } else {
-                this.ui.showToast(this.i18n.t('slot_full'), 'info');
             }
         }
 
@@ -229,140 +315,136 @@ class ColorMixGame {
     }
 
     /**
-     * Fill mixing slot with color
-     * @param {number} slotIndex - Slot index
-     * @param {string} color - Color name
+     * Add color to the mixing bowl
+     * @param {string} color - Color name (red, blue, yellow)
      */
-    fillSlot(slotIndex, color) {
-        // Update state
-        this.state.mixingSlots[slotIndex] = color;
+    addColorToBowl(color) {
+        const result = this.mixing.addColor(color);
 
-        // Update UI
-        const slot = this.ui.getElement('mixingSlots').children[slotIndex * 2]; // Account for plus signs
-        slot.classList.remove('empty');
-        slot.classList.add('filled');
-        slot.style.setProperty('--filled-color', CONFIG.COLORS.PRIMARY[color]);
+        if (!result.success) {
+            if (result.reason === 'bowl_full') {
+                this.ui.showToast(this.i18n.t('bowl_full') || 'Bowl is full! Clear first.', 'info');
+            }
+            return;
+        }
 
-        // Add color ball to slot
-        const ball = document.createElement('div');
-        ball.className = `color-ball ${color}`;
-        ball.style.cursor = 'default';
-        slot.innerHTML = '';
-        slot.appendChild(ball);
+        // Update UI - add color particle animation
+        this.ui.addColorToBowl(color);
 
-        // Update clear button
-        this.updateClearButton();
+        // If one color, show that color in bowl
+        if (result.colorsInBowl.length === 1) {
+            this.ui.setBowlColor(result.colorHex);
+        }
 
-        // Check if all slots filled
-        if (this.state.mixingSlots.every(slot => slot !== null)) {
-            this.mixColors();
+        // If auto-mixed, handle the result
+        if (result.mixed && result.mixResult) {
+            this.handleMixResult(result.mixResult);
         }
     }
 
     /**
-     * Clear all mixing slots
+     * Clear the mixing bowl
      */
-    clearSlots() {
-        // Reset state
-        this.state.mixingSlots = this.state.mixingSlots.map(() => null);
-
-        // Update UI
-        const slots = this.ui.getElement('mixingSlots').querySelectorAll('.mixing-slot');
-        slots.forEach((slot, index) => {
-            slot.classList.remove('filled');
-            slot.classList.add('empty');
-            slot.innerHTML = '';
-            slot.dataset.label = this.i18n.t('slot_label', { '0': index + 1 });
-        });
-
-        // Update clear button
-        this.updateClearButton();
-
-        // Reset chameleon
-        this.ui.setChameleonColor('#D4C5B9');
+    clearBowl() {
+        this.mixing.clear();
+        this.ui.clearBowl();
+        this.ui.setChameleonColor('#D4C5B9'); // Reset to gray
     }
 
     /**
-     * Update clear button state
+     * Handle mix result from MixingSystem
+     * @param {Object} mixResult - Result from mixing.mix()
      */
-    updateClearButton() {
-        const clearBtn = this.ui.getElement('clearBtn');
-        const hasColors = this.state.mixingSlots.some(slot => slot !== null);
-        clearBtn.disabled = !hasColors;
-    }
-
-    /**
-     * Mix colors in slots
-     */
-    mixColors() {
-        const colors = this.state.mixingSlots.filter(c => c);
-        if (colors.length < 2) return;
-
-        // Get mixing result
-        const mixKey = colors.join('+');
-        const rule = CONFIG.MIXING_RULES[mixKey];
-
-        // Get mix zone center for effects
-        const mixingZone = document.querySelector('.mixing-zone');
-        const rect = mixingZone ? mixingZone.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 };
+    handleMixResult(mixResult) {
+        // Get bowl center for effects
+        const bowl = this.ui.getBowl();
+        const rect = bowl ? bowl.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 };
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
 
-        if (rule) {
-            const resultColor = rule.type === 'secondary'
-                ? CONFIG.COLORS.SECONDARY[rule.result]
-                : CONFIG.COLORS.SPECIAL[rule.result];
-
-            // Update chameleon
-            this.ui.setChameleonColor(resultColor);
+        if (mixResult.type !== 'mud') {
+            // Valid mix result
+            this.ui.setBowlColor(mixResult.resultHex);
+            this.ui.setChameleonColor(mixResult.resultHex);
             this.ui.setChameleonMood('happy');
+            this.ui.showSplashIcon(mixResult.emoji, mixResult.resultHex);
 
-            // Show splash text effect
-            this.ui.showSplashText(rule.result, resultColor);
-
-            // Check if this matches the current goal
-            const goal = this.state.currentGoal;
-            let matchesGoal = false;
-
-            if (goal.type === 'secondary' && rule.type === 'secondary' && rule.result === goal.color) {
-                matchesGoal = true;
-            } else if (goal.type === 'effect' && rule.type === 'effect' && rule.result === goal.color) {
-                matchesGoal = true;
-            } else if (goal.type === 'multiple' && rule.type === 'secondary' && goal.colors.includes(rule.result)) {
-                matchesGoal = true;
-            } else if (goal.type === 'discover' || goal.type === 'feed') {
-                matchesGoal = true; // Any valid mix counts
+            // Record success in tutorial system (resets failure count)
+            if (this.tutorial) {
+                this.tutorial.recordSuccess();
             }
 
-            // Show feedback
-            if (matchesGoal) {
-                const colorKey = 'color_' + rule.result;
-                this.ui.showToast(this.i18n.t(colorKey) + '! 🎨', 'success');
-                this.state.progress++;
-                this.ui.updateGoal(this.state.progress, goal.count);
+            // Skip goal checking in free play mode
+            if (!this.state.isFreeMode) {
+                // Check if this matches the current goal using MixingSystem
+                const goal = this.state.currentGoal;
+                const matchesGoal = this.mixing.matchesGoal(goal, mixResult);
 
-                // Check level complete
-                if (this.state.progress >= goal.count) {
-                    this.ui.showLevelComplete();
+                if (matchesGoal) {
+                    this.state.progress++;
+                    this.ui.updateGoal(this.state.progress, goal.count);
+
+                    // Check level complete using MixingSystem
+                    if (this.mixing.isLevelComplete(goal, this.state.progress)) {
+                        this.handleLevelComplete();
+                    }
                 }
-            } else if (rule.type === 'secondary') {
-                this.ui.showToast(this.i18n.t('mixed_color', { '0': rule.result }) + ' 🎨', 'info');
-            } else {
-                const colorKey = 'color_' + rule.result;
-                this.ui.showToast(this.i18n.t(colorKey) + '! ✨', 'info');
             }
         } else {
             // Mud!
-            this.ui.setChameleonColor(CONFIG.COLORS.SPECIAL.mud);
+            this.ui.setBowlColor(mixResult.resultHex);
+            this.ui.setChameleonColor(mixResult.resultHex);
             this.ui.setChameleonMood('sad');
             this.ui.showMudSplat(centerX, centerY);
-            this.ui.showToast(this.i18n.t('mud_message') + ' 💩', 'mud');
+
+            // Record failure in tutorial system (may trigger hint)
+            if (this.tutorial) {
+                this.tutorial.recordFailure();
+            }
         }
 
         // Auto-clear after delay
         setTimeout(() => {
-            this.clearSlots();
+            this.clearBowl();
         }, 2000);
+    }
+
+    /**
+     * Handle level completion
+     */
+    handleLevelComplete() {
+        // Show celebration
+        this.ui.showLevelComplete();
+
+        // Award sticker for this level
+        const levelConfig = CONFIG.LEVELS[this.state.currentLevel];
+        if (levelConfig && levelConfig.sticker) {
+            const stickerInfo = CONFIG.STICKERS[levelConfig.sticker];
+            if (stickerInfo && !this.state.stickers.includes(levelConfig.sticker)) {
+                this.state.stickers.push(levelConfig.sticker);
+                this.ui.showToast(`${this.i18n.t('sticker_earned')} ${stickerInfo.emoji}`, 'success');
+            }
+        }
+
+        // Check if game complete (all levels done)
+        const totalLevels = CONFIG.GAME.TOTAL_LEVELS;
+        if (this.state.currentLevel >= totalLevels) {
+            // Game complete - unlock free mode
+            this.state.freePlayUnlocked = true;
+            this.saveProgress();
+            this.ui.showFreePlayButton(true);
+            setTimeout(() => {
+                this.ui.showToast(this.i18n.t('game_complete') || 'Game Complete! Free mode unlocked! 🎉', 'success');
+            }, 2000);
+        } else {
+            // Advance to next level after celebration
+            setTimeout(() => {
+                this.state.currentLevel++;
+                this.saveProgress();
+                this.setupLevel(this.state.currentLevel);
+                this.ui.showToast(`${this.i18n.t('level')} ${this.state.currentLevel}!`, 'info');
+            }, 2500);
+        }
     }
 
     /**
@@ -374,10 +456,14 @@ class ColorMixGame {
             if (saved) {
                 const data = JSON.parse(saved);
                 this.state.currentLevel = data.level || 1;
+                this.state.freePlayUnlocked = data.freePlayUnlocked || false;
+                this.state.stickers = data.stickers || [];
             }
         } catch {
             // Silent failure - localStorage may be unavailable or data corrupt
             this.state.currentLevel = 1;
+            this.state.freePlayUnlocked = false;
+            this.state.stickers = [];
         }
     }
 
@@ -388,6 +474,8 @@ class ColorMixGame {
         try {
             localStorage.setItem(CONFIG.STORAGE.PROGRESS, JSON.stringify({
                 level: this.state.currentLevel,
+                freePlayUnlocked: this.state.freePlayUnlocked,
+                stickers: this.state.stickers,
                 timestamp: Date.now()
             }));
         } catch {
@@ -400,10 +488,6 @@ class ColorMixGame {
      * Handles null checks and prevents double-destroy errors
      */
     destroy() {
-        // Clear cached elements first
-        this._cachedSlots = null;
-        this._cachedRects = null;
-
         // Destroy drag manager with null check
         if (this.drag && typeof this.drag.destroy === 'function') {
             try {
@@ -423,6 +507,19 @@ class ColorMixGame {
             }
         }
         this.ui = null;
+
+        // Clear MixingSystem
+        this.mixing = null;
+
+        // Destroy TutorialSystem with null check
+        if (this.tutorial && typeof this.tutorial.destroy === 'function') {
+            try {
+                this.tutorial.destroy();
+            } catch {
+                // Silent failure - tutorial system may already be destroyed
+            }
+        }
+        this.tutorial = null;
 
         // Clear remaining references
         this.i18n = null;

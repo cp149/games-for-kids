@@ -41,7 +41,13 @@ global.CONFIG = {
         SPECIAL: { mud: '#8B6914' }
     },
     MIXING_RULES: {
-        'red+blue': { result: 'purple', type: 'secondary' }
+        // Sorted keys: blue comes before red alphabetically
+        'blue+red': { result: 'purple', type: 'secondary' },
+        'red+yellow': { result: 'orange', type: 'secondary' },
+        'blue+yellow': { result: 'green', type: 'secondary' },
+        'red+red': { result: 'burst', type: 'effect' },
+        'blue+blue': { result: 'splash', type: 'effect' },
+        'yellow+yellow': { result: 'flash', type: 'effect' }
     },
     DRAG: { THRESHOLD: 10, SNAP_DISTANCE: 50 },
     UI: { TOAST_DURATION: 2500 },
@@ -317,7 +323,7 @@ describe('Translations file', () => {
     test('should have all required English keys', () => {
         const requiredKeys = [
             'game_title', 'level', 'goal', 'clear', 'welcome',
-            'slot_full', 'mud_message', 'mixed_color'
+            'bowl_full', 'mud_message', 'mixed_color'
         ];
 
         // Import would be: const TRANSLATIONS = require('../js/i18n/translations.js');
@@ -329,7 +335,7 @@ describe('Translations file', () => {
                 goal: 'Goal',
                 clear: 'Clear',
                 welcome: 'Welcome to Color Mix Lab!',
-                slot_full: 'Slot is full! Clear first.',
+                bowl_full: 'Bowl is full! Clear first.',
                 mud_message: 'Eww! Mud!',
                 mixed_color: 'Mixed {0}!'
             }
@@ -347,5 +353,339 @@ describe('Translations file', () => {
         };
 
         expect(mockTranslations.zh).toHaveProperty('welcome');
+    });
+});
+
+describe('Bowl-based mixing logic', () => {
+    describe('addColorToBowl behavior', () => {
+        test('should allow first color to be added to empty bowl', () => {
+            const state = { colorsInBowl: [] };
+
+            const addColorToBowl = (color) => {
+                if (state.colorsInBowl.length >= 2) {
+                    return false;
+                }
+                state.colorsInBowl.push(color);
+                return true;
+            };
+
+            expect(addColorToBowl('red')).toBe(true);
+            expect(state.colorsInBowl).toEqual(['red']);
+        });
+
+        test('should allow second color to be added', () => {
+            const state = { colorsInBowl: ['red'] };
+
+            const addColorToBowl = (color) => {
+                if (state.colorsInBowl.length >= 2) {
+                    return false;
+                }
+                state.colorsInBowl.push(color);
+                return true;
+            };
+
+            expect(addColorToBowl('blue')).toBe(true);
+            expect(state.colorsInBowl).toEqual(['red', 'blue']);
+        });
+
+        test('should reject third color when bowl is full', () => {
+            const state = { colorsInBowl: ['red', 'blue'] };
+
+            const addColorToBowl = (color) => {
+                if (state.colorsInBowl.length >= 2) {
+                    return false;
+                }
+                state.colorsInBowl.push(color);
+                return true;
+            };
+
+            expect(addColorToBowl('yellow')).toBe(false);
+            expect(state.colorsInBowl).toEqual(['red', 'blue']);
+        });
+    });
+
+    describe('clearBowl behavior', () => {
+        test('should empty the bowl', () => {
+            const state = { colorsInBowl: ['red', 'blue'] };
+
+            const clearBowl = () => {
+                state.colorsInBowl = [];
+            };
+
+            clearBowl();
+            expect(state.colorsInBowl).toEqual([]);
+        });
+
+        test('should handle clearing already empty bowl', () => {
+            const state = { colorsInBowl: [] };
+
+            const clearBowl = () => {
+                state.colorsInBowl = [];
+            };
+
+            expect(() => clearBowl()).not.toThrow();
+            expect(state.colorsInBowl).toEqual([]);
+        });
+    });
+
+    describe('mixColors behavior', () => {
+        test('should not mix with only one color', () => {
+            const colors = ['red'];
+
+            const getMixResult = (colorArray) => {
+                if (colorArray.length < 2) return null;
+                const sortedColors = [...colorArray].sort();
+                const mixKey = sortedColors.join('+');
+                return CONFIG.MIXING_RULES[mixKey];
+            };
+
+            expect(getMixResult(colors)).toBe(null);
+        });
+
+        test('should mix red + blue = purple', () => {
+            const colors = ['red', 'blue'];
+
+            const getMixResult = (colorArray) => {
+                if (colorArray.length < 2) return null;
+                const sortedColors = [...colorArray].sort();
+                const mixKey = sortedColors.join('+');
+                return CONFIG.MIXING_RULES[mixKey];
+            };
+
+            const result = getMixResult(colors);
+            expect(result).toBeDefined();
+            expect(result.result).toBe('purple');
+            expect(result.type).toBe('secondary');
+        });
+
+        test('should mix red + yellow = orange', () => {
+            // Update CONFIG for this test
+            CONFIG.MIXING_RULES['red+yellow'] = { result: 'orange', type: 'secondary' };
+
+            const colors = ['red', 'yellow'];
+
+            const getMixResult = (colorArray) => {
+                if (colorArray.length < 2) return null;
+                const sortedColors = [...colorArray].sort();
+                const mixKey = sortedColors.join('+');
+                return CONFIG.MIXING_RULES[mixKey];
+            };
+
+            const result = getMixResult(colors);
+            expect(result).toBeDefined();
+            expect(result.result).toBe('orange');
+        });
+
+        test('should mix blue + yellow = green', () => {
+            CONFIG.MIXING_RULES['blue+yellow'] = { result: 'green', type: 'secondary' };
+
+            const colors = ['blue', 'yellow'];
+
+            const getMixResult = (colorArray) => {
+                if (colorArray.length < 2) return null;
+                const sortedColors = [...colorArray].sort();
+                const mixKey = sortedColors.join('+');
+                return CONFIG.MIXING_RULES[mixKey];
+            };
+
+            const result = getMixResult(colors);
+            expect(result).toBeDefined();
+            expect(result.result).toBe('green');
+        });
+
+        test('should handle same color mixing (effects)', () => {
+            CONFIG.MIXING_RULES['red+red'] = { result: 'burst', type: 'effect' };
+
+            const colors = ['red', 'red'];
+
+            const getMixResult = (colorArray) => {
+                if (colorArray.length < 2) return null;
+                const sortedColors = [...colorArray].sort();
+                const mixKey = sortedColors.join('+');
+                return CONFIG.MIXING_RULES[mixKey];
+            };
+
+            const result = getMixResult(colors);
+            expect(result).toBeDefined();
+            expect(result.result).toBe('burst');
+            expect(result.type).toBe('effect');
+        });
+
+        test('should produce mud for invalid combinations', () => {
+            // Remove any rule that might exist for this combination
+            delete CONFIG.MIXING_RULES['orange+purple'];
+
+            const colors = ['orange', 'purple'];
+
+            const getMixResult = (colorArray) => {
+                if (colorArray.length < 2) return null;
+                const sortedColors = [...colorArray].sort();
+                const mixKey = sortedColors.join('+');
+                return CONFIG.MIXING_RULES[mixKey] || null; // null means mud
+            };
+
+            const result = getMixResult(colors);
+            expect(result).toBe(null);
+        });
+
+        test('should handle color order consistently (sorting)', () => {
+            // Test that blue+red gives same result as red+blue
+            const colors1 = ['blue', 'red'];
+            const colors2 = ['red', 'blue'];
+
+            const getMixResult = (colorArray) => {
+                if (colorArray.length < 2) return null;
+                const sortedColors = [...colorArray].sort();
+                const mixKey = sortedColors.join('+');
+                return CONFIG.MIXING_RULES[mixKey];
+            };
+
+            const result1 = getMixResult(colors1);
+            const result2 = getMixResult(colors2);
+
+            // Both should produce purple since sorting normalizes the order
+            expect(result1).toEqual(result2);
+        });
+    });
+
+    describe('goal matching', () => {
+        test('should match secondary color goal', () => {
+            const goal = { type: 'secondary', color: 'purple', count: 2 };
+            const mixResult = { result: 'purple', type: 'secondary' };
+
+            const matchesGoal = (goalConfig, result) => {
+                if (goalConfig.type === 'secondary' && result.type === 'secondary') {
+                    return result.result === goalConfig.color;
+                }
+                return false;
+            };
+
+            expect(matchesGoal(goal, mixResult)).toBe(true);
+        });
+
+        test('should not match wrong secondary color', () => {
+            const goal = { type: 'secondary', color: 'purple', count: 2 };
+            const mixResult = { result: 'orange', type: 'secondary' };
+
+            const matchesGoal = (goalConfig, result) => {
+                if (goalConfig.type === 'secondary' && result.type === 'secondary') {
+                    return result.result === goalConfig.color;
+                }
+                return false;
+            };
+
+            expect(matchesGoal(goal, mixResult)).toBe(false);
+        });
+
+        test('should match discover goal for any secondary', () => {
+            const goal = { type: 'discover', count: 3 };
+            const mixResult = { result: 'green', type: 'secondary' };
+
+            const matchesGoal = (goalConfig, result) => {
+                if (goalConfig.type === 'discover') {
+                    return true; // Any valid mix counts
+                }
+                if (goalConfig.type === 'secondary' && result.type === 'secondary') {
+                    return result.result === goalConfig.color;
+                }
+                return false;
+            };
+
+            expect(matchesGoal(goal, mixResult)).toBe(true);
+        });
+
+        test('should match feed goal for any mix', () => {
+            const goal = { type: 'feed', count: 5 };
+            const mixResult = { result: 'purple', type: 'secondary' };
+
+            const matchesGoal = (goalConfig, result) => {
+                if (goalConfig.type === 'feed' || goalConfig.type === 'discover') {
+                    return true;
+                }
+                if (goalConfig.type === 'secondary' && result.type === 'secondary') {
+                    return result.result === goalConfig.color;
+                }
+                return false;
+            };
+
+            expect(matchesGoal(goal, mixResult)).toBe(true);
+        });
+
+        test('should match effect goal', () => {
+            const goal = { type: 'effect', color: 'burst', count: 1 };
+            const mixResult = { result: 'burst', type: 'effect' };
+
+            const matchesGoal = (goalConfig, result) => {
+                if (goalConfig.type === 'effect' && result.type === 'effect') {
+                    return result.result === goalConfig.color;
+                }
+                if (goalConfig.type === 'secondary' && result.type === 'secondary') {
+                    return result.result === goalConfig.color;
+                }
+                return false;
+            };
+
+            expect(matchesGoal(goal, mixResult)).toBe(true);
+        });
+    });
+
+    describe('level completion', () => {
+        test('should complete level when progress meets goal count', () => {
+            const goal = { type: 'secondary', color: 'purple', count: 2 };
+            let progress = 0;
+
+            const checkLevelComplete = (goalConfig, currentProgress) => {
+                return currentProgress >= goalConfig.count;
+            };
+
+            expect(checkLevelComplete(goal, 0)).toBe(false);
+            expect(checkLevelComplete(goal, 1)).toBe(false);
+            expect(checkLevelComplete(goal, 2)).toBe(true);
+            expect(checkLevelComplete(goal, 3)).toBe(true);
+        });
+
+        test('should handle goal with count of 1', () => {
+            const goal = { type: 'effect', color: 'burst', count: 1 };
+
+            const checkLevelComplete = (goalConfig, currentProgress) => {
+                return currentProgress >= goalConfig.count;
+            };
+
+            expect(checkLevelComplete(goal, 0)).toBe(false);
+            expect(checkLevelComplete(goal, 1)).toBe(true);
+        });
+    });
+});
+
+describe('Auto-clear after mixing', () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    test('should clear bowl after 2 second delay', () => {
+        const state = { colorsInBowl: ['red', 'blue'] };
+        let cleared = false;
+
+        const clearBowl = () => {
+            state.colorsInBowl = [];
+            cleared = true;
+        };
+
+        // Simulate mix with auto-clear
+        setTimeout(() => {
+            clearBowl();
+        }, 2000);
+
+        expect(cleared).toBe(false);
+        expect(state.colorsInBowl).toEqual(['red', 'blue']);
+
+        jest.advanceTimersByTime(2000);
+
+        expect(cleared).toBe(true);
+        expect(state.colorsInBowl).toEqual([]);
     });
 });

@@ -8,15 +8,15 @@ const CONFIG = {
     GAME: {
         TARGET_AGE: '5-8',
         TOTAL_LEVELS: 5,
-        TOTAL_STICKERS: 6
+        TOTAL_STICKERS: 5
     },
 
     // Color definitions
     COLORS: {
         PRIMARY: {
-            red: '#FF4444',
-            blue: '#4477FF',
-            yellow: '#FFDD44'
+            red: '#FF6B6B',
+            blue: '#448AFF',
+            yellow: '#FFE66D'
         },
         SECONDARY: {
             purple: '#9944FF',
@@ -24,26 +24,29 @@ const CONFIG = {
             green: '#44DD44'
         },
         SPECIAL: {
-            mud: '#8B6914',
-            burst: '#FF6666',
-            splash: '#66AAFF',
-            flash: '#FFEE66'
+            mud: '#8B6914'
         }
     },
 
-    // Color mixing rules
+    // Color result emojis (for displaying mix results)
+    COLOR_EMOJIS: {
+        red: '🔴',
+        blue: '🔵',
+        yellow: '🟡',
+        orange: '🟠',
+        green: '🟢',
+        purple: '🟣',
+        mud: '💩'
+    },
+
+    // Color mixing rules - only A+B=C patterns (no same-color effects)
     MIXING_RULES: {
-        // Two different colors -> secondary
         'red+blue': { result: 'purple', type: 'secondary' },
         'blue+red': { result: 'purple', type: 'secondary' },
         'red+yellow': { result: 'orange', type: 'secondary' },
         'yellow+red': { result: 'orange', type: 'secondary' },
         'blue+yellow': { result: 'green', type: 'secondary' },
-        'yellow+blue': { result: 'green', type: 'secondary' },
-        // Same colors -> effects
-        'red+red': { result: 'burst', type: 'effect' },
-        'blue+blue': { result: 'splash', type: 'effect' },
-        'yellow+yellow': { result: 'flash', type: 'effect' }
+        'yellow+blue': { result: 'green', type: 'secondary' }
     },
 
     // UI settings
@@ -80,58 +83,66 @@ const CONFIG = {
         }
     },
 
-    // Level configurations - focused on color mixing learning
+    // Level configurations - 5 teaching levels + free mode
+    // Teaching Phase (1-3): Single success, learn each combination
+    // Mastery Phase (4-5): 3 successes, test learned combinations
     LEVELS: {
         1: {
-            name: 'make_purple',
-            availableColors: ['red', 'blue'],
-            goal: { type: 'secondary', color: 'purple', count: 2 },
-            slots: 2,
-            tutorial: true,
-            hint: 'Mix red and blue!'
-        },
-        2: {
             name: 'make_orange',
             availableColors: ['red', 'yellow'],
-            goal: { type: 'secondary', color: 'orange', count: 2 },
+            goal: { type: 'secondary', color: 'orange', count: 1 },
             slots: 2,
-            tutorial: false,
-            hint: 'Mix red and yellow!'
+            tutorial: 'handheld',
+            sticker: 'orange'
         },
-        3: {
+        2: {
             name: 'make_green',
             availableColors: ['blue', 'yellow'],
-            goal: { type: 'secondary', color: 'green', count: 2 },
+            goal: { type: 'secondary', color: 'green', count: 1 },
             slots: 2,
-            tutorial: false,
-            hint: 'Mix blue and yellow!'
+            tutorial: 'image',
+            sticker: 'leaf'
+        },
+        3: {
+            name: 'make_purple',
+            availableColors: ['red', 'blue'],
+            goal: { type: 'secondary', color: 'purple', count: 1 },
+            slots: 2,
+            tutorial: 'image',
+            sticker: 'grape'
         },
         4: {
-            name: 'all_colors',
+            name: 'orange_and_green',
             availableColors: ['red', 'blue', 'yellow'],
-            goal: { type: 'discover', count: 3 },
+            goal: { type: 'multiple', colors: ['orange', 'green'], count: 3 },
             slots: 2,
-            tutorial: false,
-            hint: 'Make any 3 mixed colors!'
+            tutorial: 'none',
+            sticker: 'rainbow'
         },
         5: {
-            name: 'color_master',
+            name: 'green_and_purple',
             availableColors: ['red', 'blue', 'yellow'],
-            goal: { type: 'feed', count: 5 },
+            goal: { type: 'multiple', colors: ['green', 'purple'], count: 3 },
             slots: 2,
-            tutorial: false,
-            hint: 'Feed the chameleon 5 colors!'
+            tutorial: 'none',
+            sticker: 'chameleon'
         }
     },
 
-    // Sticker definitions
+    // Free play mode configuration
+    FREE_MODE: {
+        enabled: true,
+        unlockAfter: 5,
+        availableColors: ['red', 'blue', 'yellow']
+    },
+
+    // Sticker definitions - earned after completing each level
     STICKERS: {
-        purple: { emoji: '🟣', name: 'purple' },
-        orange: { emoji: '🟠', name: 'orange' },
-        green: { emoji: '🟢', name: 'green' },
-        burst: { emoji: '💥', name: 'burst' },
-        splash: { emoji: '💦', name: 'splash' },
-        flash: { emoji: '⚡', name: 'flash' }
+        orange: { emoji: '🍊', name: 'orange', level: 1 },
+        leaf: { emoji: '🍀', name: 'leaf', level: 2 },
+        grape: { emoji: '🍇', name: 'grape', level: 3 },
+        rainbow: { emoji: '🌈', name: 'rainbow', level: 4 },
+        chameleon: { emoji: '🦎', name: 'chameleon', level: 5 }
     },
 
     // Storage keys

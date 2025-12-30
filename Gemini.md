@@ -1,4 +1,40 @@
-# Gemini Agent Usage Guide
+# Gemini Agent Guide
+
+## 🔗 Serena Memory 位置
+
+**项目知识库**: `.serena/memories/`
+
+```
+.serena/memories/
+├── game-development-lessons-2025-01.md   # 开发经验
+├── game-design-patterns.md               # 设计模式
+├── testing-strategy.md                   # 测试策略
+├── code-quality-checklist.md             # 质量检查
+├── *-architecture.md                     # 各游戏架构
+└── ...
+```
+
+**读取方式**: 直接 `read_file(".serena/memories/xxx.md")`
+
+---
+
+## 🤝 与 Claude/Serena 协作
+
+| 角色 | 职责 |
+|------|------|
+| **Gemini (你)** | 全局分析、架构决策、长 context 任务 |
+| **Claude** | 代码执行、日常开发、工具调用 |
+| **Serena** | 符号操作、精确编辑、知识持久化 |
+
+**工作流**:
+1. Claude 遇到需要全局理解的问题 → 调用你
+2. 你读取 `.serena/memories/` 获取项目上下文
+3. 你分析后返回建议
+4. 如有新知识需要记录 → 告诉 Claude → Claude 调用 `serena.write_memory`
+
+---
+
+## 📚 Sub-Agent 调用指南
 
 This document records the workflows for invoking specialized sub-agents within the Gemini CLI environment using the underlying `claude` tool.
 

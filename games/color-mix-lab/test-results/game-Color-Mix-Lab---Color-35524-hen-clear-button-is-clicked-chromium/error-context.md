@@ -1,0 +1,188 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: 🎮 Kids Games
+    - combobox "Select language" [ref=e4] [cursor=pointer]:
+      - option "🇺🇸 English" [selected]
+      - option "🇨🇳 中文"
+      - option "🇯🇵 日本語"
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - heading "Kids Game Collection" [level=1] [ref=e7]
+      - paragraph [ref=e8]: Fun and Educational Games for Children
+    - generic [ref=e9]:
+      - link "NEW 🐾 Animal Memory Match Match cute animal pairs and train your memory! Perfect for ages 3-8. ⏱️ 5 min 👶 3-8 ⭐ Easy" [ref=e10] [cursor=pointer]:
+        - /url: games/memory-match/index.html
+        - generic [ref=e11]:
+          - generic [ref=e12]: NEW
+          - generic [ref=e13]: 🐾
+        - generic [ref=e14]:
+          - heading "Animal Memory Match" [level=2] [ref=e15]
+          - paragraph [ref=e16]: Match cute animal pairs and train your memory! Perfect for ages 3-8.
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - generic [ref=e19]: ⏱️
+              - generic [ref=e20]: 5 min
+            - generic [ref=e21]:
+              - generic [ref=e22]: 👶
+              - generic [ref=e23]: 3-8
+            - generic [ref=e24]:
+              - generic [ref=e25]: ⭐
+              - generic [ref=e26]: Easy
+      - link "HOT 🏃 Runner Adventure Jump and run through exciting levels! Control with body movements. ⏱️ Endless 👶 5-10 ⭐ Medium" [ref=e27] [cursor=pointer]:
+        - /url: games/runner-adventure/index.html
+        - generic [ref=e28]:
+          - generic [ref=e29]: HOT
+          - generic [ref=e30]: 🏃
+        - generic [ref=e31]:
+          - heading "Runner Adventure" [level=2] [ref=e32]
+          - paragraph [ref=e33]: Jump and run through exciting levels! Control with body movements.
+          - generic [ref=e34]:
+            - generic [ref=e35]:
+              - generic [ref=e36]: ⏱️
+              - generic [ref=e37]: Endless
+            - generic [ref=e38]:
+              - generic [ref=e39]: 👶
+              - generic [ref=e40]: 5-10
+            - generic [ref=e41]:
+              - generic [ref=e42]: ⭐
+              - generic [ref=e43]: Medium
+      - link "NEW 🎨 Drawing Studio Create colorful drawings with magical tools and effects! ⏱️ Unlimited 👶 3-12 ⭐ Easy" [ref=e44] [cursor=pointer]:
+        - /url: games/drawing-studio/index.html
+        - generic [ref=e45]:
+          - generic [ref=e46]: NEW
+          - generic [ref=e47]: 🎨
+        - generic [ref=e48]:
+          - heading "Drawing Studio" [level=2] [ref=e49]
+          - paragraph [ref=e50]: Create colorful drawings with magical tools and effects!
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - generic [ref=e53]: ⏱️
+              - generic [ref=e54]: Unlimited
+            - generic [ref=e55]:
+              - generic [ref=e56]: 👶
+              - generic [ref=e57]: 3-12
+            - generic [ref=e58]:
+              - generic [ref=e59]: ⭐
+              - generic [ref=e60]: Easy
+      - link "NEW 🧩 Puzzle Master Turn any image into a fun puzzle! Load your drawings and solve them. ⏱️ 10-20 min 👶 4-12 ⭐ Variable" [ref=e61] [cursor=pointer]:
+        - /url: games/puzzle-master/index.html
+        - generic [ref=e62]:
+          - generic [ref=e63]: NEW
+          - generic [ref=e64]: 🧩
+        - generic [ref=e65]:
+          - heading "Puzzle Master" [level=2] [ref=e66]
+          - paragraph [ref=e67]: Turn any image into a fun puzzle! Load your drawings and solve them.
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - generic [ref=e70]: ⏱️
+              - generic [ref=e71]: 10-20 min
+            - generic [ref=e72]:
+              - generic [ref=e73]: 👶
+              - generic [ref=e74]: 4-12
+            - generic [ref=e75]:
+              - generic [ref=e76]: ⭐
+              - generic [ref=e77]: Variable
+      - link "NEW 🍎 Match Three Swap colorful fruits to match 3 or more! Classic puzzle fun for all ages. ⏱️ 5-10 min 👶 6-10 ⭐ Medium" [ref=e78] [cursor=pointer]:
+        - /url: games/match-three/index.html
+        - generic [ref=e79]:
+          - generic [ref=e80]: NEW
+          - generic [ref=e81]: 🍎
+        - generic [ref=e82]:
+          - heading "Match Three" [level=2] [ref=e83]
+          - paragraph [ref=e84]: Swap colorful fruits to match 3 or more! Classic puzzle fun for all ages.
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]: ⏱️
+              - generic [ref=e88]: 5-10 min
+            - generic [ref=e89]:
+              - generic [ref=e90]: 👶
+              - generic [ref=e91]: 6-10
+            - generic [ref=e92]:
+              - generic [ref=e93]: ⭐
+              - generic [ref=e94]: Medium
+      - link "NEW 🎵 Music Factory Create your own music by arranging sound blocks on a timeline! ⏱️ Unlimited 👶 6-12 ⭐ Easy" [ref=e95] [cursor=pointer]:
+        - /url: games/music-factory/index.html
+        - generic [ref=e96]:
+          - generic [ref=e97]: NEW
+          - generic [ref=e98]: 🎵
+        - generic [ref=e99]:
+          - heading "Music Factory" [level=2] [ref=e100]
+          - paragraph [ref=e101]: Create your own music by arranging sound blocks on a timeline!
+          - generic [ref=e102]:
+            - generic [ref=e103]:
+              - generic [ref=e104]: ⏱️
+              - generic [ref=e105]: Unlimited
+            - generic [ref=e106]:
+              - generic [ref=e107]: 👶
+              - generic [ref=e108]: 6-12
+            - generic [ref=e109]:
+              - generic [ref=e110]: ⭐
+              - generic [ref=e111]: Easy
+      - link "NEW ⚡ Chain Reaction Lab Solve puzzles with buttons, logic gates, and energy connections! ⏱️ 5-15 min 👶 8-12 ⭐ Medium-Hard" [ref=e112] [cursor=pointer]:
+        - /url: games/chain-reaction-lab/index.html
+        - generic [ref=e113]:
+          - generic [ref=e114]: NEW
+          - generic [ref=e115]: ⚡
+        - generic [ref=e116]:
+          - heading "Chain Reaction Lab" [level=2] [ref=e117]
+          - paragraph [ref=e118]: Solve puzzles with buttons, logic gates, and energy connections!
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - generic [ref=e121]: ⏱️
+              - generic [ref=e122]: 5-15 min
+            - generic [ref=e123]:
+              - generic [ref=e124]: 👶
+              - generic [ref=e125]: 8-12
+            - generic [ref=e126]:
+              - generic [ref=e127]: ⭐
+              - generic [ref=e128]: Medium-Hard
+      - link "HOT 🐍 Snake Adventure Smooth 360° snake game with AI opponents, combos, and power-ups! ⏱️ Endless 👶 6-12 ⭐ Medium" [ref=e129] [cursor=pointer]:
+        - /url: games/snake-adventure/index.html
+        - generic [ref=e130]:
+          - generic [ref=e131]: HOT
+          - generic [ref=e132]: 🐍
+        - generic [ref=e133]:
+          - heading "Snake Adventure" [level=2] [ref=e134]
+          - paragraph [ref=e135]: Smooth 360° snake game with AI opponents, combos, and power-ups!
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - generic [ref=e138]: ⏱️
+              - generic [ref=e139]: Endless
+            - generic [ref=e140]:
+              - generic [ref=e141]: 👶
+              - generic [ref=e142]: 6-12
+            - generic [ref=e143]:
+              - generic [ref=e144]: ⭐
+              - generic [ref=e145]: Medium
+      - link "NEW 🏁 Path Race Race against AI to find the perfect path! Learn algorithms while having fun. ⏱️ 2-5 min 👶 5-8 ⭐ Easy-Medium" [ref=e146] [cursor=pointer]:
+        - /url: games/path-race/index.html
+        - generic [ref=e147]:
+          - generic [ref=e148]: NEW
+          - generic [ref=e149]: 🏁
+        - generic [ref=e150]:
+          - heading "Path Race" [level=2] [ref=e151]
+          - paragraph [ref=e152]: Race against AI to find the perfect path! Learn algorithms while having fun.
+          - generic [ref=e153]:
+            - generic [ref=e154]:
+              - generic [ref=e155]: ⏱️
+              - generic [ref=e156]: 2-5 min
+            - generic [ref=e157]:
+              - generic [ref=e158]: 👶
+              - generic [ref=e159]: 5-8
+            - generic [ref=e160]:
+              - generic [ref=e161]: ⭐
+              - generic [ref=e162]: Easy-Medium
+    - contentinfo [ref=e163]:
+      - paragraph [ref=e164]: Made with love for kids around the world
+      - paragraph [ref=e165]: 9 games available, more coming soon!
+      - paragraph [ref=e166]:
+        - text: Images by
+        - link "Gemini" [ref=e167] [cursor=pointer]:
+          - /url: https://gemini.google/overview/image-generation/
+        - text: • Music by
+        - link "JenMusic" [ref=e168] [cursor=pointer]:
+          - /url: https://app.jenmusic.ai/
+```

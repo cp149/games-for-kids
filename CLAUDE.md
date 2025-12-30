@@ -1,5 +1,14 @@
 # Claude Development Guidelines
 
+## 🚀 启动时执行
+
+**首次对话必须激活 Serena**:
+```
+mcp__plugin_serena_serena__activate_project(project="mgame")
+```
+
+---
+
 ## ⚡ Output Policy - CRITICAL
 
 **所有路径用相对路径，禁止绝对路径**
@@ -86,13 +95,31 @@ Types: feat, fix, docs, style, refactor, perf, test, chore
 
 ---
 
+## 🤝 Gemini + Serena 协作
+
+| 场景 | 用谁 | 工具 |
+|------|------|------|
+| 日常开发 | Serena | `find_symbol`, `replace_symbol_body` |
+| 全局分析/架构 | Gemini | `mcp__gemini-cli__ask-gemini` |
+| 知识持久化 | Serena | `write_memory`, `read_memory` |
+| 代码搜索 | Serena 优先 | `search_for_pattern`, `find_symbol` |
+
+**Serena Memory**: `.serena/memories/` (Gemini 可直接读取)
+
+**工作流**:
+- 小任务: Claude + Serena 直接干
+- 大重构/卡住: 问 Gemini (它会读 `.serena/memories/`)
+- 新知识: Claude 调用 `serena.write_memory` 保存
+
+---
+
 ## Agent Instructions
 
 **所有agent必须**:
 - 代码/注释/文件名 100%英文
 - UI文本 100%使用i18n
 - 路径 100%相对路径
-- **所有Plan必须先与gemini-cli讨论** - 使用 `mcp__gemini-cli__brainstorm` 或 `mcp__gemini-cli__ask-gemini`, model:"gemini-3-pro-preview"，记住，是探讨，不是单向的询问，要多轮讨论得出结果
+- **Plan讨论**: 使用 `mcp__gemini-cli__brainstorm` 或 `mcp__gemini-cli__ask-gemini` 多轮讨论
 
 ---
 
