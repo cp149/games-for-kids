@@ -1,7 +1,7 @@
 ---
 name: game-director
 description: Game development workflow with triple-layer verification. Use when creating new games, adding features, or fixing bugs in HTML5 games. Keywords: game, html5, canvas, gamedev, create game, new game (project)
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, mcp__gemini-cli__*, mcp__plugin_serena_serena__*
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, mcp__gemini-cli__*, mcp__plugin_serena_serena__*, mcp__playwright__*
 ---
 
 # Game Development Workflow
@@ -12,15 +12,17 @@ You are a Game Director. Your **ultimate goal**: Make games **MORE FUN** and **M
 
 Coordinate Gemini (全局分析) + Serena (符号操作) + Agents (执行).
 
-## 🤝 三方协作架构
+## 🤝 四方协作架构
 
 | 角色 | 用途 | 工具 |
 |------|------|------|
 | **Gemini** | 全局分析、架构设计 | `mcp__gemini-cli__brainstorm/ask-gemini` |
 | **Serena** | 符号查找、精确编辑、知识存储 | `mcp__plugin_serena_serena__*` |
+| **Playwright** | 响应式测试、DOM验证、截图 | `mcp__playwright__*` |
 | **Agents** | 具体实现 | `Task(subagent_type=...)` |
 
 **Serena Memory**: `.serena/memories/` (Gemini 可直接读取)
+**Playwright 截图**: `claudedocs/` (供人工审核)
 
 ---
 
@@ -85,29 +87,79 @@ mcp__plugin_serena_serena__replace_symbol_body(...)
 npm test  # Must pass
 ```
 
+**Playwright 自动化测试** (AI can verify):
+```javascript
+// 前提: 本地服务器已启动 http://localhost:8000
+
+// 1. 响应式布局测试
+mcp__playwright__browser_navigate({ url: "http://localhost:8000/games/[game]/" })
+
+// 平板竖屏
+mcp__playwright__browser_resize({ width: 768, height: 1024 })
+mcp__playwright__browser_take_screenshot({ filename: "claudedocs/tablet-portrait.png" })
+
+// 平板横屏
+mcp__playwright__browser_resize({ width: 1024, height: 768 })
+mcp__playwright__browser_take_screenshot({ filename: "claudedocs/tablet-landscape.png" })
+
+// Windows 桌面
+mcp__playwright__browser_resize({ width: 1280, height: 720 })
+mcp__playwright__browser_take_screenshot({ filename: "claudedocs/windows-desktop.png" })
+
+// 2. DOM 结构验证
+mcp__playwright__browser_snapshot()  // 检查元素结构
+
+// 3. CSS 属性验证
+mcp__playwright__browser_evaluate({ function: `() => {
+  const el = document.querySelector('.interactive-element');
+  const styles = window.getComputedStyle(el);
+  return {
+    width: parseFloat(styles.width),
+    height: parseFloat(styles.height),
+    minTouchTarget: parseFloat(styles.width) >= 44
+  };
+}` })
+
+// 4. 控制台错误检查
+mcp__playwright__browser_console_messages({ level: "error" })
+
+// 5. 关闭浏览器
+mcp__playwright__browser_close()
+```
+
+**Playwright 可验证**:
+- ✅ 响应式布局截图 (各尺寸)
+- ✅ DOM 结构完整性
+- ✅ CSS 属性值 (尺寸、颜色等)
+- ✅ JavaScript 运行时状态
+- ✅ 控制台错误
+- ✅ 元素可见性
+
+**仍需人工验证**:
+- ❌ 动画流畅度 (主观感受)
+- ❌ 视觉美观度 (审美判断)
+- ❌ 触摸响应感 (物理设备)
+- ❌ 游戏"好玩"程度 (用户体验)
+
 **Visual** (Human must verify):
 ```
-"Tests passed. Please verify in browser:
-- [ ] Layout correct
-- [ ] Animations smooth
-- [ ] Colors match design"
+"Playwright 截图已生成。请确认:
+- [ ] 布局美观，符合设计
+- [ ] 动画流畅自然
+- [ ] 整体视觉协调"
 ```
 
-**Accessibility** (Human must verify on both platforms):
+**Accessibility** (Human must verify on real devices):
 ```
-"请在以下平台验证:
+"请在真实设备验证:
 
-Windows 桌面 (1280×720+):
+Windows 桌面:
 - [ ] 鼠标拖拽流畅
 - [ ] 键盘Tab导航正常
-- [ ] 布局美观，无溢出
 
-平板设备 (768×1024):
-- [ ] 竖屏布局正确
-- [ ] 横屏布局正确
-- [ ] 触摸拖拽响应
-- [ ] 按钮足够大 (>=44px)
-- [ ] 组件间距合理，不误触"
+平板设备 (iPad/Android):
+- [ ] 触摸拖拽响应灵敏
+- [ ] 无误触问题"
 ```
 
 ### 4. 保存知识 (Session End)
@@ -239,8 +291,11 @@ games/[game]/
 | 知识存储 | `mcp__plugin_serena_serena__write_memory` |
 | HTML/CSS | `Task(frontend-developer)` |
 | Game logic | `Task(game-mechanics-engineer)` |
-| Testing | `Task(qa-tester)` |
+| Unit Testing | `Task(qa-tester)` |
 | Performance | `Task(performance-optimizer)` |
+| **响应式测试** | `mcp__playwright__browser_resize/take_screenshot` |
+| **DOM验证** | `mcp__playwright__browser_snapshot/evaluate` |
+| **控制台检查** | `mcp__playwright__browser_console_messages` |
 
 ---
 
@@ -249,7 +304,8 @@ games/[game]/
 | Command | Action |
 |---------|--------|
 | 启动 | `activate_project` → `read_memory(相关)` |
-| New game | Gemini设计 → Serena查符号 → Agent实现 → npm test → Human verify → `write_memory` |
-| Add feature | Serena查现有代码 → Implement → npm test → Human verify |
-| Fix bug | Serena定位 → Fix → npm test |
+| New game | Gemini设计 → Serena查符号 → Agent实现 → npm test → Playwright验证 → Human verify → `write_memory` |
+| Add feature | Serena查现有代码 → Implement → npm test → Playwright截图 → Human verify |
+| Fix bug | Serena定位 → Fix → npm test → Playwright验证 |
+| **响应式测试** | `browser_navigate` → `browser_resize(各尺寸)` → `browser_take_screenshot` → `browser_close` |
 | 结束 | `write_memory` 保存新知识 |
