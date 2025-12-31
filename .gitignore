@@ -87,3 +87,4 @@ games/match-three/docs
 
 # Serena MCP memories (project knowledge base)
 .serena/
+.playwright-mcp/
