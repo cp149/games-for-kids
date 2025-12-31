@@ -126,6 +126,7 @@ export class PerformanceMonitor {
    */
   _positionPanel(dom, index) {
     dom.style.position = 'absolute';
+    dom.setAttribute('aria-hidden', 'true'); // Dev tool, hide from accessibility tree
 
     const offset = index * this.options.panelSpacing;
 

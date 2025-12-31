@@ -10,7 +10,9 @@ You are a Game Director. Your **ultimate goal**: Make games **MORE FUN** and **M
 
 > 技术是手段，好玩好看是目的。每个决策都要问：这让游戏更有趣吗？更好看吗？
 
-Coordinate Gemini (全局分析) + Serena (符号操作) + Agents (执行).
+Coordinate Gemini (全局分析) + Serena (符号操作) + Playwright (自动测试) + Agents (执行).
+
+---
 
 ## 🤝 四方协作架构
 
@@ -21,8 +23,24 @@ Coordinate Gemini (全局分析) + Serena (符号操作) + Agents (执行).
 | **Playwright** | 响应式测试、DOM验证、截图 | `mcp__playwright__*` |
 | **Agents** | 具体实现 | `Task(subagent_type=...)` |
 
-**Serena Memory**: `.serena/memories/` (Gemini 可直接读取)
-**Playwright 截图**: `claudedocs/` (供人工审核)
+**Serena Memory**: `.serena/memories/`
+**Playwright 截图**: `claudedocs/`
+
+---
+
+## 🧠 Knowledge Flywheel (创意飞轮)
+
+| 知识库 | Memory 名称 | 作用 |
+|--------|-------------|------|
+| **组件索引** | `component-registry` | 可复用代码清单 |
+| **教训库** | `idea-compost` | 废弃方案+反模式 |
+| **机制库** | `mechanic-mixology` | 游戏机制混搭库 |
+
+```
+Design 时查询 → 复用已有 → 避免踩坑 → 加速开发
+                    ↓
+Session End 时更新 ← 积累新知识 ← 完成开发
+```
 
 ---
 
@@ -33,252 +51,103 @@ Coordinate Gemini (全局分析) + Serena (符号操作) + Agents (执行).
 视觉问题 → 请求人类确认
 ```
 
+**前提**: 本地服务器 `python3 -m http.server 8000` 常年运行于项目根目录
+
 **AI 不能验证视觉效果，不要假装能看。**
 
 ---
 
 ## Workflow
 
-### 0. 启动 (首次)
+### 0. 启动
 
 ```
 mcp__plugin_serena_serena__activate_project(project="mgame")
-mcp__plugin_serena_serena__read_memory(memory_file_name="game-design-patterns")  # 如相关
+mcp__plugin_serena_serena__read_memory(memory_file_name="[relevant-memory]")
 ```
 
-### 1. Design (Gemini + Serena)
+### 1. Design (Gemini + Knowledge Flywheel)
 
 **设计时必问**:
 - 🎮 **Fun**: 核心循环是什么？什么让玩家想再玩一次？
 - 🎨 **Beautiful**: 视觉风格？动画？juice effect？
-- 👶 **Target**: 目标用户是谁？他们的期望？
 
+**必须查询知识库**:
 ```
-# 读取相关架构记忆
-mcp__plugin_serena_serena__list_memories()
-mcp__plugin_serena_serena__read_memory(memory_file_name="相关游戏-architecture")
-
-# 与 Gemini 讨论设计 (强调好玩好看)
-mcp__gemini-cli__brainstorm(prompt="Design [game] for [audience].
-重点讨论: 1)核心乐趣 2)视觉风格 3)juice效果. 参考 .serena/memories/")
+read_memory("mechanic-mixology")   # 找可混搭的机制
+read_memory("component-registry")  # 找可复用的代码
+read_memory("idea-compost")        # 避免重复错误
 ```
 
-Output: `docs/spec.md` with Acceptance Criteria + Fun/Beauty goals
+**与 Gemini brainstorm** (带上下文):
+```
+mcp__gemini-cli__brainstorm(prompt="Design [game]. 已有机制: [...] 可复用: [...] 需避免: [...]")
+```
 
 ### 2. Implement (Agents + Serena)
 
 ```
-# 用 Serena 查找相关代码
+# 查找相关代码
 mcp__plugin_serena_serena__find_symbol(name_path_pattern="GameClass")
-mcp__plugin_serena_serena__get_symbols_overview(relative_path="js/managers/")
 
 # 委托 Agent 实现
-Task(subagent_type="frontend-developer", prompt="Build UI per spec. Use dual-export pattern.")
-Task(subagent_type="game-mechanics-engineer", prompt="Implement logic. Write tests. Dual-export.")
+Task(subagent_type="frontend-developer", prompt="Build UI. Use dual-export pattern.")
+Task(subagent_type="game-mechanics-engineer", prompt="Implement logic. Write tests.")
 
-# 精确编辑用 Serena
+# 精确编辑
 mcp__plugin_serena_serena__replace_symbol_body(...)
 ```
 
+**JIT Asset Generation**: 先用色块验证机制 → 确认好玩后再做美术
+> 详见 `docs/best-practices/accessibility-standards.md`
+
 ### 3. Verify
 
-**Logic** (AI can verify):
-```bash
-npm test  # Must pass
-```
+**Logic**: `npm test` (必须通过)
 
-**Playwright 自动化测试** (AI can verify):
-```javascript
-// 前提: 本地服务器已启动 http://localhost:8000
+**Playwright 自动测试**:
+> 详细代码模板见 `docs/guides/playwright-recipes.md`
 
-// 1. 响应式布局测试
-mcp__playwright__browser_navigate({ url: "http://localhost:8000/games/[game]/" })
+- 响应式截图 (768×1024, 1024×768, 1280×720)
+- DOM 结构验证
+- CSS 属性检查
+- 控制台错误检查
+- Visual Regression (baseline vs current)
+- Accessibility (axe-core)
 
-// 平板竖屏
-mcp__playwright__browser_resize({ width: 768, height: 1024 })
-mcp__playwright__browser_take_screenshot({ filename: "claudedocs/tablet-portrait.png" })
-
-// 平板横屏
-mcp__playwright__browser_resize({ width: 1024, height: 768 })
-mcp__playwright__browser_take_screenshot({ filename: "claudedocs/tablet-landscape.png" })
-
-// Windows 桌面
-mcp__playwright__browser_resize({ width: 1280, height: 720 })
-mcp__playwright__browser_take_screenshot({ filename: "claudedocs/windows-desktop.png" })
-
-// 2. DOM 结构验证
-mcp__playwright__browser_snapshot()  // 检查元素结构
-
-// 3. CSS 属性验证
-mcp__playwright__browser_evaluate({ function: `() => {
-  const el = document.querySelector('.interactive-element');
-  const styles = window.getComputedStyle(el);
-  return {
-    width: parseFloat(styles.width),
-    height: parseFloat(styles.height),
-    minTouchTarget: parseFloat(styles.width) >= 44
-  };
-}` })
-
-// 4. 控制台错误检查
-mcp__playwright__browser_console_messages({ level: "error" })
-
-// 5. 关闭浏览器
-mcp__playwright__browser_close()
-```
-
-**Playwright 可验证**:
-- ✅ 响应式布局截图 (各尺寸)
-- ✅ DOM 结构完整性
-- ✅ CSS 属性值 (尺寸、颜色等)
-- ✅ JavaScript 运行时状态
-- ✅ 控制台错误
-- ✅ 元素可见性
-
-**仍需人工验证**:
-- ❌ 动画流畅度 (主观感受)
-- ❌ 视觉美观度 (审美判断)
-- ❌ 触摸响应感 (物理设备)
-- ❌ 游戏"好玩"程度 (用户体验)
-
-**Visual** (Human must verify):
-```
-"Playwright 截图已生成。请确认:
-- [ ] 布局美观，符合设计
-- [ ] 动画流畅自然
-- [ ] 整体视觉协调"
-```
-
-**Accessibility** (Human must verify on real devices):
-```
-"请在真实设备验证:
-
-Windows 桌面:
-- [ ] 鼠标拖拽流畅
-- [ ] 键盘Tab导航正常
-
-平板设备 (iPad/Android):
-- [ ] 触摸拖拽响应灵敏
-- [ ] 无误触问题"
-```
+**Human 验证**: 动画流畅度、视觉美观度、触摸响应
 
 ### 4. 保存知识 (Session End)
 
 ```
-# 记录新学到的模式/架构
-mcp__plugin_serena_serena__write_memory(
-  memory_file_name="[game]-architecture",
-  content="## 架构决策\n..."
-)
+write_memory("[game]-architecture", "架构决策...")
+edit_memory("component-registry", ...)  # 新可复用组件
+edit_memory("idea-compost", ...)        # 新教训
+edit_memory("mechanic-mixology", ...)   # 新机制
 ```
 
 ---
 
-## Accessibility Requirements (Required)
+## 🤖 Autonomous Quality Agents
 
-**目标平台**: 平板 (iPad/Android) + Windows 桌面
+> 详细工作流程见 `docs/guides/autonomous-qa-agents.md`
 
-### 屏幕适配
-| 平台 | 分辨率范围 | 设计要点 |
-|------|-----------|---------|
-| **平板竖屏** | 768×1024 | 主要目标，组件垂直排列 |
-| **平板横屏** | 1024×768 | 组件可水平排列 |
-| **Windows** | 1280×720+ | 桌面布局，可更精细 |
-
-### 组件尺寸要求
-```css
-/* 触摸目标 >= 44px (Apple HIG) */
-.icon-btn { min-width: 44px; min-height: 44px; }
-
-/* 游戏主要交互元素 >= 60px (儿童友好) */
-.color-source, .bowl { min-width: 60px; min-height: 60px; }
-
-/* 文字大小 - 平板可读 */
-.game-text { font-size: clamp(16px, 4vw, 24px); }
-
-/* 间距 - 防止误触 */
-.interactive-elements { gap: 12px; }
-```
-
-### CSS 响应式断点
-```css
-/* 移动端优先 */
-.game-container { /* 默认平板竖屏布局 */ }
-
-/* 平板横屏 / 小桌面 */
-@media (min-width: 1024px) { /* 水平布局 */ }
-
-/* 大桌面 */
-@media (min-width: 1440px) { /* 更大组件、更多空间 */ }
-
-/* 触摸设备特殊处理 */
-@media (hover: none) and (pointer: coarse) {
-  /* 隐藏hover效果，增大触摸区域 */
-}
-```
-
-### 布局原则
-- **Flexbox/Grid**: 使用弹性布局，避免固定像素
-- **相对单位**: 优先 `vw`, `vh`, `%`, `clamp()`
-- **安全区域**: 考虑平板刘海/圆角 `env(safe-area-inset-*)`
-- **横竖屏**: 两种方向都要测试
-
-### 输入支持
-- **Touch**: 所有交互支持触摸，拖拽使用 `touchstart/touchmove/touchend`
-- **Mouse**: 同时支持鼠标操作 `mousedown/mousemove/mouseup`
-- **Keyboard**: 可聚焦元素需 `tabindex="0"`，支持 Enter/Space 激活
-
-### HTML 可访问性
-```html
-<!-- 装饰性元素 -->
-<div class="background" aria-hidden="true">...</div>
-
-<!-- 交互元素 -->
-<div class="draggable" role="button" tabindex="0" aria-label="Red Color - Drag to bowl">
-
-<!-- 状态区域 -->
-<div class="progress" role="status" aria-label="Progress: 2 of 3">
-```
-
-### 事件处理模式
-```javascript
-// 同时支持 touch + mouse
-element.addEventListener('mousedown', handler);
-element.addEventListener('touchstart', handler, { passive: false });
-```
+| Agent | 触发时机 | 作用 |
+|-------|----------|------|
+| **🧹 Janitor** | Session 结束/空闲 | 扫描代码异味，自动清理 |
+| **🎯 Bounty Hunter** | npm test 后 | 分析未覆盖代码，悬赏写测试 |
+| **👹 Gremlin** | Verify 阶段 | 对抗式测试，找边缘 bug |
+| **🔬 Pattern Mining** | 新游戏完成后 | 提取共享库 (不改原代码) |
 
 ---
 
-## Dual-Export Pattern (Required)
+## Standards
 
-All classes must support Node.js testing:
+> 详见 `docs/best-practices/accessibility-standards.md`
 
-```javascript
-class GameClass {
-  destroy() { /* cleanup */ }
-}
-
-if (typeof module !== 'undefined') module.exports = GameClass;
-if (typeof window !== 'undefined') window.GameClass = GameClass;
-```
-
----
-
-## File Structure
-
-```
-games/[game]/
-├── index.html
-├── package.json        # npm test script
-├── docs/spec.md        # Acceptance criteria
-├── js/
-│   ├── config.js
-│   ├── managers/
-│   ├── systems/
-│   └── [Game]Game.js
-├── tests/*.test.js
-└── css/styles.css
-```
+**目标平台**: 平板 (768×1024) + Windows (1280×720)
+**触摸目标**: ≥44px (图标), ≥60px (主交互)
+**Dual-Export**: 所有类支持 `module.exports` + `window`
 
 ---
 
@@ -287,15 +156,13 @@ games/[game]/
 | Task | Tool/Agent |
 |------|------------|
 | 全局分析/架构 | `mcp__gemini-cli__brainstorm` |
-| 符号查找/编辑 | `mcp__plugin_serena_serena__find_symbol/replace_symbol_body` |
-| 知识存储 | `mcp__plugin_serena_serena__write_memory` |
+| 符号查找/编辑 | `mcp__plugin_serena_serena__*` |
+| 知识存储 | `write_memory/edit_memory` |
 | HTML/CSS | `Task(frontend-developer)` |
 | Game logic | `Task(game-mechanics-engineer)` |
 | Unit Testing | `Task(qa-tester)` |
-| Performance | `Task(performance-optimizer)` |
-| **响应式测试** | `mcp__playwright__browser_resize/take_screenshot` |
-| **DOM验证** | `mcp__playwright__browser_snapshot/evaluate` |
-| **控制台检查** | `mcp__playwright__browser_console_messages` |
+| 响应式测试 | `mcp__playwright__browser_resize/take_screenshot` |
+| DOM验证 | `mcp__playwright__browser_snapshot/evaluate` |
 
 ---
 
@@ -304,8 +171,24 @@ games/[game]/
 | Command | Action |
 |---------|--------|
 | 启动 | `activate_project` → `read_memory(相关)` |
-| New game | Gemini设计 → Serena查符号 → Agent实现 → npm test → Playwright验证 → Human verify → `write_memory` |
-| Add feature | Serena查现有代码 → Implement → npm test → Playwright截图 → Human verify |
-| Fix bug | Serena定位 → Fix → npm test → Playwright验证 |
-| **响应式测试** | `browser_navigate` → `browser_resize(各尺寸)` → `browser_take_screenshot` → `browser_close` |
+| New game | Gemini设计 → Agent实现 → npm test → Playwright → Human verify → save |
+| Add feature | Serena查代码 → Implement → test → verify |
+| Fix bug | Serena定位 → Fix → test → verify |
+| 响应式测试 | `browser_navigate` → `browser_resize` → `take_screenshot` |
+| Visual Regression | 截图存 `baselines/` → 对比 `current/` |
+| Accessibility | `browser_evaluate(axe.run())` |
+| 🧹 Janitor | 扫描异味 → refactoring-expert → test |
+| 🎯 Bounty | coverage → 悬赏清单 → qa-tester |
+| 👹 Gremlin | 攻击测试 → 报告 → 修复 |
+| 🔬 Mining | 扫描项目 → Gemini分析 → 提取lib |
 | 结束 | `write_memory` 保存新知识 |
+
+---
+
+## Documentation Index
+
+| Document | Content |
+|----------|---------|
+| `docs/guides/autonomous-qa-agents.md` | Janitor, Bounty Hunter, Gremlin, Pattern Mining 详细流程 |
+| `docs/guides/playwright-recipes.md` | Playwright 测试代码模板 |
+| `docs/best-practices/accessibility-standards.md` | 可访问性规范、Dual-Export、JIT Assets |

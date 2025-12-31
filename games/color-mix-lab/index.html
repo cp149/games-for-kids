@@ -7,6 +7,7 @@
     <meta name="description" content="Mix colors, feed the chameleon, and discover the rainbow! Educational game for ages 5-8.">
 
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
 
     <!-- Stats.js for performance monitoring (dev only) -->
     <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
@@ -21,8 +22,9 @@
         <div class="leaf leaf-1">🍃</div>
     </div>
 
-    <div id="game-container" class="game-container">
+    <main id="game-container" class="game-container">
         <!-- Header Area: Settings, Sound, Sticker Book, Free Play -->
+        <h1 class="visually-hidden">Color Mix Lab - Learn Colors Through Play</h1>
         <header class="header-area">
             <button class="icon-btn sticker-book-btn" aria-label="Sticker Book">
                 <span class="icon-sticker" aria-hidden="true">📖</span>
@@ -84,7 +86,7 @@
                 <div class="color-pattern pattern-dots" aria-hidden="true"></div>
             </div>
         </section>
-    </div>
+    </main>
 
     <!-- ES Module entry point -->
     <script type="module">

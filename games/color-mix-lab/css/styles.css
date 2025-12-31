@@ -4,6 +4,19 @@
  * Target: Kids ages 5-8 (and everyone who loves joy)
  */
 
+/* ===== Accessibility Utilities ===== */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ===== CSS Variables (Juicy Design Tokens) ===== */
 :root {
   /* Primary Colors - Extra Vibrant */
@@ -3070,12 +3083,12 @@ body::after {
 
 @keyframes hint-pulse {
   0%, 100% {
-    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     filter: brightness(1);
   }
   50% {
-    transform: scale(1.1);
-    filter: brightness(1.3);
+    box-shadow: 0 4px 25px rgba(255, 200, 0, 0.6), 0 0 40px rgba(255, 150, 0, 0.4);
+    filter: brightness(1.2);
   }
 }
 
