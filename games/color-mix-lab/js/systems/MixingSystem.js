@@ -5,6 +5,7 @@
  */
 
 import { CONFIG } from '../config.js';
+import { ColorMixEngine } from './ColorMixEngine.js';
 
 export class MixingSystem {
     /**
@@ -15,16 +16,21 @@ export class MixingSystem {
         this.config = config || CONFIG;
         this.colorsInBowl = [];
         this.maxColors = 2;
+        
+        // Use dynamic color mixing engine
+        this.colorEngine = new ColorMixEngine();
     }
 
     /**
      * Add color to the mixing bowl
-     * @param {string} color - Color name (red, blue, yellow)
+     * Supports both primary colors and mixed color results (for chain mixing)
+     * @param {string|Object} color - Color name or color result object with ryb values
      * @returns {Object} Result object with success, colorsInBowl, and optional mixResult
      */
     addColor(color) {
-        // Validate color
-        if (!color || !this.isValidPrimaryColor(color)) {
+        // Validate color - accept any known color (for chain mixing)
+        const colorName = this.normalizeColorInput(color);
+        if (!colorName) {
             return {
                 success: false,
                 reason: 'invalid_color',
@@ -41,13 +47,13 @@ export class MixingSystem {
             };
         }
 
-        // Add color
+        // Add color (store the full color info for chain mixing)
         this.colorsInBowl.push(color);
 
         const result = {
             success: true,
             colorsInBowl: [...this.colorsInBowl],
-            colorHex: this.getPrimaryColorHex(color),
+            colorHex: this.getColorHex(color),
             mixed: false,
             mixResult: null
         };
@@ -62,7 +68,36 @@ export class MixingSystem {
     }
 
     /**
-     * Mix colors currently in the bowl
+     * Normalize color input to a usable format
+     * @param {string|Object} color - Color name or color result object
+     * @returns {string|null} Normalized color name or null if invalid
+     */
+    normalizeColorInput(color) {
+        if (!color) return null;
+        
+        // If it's a string, check if it's a known color
+        if (typeof color === 'string') {
+            if (this.colorEngine.COLOR_NAMES[color.toLowerCase()]) {
+                return color.toLowerCase();
+            }
+            return null;
+        }
+        
+        // If it's an object with ryb values (from previous mix)
+        if (color.ryb) {
+            return color.result || 'mixed';
+        }
+        
+        // If it's an object with a result property
+        if (color.result && this.colorEngine.COLOR_NAMES[color.result]) {
+            return color.result;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Mix colors currently in the bowl using dynamic RYB mixing
      * @returns {Object|null} Mix result or null if cannot mix
      */
     mix() {
@@ -70,38 +105,17 @@ export class MixingSystem {
             return null;
         }
 
-        const colors = this.colorsInBowl;
-        const sortedColors = [...colors].sort();
-        const mixKey = sortedColors.join('+');
-
-        const rule = this.config.MIXING_RULES[mixKey];
-
-        if (rule) {
-            const resultHex = rule.type === 'secondary'
-                ? this.config.COLORS.SECONDARY[rule.result]
-                : this.config.COLORS.SPECIAL[rule.result];
-
-            // Use COLOR_EMOJIS for result display (not STICKERS which are level rewards)
-            const emoji = this.config.COLOR_EMOJIS?.[rule.result] || '✨';
-
-            return {
-                result: rule.result,
-                type: rule.type,
-                resultHex: resultHex,
-                emoji: emoji,
-                inputColors: [...colors]
-            };
+        // Use ColorMixEngine for dynamic mixing
+        const mixResult = this.colorEngine.mix(this.colorsInBowl);
+        
+        if (mixResult) {
+            // Store original input colors for display
+            mixResult.inputColors = [...this.colorsInBowl].map(c => 
+                typeof c === 'string' ? c : c.result
+            );
         }
 
-        // Unknown combination = mud
-        const mudEmoji = this.config.COLOR_EMOJIS?.mud || '💩';
-        return {
-            result: 'mud',
-            type: 'mud',
-            resultHex: this.config.COLORS.SPECIAL.mud,
-            emoji: mudEmoji,
-            inputColors: [...colors]
-        };
+        return mixResult;
     }
 
     /**
@@ -127,14 +141,14 @@ export class MixingSystem {
             success: true,
             removedColor,
             remainingColor,
-            remainingColorHex: remainingColor ? this.getPrimaryColorHex(remainingColor) : null,
+            remainingColorHex: remainingColor ? this.getColorHex(remainingColor) : null,
             bowlEmpty: this.colorsInBowl.length === 0
         };
     }
 
     /**
      * Get copy of colors currently in bowl
-     * @returns {string[]} Array of color names
+     * @returns {Array} Array of color names or objects
      */
     getColorsInBowl() {
         return [...this.colorsInBowl];
@@ -165,7 +179,33 @@ export class MixingSystem {
     }
 
     /**
-     * Get hex value for primary color
+     * Get hex value for any color (primary, secondary, or mixed)
+     * @param {string|Object} color - Color name or color object
+     * @returns {string|null} Hex value or null if not found
+     */
+    getColorHex(color) {
+        if (!color) return null;
+        
+        // If it's a string, look it up in the engine
+        if (typeof color === 'string') {
+            return this.colorEngine.getHex(color);
+        }
+        
+        // If it's an object with resultHex
+        if (color.resultHex) {
+            return color.resultHex;
+        }
+        
+        // If it's an object with ryb, calculate hex
+        if (color.ryb) {
+            return this.colorEngine.rybToHex(color.ryb);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get hex value for primary color (backward compatibility)
      * @param {string} color - Color name
      * @returns {string|null} Hex value or null if not found
      */
@@ -183,6 +223,15 @@ export class MixingSystem {
     }
 
     /**
+     * Check if color is valid for mixing (any known color)
+     * @param {string|Object} color - Color name or color object
+     * @returns {boolean} True if valid for mixing
+     */
+    isValidColor(color) {
+        return this.normalizeColorInput(color) !== null;
+    }
+
+    /**
      * Get current bowl color hex (for single color display)
      * @returns {string|null} Hex value or null if empty/full
      */
@@ -193,11 +242,12 @@ export class MixingSystem {
         if (this.colorsInBowl.length >= 2) {
             return null; // Use mix result instead
         }
-        return this.getPrimaryColorHex(this.colorsInBowl[0]);
+        return this.getColorHex(this.colorsInBowl[0]);
     }
 
     /**
      * Check if mix result matches level goal
+     * Uses dynamic color matching with tolerance
      * @param {Object} goal - Goal configuration
      * @param {Object} mixResult - Result from mix()
      * @returns {boolean} True if result matches goal
@@ -207,27 +257,37 @@ export class MixingSystem {
             return false;
         }
 
-        // Mud never matches
-        if (mixResult.type === 'mud') {
-            return false;
-        }
-
+        // All colors can potentially match - use RYB distance, not type
         switch (goal.type) {
             case 'secondary':
-                return mixResult.type === 'secondary' && mixResult.result === goal.color;
+            case 'tertiary':
+            case 'mixed':
+                // Use RYB distance matching - any color close enough matches
+                if (mixResult.ryb) {
+                    return this.colorEngine.matchesTarget(mixResult, goal.color, 0.2);
+                }
+                // Fallback: exact name match
+                return mixResult.result === goal.color;
 
             case 'effect':
-                return mixResult.type === 'effect' && mixResult.result === goal.color;
+                // Effects still use name matching (e.g., special named effects)
+                return mixResult.result === goal.color;
 
             case 'multiple':
-                return mixResult.type === 'secondary' &&
-                       goal.colors &&
-                       goal.colors.includes(mixResult.result);
+                // Check if result matches any of the goal colors
+                if (!goal.colors) return false;
+                if (mixResult.ryb) {
+                    return goal.colors.some(targetColor => 
+                        this.colorEngine.matchesTarget(mixResult, targetColor, 0.2)
+                    );
+                }
+                // Fallback: exact name match
+                return goal.colors.includes(mixResult.result);
 
             case 'discover':
             case 'feed':
-                // Any valid mix counts
-                return mixResult.type !== 'mud';
+                // Any mix counts - no type restriction
+                return true;
 
             default:
                 return false;
@@ -242,6 +302,14 @@ export class MixingSystem {
      */
     isLevelComplete(goal, progress) {
         return goal && progress >= goal.count;
+    }
+
+    /**
+     * Get the color engine for advanced operations
+     * @returns {ColorMixEngine}
+     */
+    getColorEngine() {
+        return this.colorEngine;
     }
 }
 

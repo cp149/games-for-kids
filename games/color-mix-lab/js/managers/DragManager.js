@@ -10,9 +10,11 @@ export class DragManager {
         this.options = {
             threshold: CONFIG.DRAG.THRESHOLD,
             snapDistance: CONFIG.DRAG.SNAP_DISTANCE,
+            dragYOffset: CONFIG.DRAG.DRAG_Y_OFFSET || -40,  // Ghost dragging: ball above finger
             onDragStart: options.onDragStart || (() => {}),
             onDragMove: options.onDragMove || (() => {}),
-            onDragEnd: options.onDragEnd || (() => {})
+            onDragEnd: options.onDragEnd || (() => {}),
+            onTap: options.onTap || (() => {})  // Called when click without drag
         };
 
         this.dragState = {
@@ -27,6 +29,10 @@ export class DragManager {
             originalParent: null,
             clone: null
         };
+
+        // Track last interaction to prevent double-triggering
+        this._lastTapTime = 0;
+        this._tapDebounceMs = 300;
 
         this.eventListeners = new Map();
         this.lastMoveTime = 0;
@@ -85,17 +91,39 @@ export class DragManager {
             touchStart
         });
 
-        // Keyboard accessibility
+        // Keyboard accessibility (with debounce)
         const keyDown = (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                this.options.onDragStart(element, data);
+                const now = Date.now();
+                if (now - this._lastTapTime < this._tapDebounceMs) {
+                    return;
+                }
+                this._lastTapTime = now;
+                this.options.onTap(element, data);
             }
         };
         element.addEventListener('keydown', keyDown);
+
+        // Click = tap (if no drag happened, with debounce)
+        const click = (e) => {
+            const now = Date.now();
+            // Debounce to prevent double-triggering
+            if (now - this._lastTapTime < this._tapDebounceMs) {
+                return;
+            }
+            // Only call onTap if we didn't actually drag
+            if (!this.dragState.isDragging) {
+                this._lastTapTime = now;
+                this.options.onTap(element, data);
+            }
+        };
+        element.addEventListener('click', click);
+
         this.eventListeners.set(element, {
             ...this.eventListeners.get(element),
-            keyDown
+            keyDown,
+            click
         });
     }
 
@@ -193,8 +221,9 @@ export class DragManager {
         this.lastMoveTime = now;
 
         // Update position using GPU-accelerated transform
+        // Ghost dragging: ball appears above finger so user can see where they're dropping
         const x = this.dragState.currentX - this.dragState.offsetX;
-        const y = this.dragState.currentY - this.dragState.offsetY;
+        const y = this.dragState.currentY - this.dragState.offsetY + this.options.dragYOffset;
 
         if (this.dragState.clone) {
             this.dragState.clone.style.transform = `translate3d(${x}px, ${y}px, 0)`;

@@ -183,6 +183,132 @@ export class EffectsManager {
         }
     }
 
+
+    /**
+     * Show emoji particle burst celebration
+     * @param {string[]} emojis - Array of emojis to burst
+     * @param {string} colorHex - Color for glow effect
+     */
+    showParticleBurst(emojis, colorHex) {
+        if (!emojis || emojis.length === 0) return;
+
+        // Get bowl center as burst origin
+        const bowl = this.elements?.bowl;
+        const centerX = bowl ? bowl.offsetLeft + bowl.offsetWidth / 2 : window.innerWidth / 2;
+        const centerY = bowl ? bowl.offsetTop + bowl.offsetHeight / 2 : window.innerHeight / 2;
+
+        const particleCount = 12;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'emoji-particle';
+            particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+
+            // Position at burst center
+            particle.style.cssText = `
+                position: fixed;
+                left: ${centerX}px;
+                top: ${centerY}px;
+                font-size: ${24 + Math.random() * 16}px;
+                pointer-events: none;
+                z-index: 2999;
+                transform: translate(-50%, -50%);
+                animation: emoji-burst 1.2s ease-out forwards;
+                text-shadow: 0 0 10px ${colorHex}, 0 0 20px ${colorHex};
+            `;
+
+            // Random burst direction
+            const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.5;
+            const distance = 80 + Math.random() * 80;
+            const burstX = Math.cos(angle) * distance;
+            const burstY = Math.sin(angle) * distance - 40; // Slight upward bias
+            particle.style.setProperty('--burst-x', burstX + 'px');
+            particle.style.setProperty('--burst-y', burstY + 'px');
+            particle.style.setProperty('--burst-rotation', (Math.random() * 360) + 'deg');
+
+            document.body.appendChild(particle);
+            this._setTimeout(() => particle.remove(), 1500);
+        }
+    }
+
+    /**
+     * Show bubble pop effect when clear button is pressed
+     * @param {HTMLElement} originElement - Element to burst from
+     * @param {number} count - Number of bubbles (default 8)
+     */
+    showBubblePop(originElement, count = 8) {
+        if (!originElement) return;
+
+        const rect = originElement.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        for (let i = 0; i < count; i++) {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble-particle';
+
+            // Random position around center
+            const angle = (i / count) * Math.PI * 2;
+            const offsetX = Math.cos(angle) * (20 + Math.random() * 30);
+            const offsetY = Math.sin(angle) * (20 + Math.random() * 30);
+
+            // Random size
+            const size = 12 + Math.random() * 16;
+
+            bubble.style.cssText = `
+                left: ${centerX + offsetX}px;
+                top: ${centerY + offsetY}px;
+                width: ${size}px;
+                height: ${size}px;
+                animation-duration: ${0.6 + Math.random() * 0.4}s;
+                animation-delay: ${Math.random() * 0.1}s;
+            `;
+
+            document.body.appendChild(bubble);
+            this._setTimeout(() => bubble.remove(), 1200);
+        }
+    }
+
+    /**
+     * Show floating combo text effect
+     * @param {string} text - Text to display (e.g., "+1 🎨")
+     * @param {HTMLElement} originElement - Element to float from
+     */
+    showComboText(text, originElement) {
+        if (!originElement || !text) return;
+
+        const rect = originElement.getBoundingClientRect();
+        const comboEl = document.createElement('div');
+        comboEl.className = 'combo-text';
+        comboEl.textContent = text;
+
+        comboEl.style.cssText = `
+            left: ${rect.left + rect.width / 2}px;
+            top: ${rect.top}px;
+            transform: translateX(-50%);
+        `;
+
+        document.body.appendChild(comboEl);
+        this._setTimeout(() => comboEl.remove(), 1200);
+    }
+
+    /**
+     * Trigger bowl jelly impact animation
+     */
+    triggerBowlJelly() {
+        const bowl = this.elements?.bowl;
+        if (!bowl) return;
+
+        // Remove if already animating
+        bowl.classList.remove('jelly-impact');
+
+        // Force reflow to restart animation
+        void bowl.offsetWidth;
+
+        bowl.classList.add('jelly-impact');
+        this._setTimeout(() => bowl.classList.remove('jelly-impact'), 500);
+    }
+
     /**
      * Show swirl animation in bowl
      * @param {string} color - CSS color value

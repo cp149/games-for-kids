@@ -53,7 +53,22 @@ export class AudioManager {
             // Chameleon reaction sounds
             chameleon_happy: { frequency: 659.25, duration: 0.2, type: 'sine' },   // E5 - happy chirp
             chameleon_sad: { frequency: 196.00, duration: 0.3, type: 'triangle' }, // G3 - sad wah
-            chameleon_confused: { frequency: 349.23, duration: 0.25, type: 'square' } // F4 - confused
+            chameleon_confused: { frequency: 349.23, duration: 0.25, type: 'square' }, // F4 - confused
+            chameleon_eat: { frequency: 523.25, duration: 0.25, type: 'sine', arpeggio: true }, // C5 - nom nom
+
+            // Mixed color pickup sounds (secondary colors)
+            pickup_orange: { frequency: 329.63, duration: 0.15, type: 'sine' },   // E4 - warm
+            pickup_green: { frequency: 349.23, duration: 0.15, type: 'triangle' }, // F4 - fresh
+            pickup_purple: { frequency: 369.99, duration: 0.15, type: 'sine' },   // F#4 - magical
+            pickup_brown: { frequency: 220.00, duration: 0.15, type: 'sawtooth' }, // A3 - earthy
+            pickup_mixed: { frequency: 392.00, duration: 0.15, type: 'sine' },    // G4 - generic mixed
+
+            // Mixed color drop sounds
+            drop_orange: { frequency: 369.99, duration: 0.2, type: 'sine' },      // F#4
+            drop_green: { frequency: 392.00, duration: 0.2, type: 'triangle' },   // G4
+            drop_purple: { frequency: 415.30, duration: 0.2, type: 'sine' },      // G#4
+            drop_brown: { frequency: 246.94, duration: 0.2, type: 'sawtooth' },   // B3
+            drop_mixed: { frequency: 440.00, duration: 0.2, type: 'sine' }        // A4 - generic mixed
         };
 
         // Web Audio API context (created lazily)

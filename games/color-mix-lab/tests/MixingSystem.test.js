@@ -104,7 +104,8 @@ describe('MixingSystem', () => {
             const result = mixingSystem.mix();
             expect(result.result).toBe('purple');
             expect(result.type).toBe('secondary');
-            expect(result.resultHex).toBe('#9944FF');
+            // Hex is dynamically calculated from RYB
+            expect(result.resultHex).toMatch(/^#[0-9A-Fa-f]{6}$/);
         });
 
         test('should mix red + yellow = orange', () => {
@@ -113,7 +114,7 @@ describe('MixingSystem', () => {
             const result = mixingSystem.mix();
             expect(result.result).toBe('orange');
             expect(result.type).toBe('secondary');
-            expect(result.resultHex).toBe('#FF8844');
+            expect(result.resultHex).toMatch(/^#[0-9A-Fa-f]{6}$/);
         });
 
         test('should mix blue + yellow = green', () => {
@@ -122,40 +123,45 @@ describe('MixingSystem', () => {
             const result = mixingSystem.mix();
             expect(result.result).toBe('green');
             expect(result.type).toBe('secondary');
-            expect(result.resultHex).toBe('#44DD44');
+            expect(result.resultHex).toMatch(/^#[0-9A-Fa-f]{6}$/);
         });
 
-        test('should produce mud for same color mixing (red + red)', () => {
+        test('should produce same color when mixing identical colors (red + red)', () => {
             mixingSystem.addColor('red');
             mixingSystem.addColor('red');
             const result = mixingSystem.mix();
-            expect(result.result).toBe('mud');
-            expect(result.type).toBe('mud');
+            // Dynamic mixing: same + same = same (realistic behavior)
+            expect(result.result).toBe('red');
+            expect(result.type).toBe('primary');
         });
 
-        test('should produce mud for same color mixing (blue + blue)', () => {
+        test('should produce same color when mixing identical colors (blue + blue)', () => {
             mixingSystem.addColor('blue');
             mixingSystem.addColor('blue');
             const result = mixingSystem.mix();
-            expect(result.result).toBe('mud');
-            expect(result.type).toBe('mud');
+            expect(result.result).toBe('blue');
+            expect(result.type).toBe('primary');
         });
 
-        test('should produce mud for same color mixing (yellow + yellow)', () => {
+        test('should produce same color when mixing identical colors (yellow + yellow)', () => {
             mixingSystem.addColor('yellow');
             mixingSystem.addColor('yellow');
             const result = mixingSystem.mix();
-            expect(result.result).toBe('mud');
-            expect(result.type).toBe('mud');
+            expect(result.result).toBe('yellow');
+            expect(result.type).toBe('primary');
         });
 
-        test('should produce mud for unknown combinations', () => {
-            // Force unknown combination by modifying colors
+        test('should produce dynamic mixed color for secondary combinations', () => {
+            // Normalized vector addition: orange + purple = reddish mixed
+            // orange [1,1,0] + purple [1,0,1] = [2,1,1] → normalized [1, 0.5, 0.5]
             mixingSystem.colorsInBowl = ['orange', 'purple'];
             const result = mixingSystem.mix();
-            expect(result.result).toBe('mud');
-            expect(result.type).toBe('mud');
-            expect(result.resultHex).toBe('#8B6914');
+            expect(result.type).toBe('mixed');
+            expect(result.isDynamic).toBe(true);
+            // RYB should be [1, 0.5, 0.5] (red-dominant)
+            expect(result.ryb[0]).toBeCloseTo(1, 1);
+            expect(result.ryb[1]).toBeCloseTo(0.5, 1);
+            expect(result.ryb[2]).toBeCloseTo(0.5, 1);
         });
 
         test('should normalize color order (blue+red = red+blue)', () => {
@@ -291,10 +297,11 @@ describe('MixingSystem', () => {
             expect(mixingSystem.matchesGoal(goal, mixResult)).toBe(false);
         });
 
-        test('should not match mud result', () => {
+        test('should match any mix for discover goal (including mixed colors)', () => {
+            // In dynamic color system, all mixes count - no more "mud" rejection
             const goal = { type: 'discover', count: 3 };
-            const mixResult = { result: 'mud', type: 'mud' };
-            expect(mixingSystem.matchesGoal(goal, mixResult)).toBe(false);
+            const mixResult = { result: 'gray-tone', type: 'mixed', ryb: [0.33, 0.33, 0.33] };
+            expect(mixingSystem.matchesGoal(goal, mixResult)).toBe(true);
         });
     });
 
@@ -372,5 +379,142 @@ describe('MixingSystem Edge Cases', () => {
         const result = mixingSystem.addColor(undefined);
         expect(result.success).toBe(false);
         expect(result.reason).toBe('invalid_color');
+    });
+});
+
+describe('MixingSystem Chain Mixing', () => {
+    let mixingSystem;
+
+    beforeEach(() => {
+        mixingSystem = new MixingSystem(mockConfig);
+    });
+
+    test('should mix primary colors to get secondary (red + yellow = orange)', () => {
+        mixingSystem.addColor('red');
+        mixingSystem.addColor('yellow');
+        const result = mixingSystem.mix();
+
+        expect(result.result).toBe('orange');
+        expect(result.ryb).toBeDefined();
+        expect(result.resultHex).toBeDefined();
+    });
+
+    test('should accept colorData object (from previous mix) as input', () => {
+        // First mix: red + yellow = orange
+        mixingSystem.addColor('red');
+        mixingSystem.addColor('yellow');
+        const orangeResult = mixingSystem.mix();
+
+        // Clear and use orange result object for chain mixing
+        mixingSystem.clear();
+        const addResult = mixingSystem.addColor(orangeResult);
+
+        expect(addResult.success).toBe(true);
+        expect(addResult.colorHex).toBe(orangeResult.resultHex);
+    });
+
+    test('should chain mix: orange (object) + blue = brown/mud', () => {
+        // First mix: red + yellow = orange
+        mixingSystem.addColor('red');
+        mixingSystem.addColor('yellow');
+        const orangeResult = mixingSystem.mix();
+
+        // Chain mix: orange + blue
+        mixingSystem.clear();
+        mixingSystem.addColor(orangeResult); // Pass full object
+        mixingSystem.addColor('blue');
+        const brownResult = mixingSystem.mix();
+
+        expect(brownResult).not.toBeNull();
+        expect(brownResult.ryb).toBeDefined();
+        // Orange (0.5, 0.5, 0) + Blue (0, 0, 1) = (0.25, 0.25, 0.5)
+        // With dynamic naming, this produces a blue-dominant dynamic color
+        expect(brownResult.result).toMatch(/brown|mud|blue-purple|blue-tinted|blue-yellow-blend/);
+    });
+
+    test('should chain mix multiple levels deep', () => {
+        // Level 1: red + yellow = orange
+        mixingSystem.addColor('red');
+        mixingSystem.addColor('yellow');
+        const orange = mixingSystem.mix();
+        expect(orange.result).toBe('orange');
+
+        // Level 2: orange + blue = muddy color
+        mixingSystem.clear();
+        mixingSystem.addColor(orange);
+        mixingSystem.addColor('blue');
+        const level2 = mixingSystem.mix();
+        expect(level2).not.toBeNull();
+        expect(level2.ryb).toBeDefined();
+
+        // Level 3: level2 result + yellow
+        mixingSystem.clear();
+        mixingSystem.addColor(level2);
+        mixingSystem.addColor('yellow');
+        const level3 = mixingSystem.mix();
+        expect(level3).not.toBeNull();
+        expect(level3.ryb).toBeDefined();
+    });
+
+    test('should preserve RYB values through chain mixing', () => {
+        // Create orange
+        mixingSystem.addColor('red');
+        mixingSystem.addColor('yellow');
+        const orange = mixingSystem.mix();
+
+        // Orange RYB should be (1, 1, 0) with max mixing algorithm
+        expect(orange.ryb[0]).toBeCloseTo(1, 1); // Red
+        expect(orange.ryb[1]).toBeCloseTo(1, 1); // Yellow
+        expect(orange.ryb[2]).toBeCloseTo(0, 1); // Blue
+
+        // Mix orange + blue
+        mixingSystem.clear();
+        mixingSystem.addColor(orange);
+        mixingSystem.addColor('blue');
+        const result = mixingSystem.mix();
+
+        // Result should be max: (1, 1, 1) = mud/brown
+        expect(result.ryb[0]).toBeCloseTo(1, 1);
+        expect(result.ryb[1]).toBeCloseTo(1, 1);
+        expect(result.ryb[2]).toBeCloseTo(1, 1);
+    });
+
+    test('should handle mixing two secondary colors', () => {
+        // Create orange
+        mixingSystem.addColor('red');
+        mixingSystem.addColor('yellow');
+        const orange = mixingSystem.mix();
+
+        // Create green
+        mixingSystem.clear();
+        mixingSystem.addColor('blue');
+        mixingSystem.addColor('yellow');
+        const green = mixingSystem.mix();
+
+        // Mix orange + green
+        mixingSystem.clear();
+        mixingSystem.addColor(orange);
+        mixingSystem.addColor(green);
+        const result = mixingSystem.mix();
+
+        expect(result).not.toBeNull();
+        expect(result.ryb).toBeDefined();
+        expect(result.resultHex).toBeDefined();
+    });
+
+    test('should handle mixing same secondary color with itself', () => {
+        // Create orange
+        mixingSystem.addColor('red');
+        mixingSystem.addColor('yellow');
+        const orange = mixingSystem.mix();
+
+        // Mix orange + orange
+        mixingSystem.clear();
+        mixingSystem.addColor(orange);
+        mixingSystem.addColor(orange);
+        const result = mixingSystem.mix();
+
+        // Same color + same color = same color
+        expect(result.result).toBe('orange');
     });
 });

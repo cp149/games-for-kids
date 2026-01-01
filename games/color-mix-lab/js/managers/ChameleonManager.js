@@ -16,8 +16,14 @@ export class ChameleonManager {
     constructor(options = {}) {
         this.elements = options.elements || {};
         this._setTimeout = options.setTimeout || ((fn, ms) => setTimeout(fn, ms));
+        this._clearTimeout = options.clearTimeout || ((id) => clearTimeout(id));
         this.pupils = [];
         this.eyeTrackHandler = null;
+
+        // Idle animation system
+        this.idleTimer = null;
+        this.idleResetHandler = null;
+        this.currentMood = null;
     }
 
     /**
@@ -187,6 +193,12 @@ export class ChameleonManager {
         const chameleon = this.elements.chameleon;
         if (!chameleon) return;
 
+        // Track current mood for idle system
+        this.currentMood = mood;
+
+        // Clear idle animations when mood changes
+        this.clearIdleAnimations();
+
         // Remove all mood classes
         chameleon.classList.remove('celebrating', 'disgust', 'sad-wiggle', 'eager', 'confused', 'watching');
 
@@ -195,6 +207,7 @@ export class ChameleonManager {
                 chameleon.classList.add('celebrating');
                 this._setTimeout(() => {
                     chameleon.classList.remove('celebrating');
+                    this.currentMood = 'neutral';
                 }, CONFIG.UI.CELEBRATION_DURATION);
                 break;
 
@@ -204,6 +217,7 @@ export class ChameleonManager {
                 this._setTimeout(() => {
                     chameleon.classList.remove('sad-wiggle');
                     chameleon.classList.remove('disgust');
+                    this.currentMood = 'neutral';
                 }, 800);
                 break;
 
@@ -215,6 +229,7 @@ export class ChameleonManager {
                 chameleon.classList.add('confused');
                 this._setTimeout(() => {
                     chameleon.classList.remove('confused');
+                    this.currentMood = 'neutral';
                 }, 600);
                 break;
 
@@ -225,6 +240,7 @@ export class ChameleonManager {
             case 'neutral':
             default:
                 // Just remove all moods, return to default animation
+                this.currentMood = 'neutral';
                 this.resetEyeTracking();
                 break;
         }
@@ -233,7 +249,141 @@ export class ChameleonManager {
     /**
      * Cleanup resources
      */
+
+    /**
+     * Start the idle animation system
+     * Triggers cute animations when user is inactive
+     */
+    startIdleSystem() {
+        this.resetIdleTimer();
+
+        // Reset idle timer on user interaction
+        this.idleResetHandler = () => this.resetIdleTimer();
+        if (typeof document !== 'undefined') {
+            ['mousemove', 'mousedown', 'touchstart', 'keydown'].forEach(evt => {
+                document.addEventListener(evt, this.idleResetHandler, { passive: true });
+            });
+        }
+    }
+
+    /**
+     * Stop the idle animation system
+     */
+    stopIdleSystem() {
+        if (this.idleTimer) {
+            this._clearTimeout(this.idleTimer);
+            this.idleTimer = null;
+        }
+
+        if (this.idleResetHandler && typeof document !== 'undefined') {
+            ['mousemove', 'mousedown', 'touchstart', 'keydown'].forEach(evt => {
+                document.removeEventListener(evt, this.idleResetHandler);
+            });
+            this.idleResetHandler = null;
+        }
+
+        // Clear any idle classes
+        this.clearIdleAnimations();
+    }
+
+    /**
+     * Reset the idle timer
+     */
+    resetIdleTimer() {
+        if (this.idleTimer) {
+            this._clearTimeout(this.idleTimer);
+        }
+
+        // Clear existing idle animations when user interacts
+        this.clearIdleAnimations();
+
+        // Random delay between 6 and 12 seconds
+        const delay = 6000 + Math.random() * 6000;
+        this.idleTimer = this._setTimeout(() => this.triggerIdleAnimation(), delay);
+    }
+
+    /**
+     * Clear all idle animation classes
+     */
+    clearIdleAnimations() {
+        if (this.pupils) {
+            this.pupils.forEach(p => {
+                const eye = p.parentElement;
+                if (eye) {
+                    eye.classList.remove('idle-blinking');
+                }
+            });
+        }
+
+        const chameleon = this.elements.chameleon;
+        if (chameleon) {
+            chameleon.classList.remove('idle-swaying', 'idle-tongue');
+        }
+    }
+
+    /**
+     * Trigger a random idle animation
+     */
+    triggerIdleAnimation() {
+        const chameleon = this.elements.chameleon;
+
+        // Don't animate if missing or currently in an active mood
+        if (!chameleon || this.currentMood === 'happy' || this.currentMood === 'sad') {
+            this.resetIdleTimer();
+            return;
+        }
+
+        const rand = Math.random();
+
+        if (rand < 0.5) {
+            // 50% chance: Double Blink
+            this.pupils.forEach(p => {
+                const eye = p.parentElement;
+                if (eye) {
+                    eye.classList.add('idle-blinking');
+                    this._setTimeout(() => eye.classList.remove('idle-blinking'), 600);
+                }
+            });
+        } else if (rand < 0.8) {
+            // 30% chance: Body Sway
+            chameleon.classList.add('idle-swaying');
+            this._setTimeout(() => chameleon.classList.remove('idle-swaying'), 2500);
+        } else {
+            // 20% chance: Tongue Flick
+            chameleon.classList.add('idle-tongue');
+            this._setTimeout(() => chameleon.classList.remove('idle-tongue'), 800);
+        }
+
+        // Schedule next idle animation
+        this.resetIdleTimer();
+    }
+
+    /**
+     * Trigger a giggle animation when chameleon is clicked
+     */
+    giggle() {
+        const chameleon = this.elements.chameleon;
+        if (!chameleon) return;
+
+        // Clear any existing animations
+        this.clearIdleAnimations();
+
+        // Add giggle class
+        chameleon.classList.add('giggling');
+
+        // Remove after animation
+        this._setTimeout(() => {
+            chameleon.classList.remove('giggling');
+        }, 600);
+
+        // Reset idle timer
+        this.resetIdleTimer();
+    }
+
     destroy() {
+        // Stop idle system
+        this.stopIdleSystem();
+
         // Remove event listeners
         if (this.eyeTrackHandler) {
             if (typeof document !== 'undefined') {
@@ -245,6 +395,7 @@ export class ChameleonManager {
 
         this.pupils = [];
         this.elements = {};
+        this.currentMood = null;
     }
 }
 

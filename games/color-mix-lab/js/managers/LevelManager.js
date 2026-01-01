@@ -16,13 +16,16 @@ export class LevelManager {
         this.currentLevel = 1;
         this.progress = 0;
         this.stickers = [];
+        this.freePlayUnlocked = false;
+        this.isFreeMode = false;
 
         // Event callbacks
         this.callbacks = {
             onLevelChange: null,
             onProgressChange: null,
             onStickerCollected: null,
-            onLevelComplete: null
+            onLevelComplete: null,
+            onFreeModeChange: null
         };
     }
 
@@ -280,7 +283,8 @@ export class LevelManager {
         try {
             const progressData = {
                 level: this.currentLevel,
-                progress: this.progress
+                progress: this.progress,
+                freePlayUnlocked: this.freePlayUnlocked
             };
             localStorage.setItem(
                 this.config.STORAGE.PROGRESS,
@@ -295,6 +299,64 @@ export class LevelManager {
         }
     }
 
+
+    /**
+     * Check if free play mode is unlocked
+     * @returns {boolean}
+     */
+    isFreePlayUnlocked() {
+        return this.freePlayUnlocked;
+    }
+
+    /**
+     * Unlock free play mode
+     */
+    unlockFreePlay() {
+        this.freePlayUnlocked = true;
+        this.save();
+    }
+
+    /**
+     * Enter free play mode
+     * @returns {boolean} Success status
+     */
+    enterFreePlay() {
+        if (!this.freePlayUnlocked) {
+            return false;
+        }
+        this.isFreeMode = true;
+        if (this.callbacks.onFreeModeChange) {
+            this.callbacks.onFreeModeChange(true);
+        }
+        return true;
+    }
+
+    /**
+     * Exit free play mode
+     */
+    exitFreePlay() {
+        this.isFreeMode = false;
+        if (this.callbacks.onFreeModeChange) {
+            this.callbacks.onFreeModeChange(false);
+        }
+    }
+
+    /**
+     * Check if currently in free play mode
+     * @returns {boolean}
+     */
+    isInFreeMode() {
+        return this.isFreeMode;
+    }
+
+    /**
+     * Set callback for free mode changes
+     * @param {Function} callback - Callback(isFreeMode)
+     */
+    onFreeModeChange(callback) {
+        this.callbacks.onFreeModeChange = callback;
+    }
+
     /**
      * Load state from localStorage
      */
@@ -307,6 +369,7 @@ export class LevelManager {
                 const progressData = JSON.parse(progressStr);
                 this.currentLevel = progressData.level || 1;
                 this.progress = progressData.progress || 0;
+                this.freePlayUnlocked = progressData.freePlayUnlocked || false;
             }
 
             if (stickersStr) {
@@ -317,6 +380,7 @@ export class LevelManager {
             this.currentLevel = 1;
             this.progress = 0;
             this.stickers = [];
+            this.freePlayUnlocked = false;
         }
     }
 

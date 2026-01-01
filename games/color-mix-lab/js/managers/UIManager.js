@@ -44,14 +44,10 @@ export class UIManager {
         // Chameleon setup (was in init)
         this.chameleonManager.createChameleonEyes();
         this.chameleonManager.startEyeTracking();
+        this.chameleonManager.startIdleSystem();
     }
 
-    /**
-     * Tracked setTimeout that auto-cleans up
-     * @param {Function} callback - Callback function
-     * @param {number} delay - Delay in ms
-     * @returns {number} Timer ID
-     */
+    /** Tracked setTimeout that auto-cleans up */
     _setTimeout(callback, delay) {
         if (!this.pendingTimers) return null;
 
@@ -67,10 +63,7 @@ export class UIManager {
         return timerId;
     }
 
-    /**
-     * Helper to clear tracked timeouts (prevents memory leak in pendingTimers Set)
-     * @param {number} timerId - Timer ID to clear
-     */
+    /** Clear tracked timeout */
     _clearTimeout(timerId) {
         if (timerId == null) return;
         if (this.pendingTimers) {
@@ -79,12 +72,7 @@ export class UIManager {
         clearTimeout(timerId);
     }
 
-    /**
-     * Translate a key using i18n
-     * @param {string} key - Translation key
-     * @param {Object} params - Parameters for interpolation
-     * @returns {string} Translated text or key
-     */
+    /** Translate key using i18n */
     t(key, params = {}) {
         if (this.i18n) {
             return this.i18n.t(key, params);
@@ -92,9 +80,7 @@ export class UIManager {
         return key;
     }
 
-    /**
-     * Initialize by querying existing DOM elements
-     */
+    /** Initialize by querying existing DOM elements */
     init() {
         // Query existing elements from index.html
         this.elements = {
@@ -119,8 +105,10 @@ export class UIManager {
             undoBtn: this.container.querySelector('.undo-btn'),
             clearBtn: this.container.querySelector('.clear-btn'),
 
-            // Palette area
+            // Palette area (two-row layout)
             paletteArea: this.container.querySelector('.palette-area'),
+            mixedColorsTray: this.container.querySelector('.mixed-colors-tray'),
+            primarySources: this.container.querySelector('.primary-sources'),
             colorSources: this.container.querySelectorAll('.color-source')
         };
 
@@ -134,59 +122,39 @@ export class UIManager {
     }
 
 
-    /**
-     * Create chameleon eyes for tracking
-     */
+    /** Create chameleon eyes for tracking */
     createChameleonEyes() {
         this.chameleonManager.createChameleonEyes();
         // Keep local reference for backward compatibility
         this.pupils = this.chameleonManager.pupils;
     }
 
-    /**
-     * Start tracking cursor/touch for eye movement
-     */
+    /** Start eye tracking */
     startEyeTracking() {
         this.chameleonManager.startEyeTracking();
     }
 
-    /**
-     * Update pupil positions based on cursor location
-     * @param {number} cursorX - Cursor X position
-     * @param {number} cursorY - Cursor Y position
-     */
+    /** Update pupil positions based on cursor location */
     updateEyePosition(cursorX, cursorY) {
         this.chameleonManager.updateEyePosition(cursorX, cursorY);
     }
 
-    /**
-     * Update eye tracking to follow a position
-     * @param {number} x - Target X position
-     * @param {number} y - Target Y position
-     */
+    /** Update eye tracking to follow position */
     updateEyeTracking(x, y) {
         this.chameleonManager.updateEyeTracking(x, y);
     }
 
-    /**
-     * Reset eye tracking to center
-     */
+    /** Reset eye tracking to center */
     resetEyeTracking() {
         this.chameleonManager.resetEyeTracking();
     }
 
-    /**
-     * Get color sources for drag setup
-     * @returns {NodeList} Color source elements
-     */
+    /** Get color sources for drag setup */
     getColorSources() {
         return this.elements.colorSources;
     }
 
-    /**
-     * Set available colors for current level
-     * @param {string[]} availableColors - Array of color names (e.g., ['red', 'yellow'])
-     */
+    /** Set available colors for current level */
     setAvailableColors(availableColors) {
         if (!this.elements.colorSources) return;
 
@@ -204,18 +172,17 @@ export class UIManager {
         });
     }
 
-    /**
-     * Get bowl element for drop target
-     * @returns {HTMLElement} Bowl element
-     */
+    /** Get bowl element for drop target */
     getBowl() {
         return this.elements.bowl;
     }
 
-    /**
-     * Update level display (using stars)
-     * @param {number} level - Current level
-     */
+    /** Get chameleon element for feed drop target */
+    getChameleon() {
+        return this.elements.chameleon;
+    }
+
+    /** Update level display */
     updateLevel(level) {
         // Update aria label for accessibility
         if (this.elements.progressStars) {
@@ -223,11 +190,7 @@ export class UIManager {
         }
     }
 
-    /**
-     * Update goal display - Visual stars
-     * @param {number} current - Current progress
-     * @param {number} total - Total goal
-     */
+    /** Update goal display with visual stars */
     updateGoal(current, total) {
         const stars = this.elements.stars;
         if (!stars || stars.length === 0) return;
@@ -248,34 +211,31 @@ export class UIManager {
         }
     }
 
-    /**
-     * Set chameleon body color
-     * @param {string} color - Color hex code
-     */
+    /** Set chameleon body color */
     setChameleonColor(color) {
         this.chameleonManager.setChameleonColor(color);
     }
 
-    /**
-     * Set goal color in thought bubble
-     * @param {string|null} color - Color hex code or null to hide
-     */
+    /** Flash chameleon with a color temporarily */
+    flashChameleonColor(color) {
+        const originalColor = '#D4C5B9';  // Default gray
+        this.chameleonManager.setChameleonColor(color);
+        this._setTimeout(() => {
+            this.chameleonManager.setChameleonColor(originalColor);
+        }, 400);
+    }
+
+    /** Set goal color in thought bubble */
     setChameleonTarget(color) {
         this.chameleonManager.setChameleonTarget(color);
     }
 
-    /**
-     * Set chameleon mood animation
-     * @param {string} mood - Mood type (happy, sad, confused)
-     */
+    /** Set chameleon mood animation */
     setChameleonMood(mood) {
         this.chameleonManager.setChameleonMood(mood);
     }
 
-    /**
-     * Update bowl liquid color
-     * @param {string} color - Color hex code or null to clear
-     */
+    /** Update bowl liquid color */
     setBowlColor(color) {
         if (this.elements.liquid) {
             if (color) {
@@ -288,62 +248,50 @@ export class UIManager {
         }
     }
 
-    /**
-     * Show swirl effect in bowl during mixing
-     * @param {string} color - The result color hex
-     */
+    /** Show swirl effect in bowl during mixing */
     showSwirlEffect(color) {
         this.effectsManager.showSwirlEffect(color);
     }
 
-    /**
-     * Show firefly hint on a color source
-     * @param {string} colorName - Color to highlight (red, blue, yellow)
-     */
+    /** Show firefly hint on a color source */
     showFireflyHint(colorName) {
         this.effectsManager.showFireflyHint(colorName);
     }
 
-    /**
-     * Hide firefly hint
-     */
+    /** Hide firefly hint */
     hideFireflyHint() {
         this.effectsManager.hideFireflyHint();
     }
 
-    /**
-     * Show the undo button
-     */
+    /** Show the undo button */
     showUndoButton() {
         if (this.elements.undoBtn) {
             this.elements.undoBtn.classList.remove('hidden');
         }
     }
 
-    /**
-     * Hide the undo button
-     */
+    /** Hide the undo button */
     hideUndoButton() {
         if (this.elements.undoBtn) {
             this.elements.undoBtn.classList.add('hidden');
         }
     }
 
-    /**
-     * Get the undo button element
-     * @returns {HTMLElement|null}
-     */
+    /** Get the undo button element */
     getUndoButton() {
         return this.elements.undoBtn;
     }
 
-    /**
-     * Add color to bowl (mixing animation)
-     * @param {string} color - Color name
-     */
-    addColorToBowl(color) {
-        const colorHex = CONFIG.COLORS.PRIMARY[color];
-        if (!colorHex) return;
+    /** Add color to bowl with animation */
+    addColorToBowl(color, colorHex = null) {
+        // Get color hex - use provided hex or look up from CONFIG
+        const hex = colorHex || 
+            CONFIG.COLORS.PRIMARY[color] || 
+            CONFIG.COLORS.SECONDARY[color] ||
+            CONFIG.COLORS.TERTIARY?.[color] ||
+            CONFIG.COLORS.SPECIAL?.[color];
+        
+        if (!hex) return;
 
         // Add bowl squish animation (jelly physics)
         if (this.elements.bowl) {
@@ -355,7 +303,7 @@ export class UIManager {
         if (this.elements.particles) {
             const particle = document.createElement('div');
             particle.className = 'color-particle';
-            particle.style.backgroundColor = colorHex;
+            particle.style.backgroundColor = hex;
             this.elements.particles.appendChild(particle);
 
             this._setTimeout(() => particle.remove(), 1000);
@@ -365,9 +313,7 @@ export class UIManager {
         this.updateClearButton(true);
     }
 
-    /**
-     * Clear bowl
-     */
+    /** Clear bowl */
     clearBowl() {
         this.setBowlColor(null);
         if (this.elements.particles) {
@@ -376,21 +322,14 @@ export class UIManager {
         this.updateClearButton(false);
     }
 
-    /**
-     * Update clear button state
-     * @param {boolean} hasColors - Whether bowl has colors
-     */
+    /** Update clear button state */
     updateClearButton(hasColors) {
         if (this.elements.clearBtn) {
             this.elements.clearBtn.disabled = !hasColors;
         }
     }
 
-    /**
-     * Show toast notification
-     * @param {string} message - Message to display
-     * @param {string} type - Toast type (success, info, mud)
-     */
+    /** Show toast notification */
     showToast(message, type = 'info') {
         // Cancel existing timeout
         if (this.toastTimeout) {
@@ -417,56 +356,74 @@ export class UIManager {
         }, CONFIG.UI.TOAST_DURATION);
     }
 
-    /**
-     * Show splash icon effect for successful mix
-     * @param {string} emoji - Emoji to display
-     * @param {string} colorHex - Hex color code
-     */
+    /** Show splash icon effect for successful mix */
     showSplashIcon(emoji, colorHex) {
         this.effectsManager.showSplashIcon(emoji, colorHex);
     }
 
-    /**
-     * Create sparkle particles for success
-     * @param {number} x - X coordinate
-     * @param {number} y - Y coordinate
-     * @param {string} color - Particle color
-     */
+    /** Create sparkle particles */
     createSparkles(x, y, color) {
         this.effectsManager.createSparkles(x, y, color);
     }
 
-    /**
-     * Show mud splat overlay effect
-     * @param {number} x - X coordinate of splat center
-     * @param {number} y - Y coordinate of splat center
-     */
+    /** Show mud splat overlay effect */
     showMudSplat(x, y) {
         this.effectsManager.showMudSplat(x, y);
     }
 
-    /**
-     * Show confetti for level complete
-     */
+    /** Show confetti for level complete */
     showLevelComplete() {
         this.modalManager.showLevelComplete();
     }
 
 
-    /**
-     * Show mini celebration burst when matching a goal (not level complete)
-     * @param {number} centerX - Center X position for burst
-     * @param {number} centerY - Center Y position for burst
-     * @param {string} color - Primary color for confetti (optional)
-     */
+    /** Show mini celebration burst when matching a goal */
     showMiniCelebration(centerX, centerY, color = null) {
         this.effectsManager.showMiniCelebration(centerX, centerY, color);
     }
 
+
     /**
-     * Create sticker book modal
-     * @private
+     * Show emoji particle burst celebration
+     * @param {string[]} emojis - Array of emojis to burst
+     * @param {string} colorHex - Hex color for particles
      */
+    showParticleBurst(emojis, colorHex) {
+        this.effectsManager.showParticleBurst(emojis, colorHex);
+    }
+
+    /**
+     * Trigger chameleon giggle animation
+     */
+    triggerChameleonGiggle() {
+        this.chameleonManager.giggle();
+    }
+
+    /**
+     * Show bubble pop effect from element
+     * @param {HTMLElement} element - Origin element
+     */
+    showBubblePop(element) {
+        this.effectsManager.showBubblePop(element);
+    }
+
+    /**
+     * Show floating combo text
+     * @param {string} text - Text to display
+     * @param {HTMLElement} element - Origin element
+     */
+    showComboText(text, element) {
+        this.effectsManager.showComboText(text, element);
+    }
+
+    /**
+     * Trigger bowl jelly impact animation
+     */
+    triggerBowlJelly() {
+        this.effectsManager.triggerBowlJelly();
+    }
+
+    /** Create sticker book modal */
     createStickerBook() {
         this.modalManager.createStickerBook();
         // Keep local references for backward compatibility
@@ -474,27 +431,17 @@ export class UIManager {
         this.stickerGrid = this.modalManager.stickerGrid;
     }
 
-    /**
-     * Show sticker book modal
-     * @param {string[]} earnedStickers - Array of earned sticker IDs
-     * @param {Object} stickerConfig - Sticker configuration from CONFIG.STICKERS
-     * @param {string[]} newStickers - Array of newly earned sticker IDs (for "NEW" badge)
-     */
+    /** Show sticker book modal */
     showStickerBook(earnedStickers = [], stickerConfig = {}, newStickers = []) {
         this.modalManager.showStickerBook(earnedStickers, stickerConfig, newStickers);
     }
 
-    /**
-     * Hide sticker book modal
-     */
+    /** Hide sticker book modal */
     hideStickerBook() {
         this.modalManager.hideStickerBook();
     }
 
-    /**
-     * Show/hide free play button
-     * @param {boolean} show - Whether to show the button
-     */
+    /** Show/hide free play button */
     showFreePlayButton(show) {
         if (this.elements.freePlayBtn) {
             if (show) {
@@ -506,10 +453,7 @@ export class UIManager {
         }
     }
 
-    /**
-     * Set free play mode UI state
-     * @param {boolean} enabled - Whether free play is active
-     */
+    /** Set free play mode UI state */
     setFreePlayMode(enabled) {
         if (this.container) {
             this.container.classList.toggle('free-play-mode', enabled);
@@ -533,54 +477,136 @@ export class UIManager {
         }
     }
 
+
     /**
-     * Get element reference
-     * @param {string} name - Element name
+     * Add a mixed color as a draggable source for chain mixing
+     * @param {Object} mixResult - Result from MixingSystem.mix() containing result, resultHex, ryb
+     * @returns {HTMLElement|null} The created color source element
      */
+    addMixedColorSource(mixResult) {
+        const tray = this.elements.mixedColorsTray;
+        if (!mixResult || !tray) return null;
+        
+        const colorName = mixResult.result;
+        const colorHex = mixResult.resultHex;
+        
+        // Use hex as unique identifier (allows different shades of same "name")
+        const colorId = colorHex.replace('#', 'hex-');
+        
+        // Check if this exact color (by hex) already exists in tray
+        const existingSource = tray.querySelector(
+            `.color-source[data-color-id="${colorId}"]`
+        );
+        if (existingSource) {
+            // Already exists, just make sure it's visible
+            existingSource.classList.remove('hidden');
+            return existingSource;
+        }
+        
+        // Create new color source element
+        const source = document.createElement('div');
+        source.className = `color-source mixed-color`;
+        source.dataset.color = colorName;
+        source.dataset.colorId = colorId;
+        source.dataset.colorHex = colorHex;
+        source.draggable = true;
+        source.setAttribute('role', 'button');
+        source.setAttribute('tabindex', '0');
+        source.setAttribute('aria-label', `${colorName} Color - Drag to bowl`);
+        
+        // Store RYB data for chain mixing
+        if (mixResult.ryb) {
+            source.dataset.ryb = JSON.stringify(mixResult.ryb);
+        }
+        
+        // Create inner elements
+        const blob = document.createElement('div');
+        blob.className = 'color-blob';
+        blob.style.background = colorHex;
+        blob.setAttribute('aria-hidden', 'true');
+        
+        const pattern = document.createElement('div');
+        pattern.className = 'color-pattern pattern-mixed';
+        pattern.setAttribute('aria-hidden', 'true');
+        
+        source.appendChild(blob);
+        source.appendChild(pattern);
+        
+        // Add to mixed colors tray
+        tray.appendChild(source);
+        
+        // Add pop-in animation
+        source.classList.add('pop-in');
+        this._setTimeout(() => source.classList.remove('pop-in'), 400);
+        
+        return source;
+    }
+
+    /**
+     * Remove a specific mixed color source (when fed to chameleon)
+     * @param {HTMLElement} element - The color source element to remove
+     */
+    removeMixedColorSource(element) {
+        if (!element) return;
+        
+        // Add eating animation
+        element.classList.add('being-eaten');
+        
+        // Remove after animation completes
+        this._setTimeout(() => {
+            if (element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        }, 300);
+    }
+
+    /**
+     * Remove all mixed color sources (for level reset)
+     */
+    clearMixedColorSources() {
+        const tray = this.elements.mixedColorsTray;
+        if (!tray) return;
+        
+        // Clear all mixed colors from tray
+        tray.innerHTML = '';
+    }
+
+    /** Get element reference by name */
     getElement(name) {
         return this.elements[name];
     }
 
-    // ===== Educational Formula Overlay =====
-
-    /**
-     * Create the formula overlay DOM element
-     */
+    /** Create formula overlay DOM element */
     createFormulaOverlay() {
         this.modalManager.createFormulaOverlay();
         this.formulaOverlay = this.modalManager.formulaOverlay;
     }
 
-    /**
-     * Show educational formula overlay
-     * @param {string} color1 - First color name
-     * @param {string} color2 - Second color name
-     * @param {string} resultColor - Result color name
-     */
+    /** Show educational formula overlay */
     showFormulaOverlay(color1, color2, resultColor) {
         this.modalManager.showFormulaOverlay(color1, color2, resultColor);
     }
 
-    /**
-     * Hide formula overlay
-     */
+    /** Hide formula overlay */
     hideFormulaOverlay() {
         this.modalManager.hideFormulaOverlay();
     }
 
-    /**
-     * Set callback for when formula overlay closes
-     * @param {Function} callback - Callback function
-     */
+    /** Set callback for formula overlay close */
     setFormulaCloseCallback(callback) {
         this.modalManager.setFormulaCloseCallback(callback);
     }
 
-    /**
-     * Clean up resources
-     */
+    /** Clean up resources */
     destroy() {
-        // Clear all pending timers first
+        // Helper to safely destroy a manager
+        const safeDestroy = (obj) => {
+            if (obj && typeof obj.destroy === 'function') {
+                try { obj.destroy(); } catch { /* silent */ }
+            }
+        };
+
+        // Clear all pending timers
         if (this.pendingTimers) {
             this.pendingTimers.forEach(timerId => clearTimeout(timerId));
             this.pendingTimers.clear();
@@ -593,20 +619,13 @@ export class UIManager {
         }
 
         // Destroy sub-managers
-        if (this.chameleonManager) {
-            this.chameleonManager.destroy();
-            this.chameleonManager = null;
-        }
+        safeDestroy(this.chameleonManager);
+        safeDestroy(this.effectsManager);
+        safeDestroy(this.modalManager);
 
-        if (this.effectsManager) {
-            this.effectsManager.destroy();
-            this.effectsManager = null;
-        }
-
-        if (this.modalManager) {
-            this.modalManager.destroy();
-            this.modalManager = null;
-        }
+        this.chameleonManager = null;
+        this.effectsManager = null;
+        this.modalManager = null;
 
         // Remove all toasts
         if (typeof document !== 'undefined') {

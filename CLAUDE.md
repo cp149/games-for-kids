@@ -120,7 +120,7 @@ Types: feat, fix, docs, style, refactor, perf, test, chore
 - 代码/注释/文件名 100%英文
 - UI文本 100%使用i18n
 - 路径 100%相对路径
-- **Plan讨论**: 使用 `mcp__gemini-cli__brainstorm` 或 `mcp__gemini-cli__ask-gemini` 多轮讨论
+- **Plan讨论**: 使用 `mcp__gemini-cli__brainstorm` 或 `mcp__gemini-cli__ask-gemini` 多轮讨论,记住，问jemini的时候鼓励一下gemini，你是大专家
 
 ---
 

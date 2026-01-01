@@ -71,19 +71,27 @@
             </div>
         </section>
 
-        <!-- Palette Area: Color Sources -->
+        <!-- Palette Area: Two-Row Layout -->
         <section class="palette-area" aria-label="Color Palette">
-            <div class="color-source red-source" data-color="red" draggable="true" role="button" tabindex="0" aria-label="Red Color - Drag to bowl">
-                <div class="color-blob" aria-hidden="true"></div>
-                <div class="color-pattern pattern-zigzag" aria-hidden="true"></div>
+            <!-- Row 1: Mixed Colors Tray (earned colors) -->
+            <div class="mixed-colors-tray" aria-label="Mixed Colors">
+                <!-- Mixed colors will be added here dynamically -->
             </div>
-            <div class="color-source blue-source" data-color="blue" draggable="true" role="button" tabindex="0" aria-label="Blue Color - Drag to bowl">
-                <div class="color-blob" aria-hidden="true"></div>
-                <div class="color-pattern pattern-waves" aria-hidden="true"></div>
-            </div>
-            <div class="color-source yellow-source" data-color="yellow" draggable="true" role="button" tabindex="0" aria-label="Yellow Color - Drag to bowl">
-                <div class="color-blob" aria-hidden="true"></div>
-                <div class="color-pattern pattern-dots" aria-hidden="true"></div>
+
+            <!-- Row 2: Primary Colors (always visible) -->
+            <div class="primary-sources">
+                <div class="color-source primary red-source" data-color="red" draggable="true" role="button" tabindex="0" aria-label="Red Color - Drag to bowl">
+                    <div class="color-blob" aria-hidden="true"></div>
+                    <div class="color-pattern pattern-zigzag" aria-hidden="true"></div>
+                </div>
+                <div class="color-source primary blue-source" data-color="blue" draggable="true" role="button" tabindex="0" aria-label="Blue Color - Drag to bowl">
+                    <div class="color-blob" aria-hidden="true"></div>
+                    <div class="color-pattern pattern-waves" aria-hidden="true"></div>
+                </div>
+                <div class="color-source primary yellow-source" data-color="yellow" draggable="true" role="button" tabindex="0" aria-label="Yellow Color - Drag to bowl">
+                    <div class="color-blob" aria-hidden="true"></div>
+                    <div class="color-pattern pattern-dots" aria-hidden="true"></div>
+                </div>
             </div>
         </section>
     </main>

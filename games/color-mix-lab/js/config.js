@@ -7,8 +7,8 @@ export const CONFIG = {
     // Game settings
     GAME: {
         TARGET_AGE: '5-8',
-        TOTAL_LEVELS: 5,
-        TOTAL_STICKERS: 5
+        TOTAL_LEVELS: 7,
+        TOTAL_STICKERS: 7
     },
 
     // Color definitions
@@ -23,6 +23,15 @@ export const CONFIG = {
             orange: '#FF8844',
             green: '#44DD44'
         },
+        TERTIARY: {
+            brown: '#8B6914',
+            'yellow-green': '#99DD33',
+            'yellow-orange': '#FFAA22',
+            'blue-green': '#33AAAA',
+            'blue-purple': '#6644DD',
+            'red-purple': '#CC3388',
+            'red-orange': '#FF5533'
+        },
         SPECIAL: {
             mud: '#8B6914'
         }
@@ -36,7 +45,46 @@ export const CONFIG = {
         orange: '🟠',
         green: '🟢',
         purple: '🟣',
+        brown: '🟤',
+        'yellow-green': '🌿',
+        'yellow-orange': '🔶',
+        'blue-green': '🌊',
+        'blue-purple': '💜',
+        'red-purple': '💗',
+        'red-orange': '🔶',
         mud: '💩'
+    },
+
+    // Real-world color context (educational associations)
+    COLOR_CONTEXT: {
+        red: { object: '🍎', name: 'apple', funFact: 'Like a yummy apple!' },
+        blue: { object: '🌊', name: 'ocean', funFact: 'Like the deep ocean!' },
+        yellow: { object: '☀️', name: 'sun', funFact: 'Like the bright sun!' },
+        orange: { object: '🍊', name: 'orange', funFact: 'Orange like an orange!' },
+        green: { object: '🐸', name: 'frog', funFact: 'Green like a happy frog!' },
+        purple: { object: '🍇', name: 'grapes', funFact: 'Purple like juicy grapes!' },
+        brown: { object: '🧸', name: 'teddy', funFact: 'Brown like a cuddly bear!' },
+        mud: { object: '💩', name: 'mud', funFact: 'Oops! Too many colors!' }
+    },
+
+    // Musical notes for colors (educational audio feedback)
+    COLOR_NOTES: {
+        red: { note: 'C4', frequency: 261.63 },
+        yellow: { note: 'E4', frequency: 329.63 },
+        blue: { note: 'G4', frequency: 392.00 },
+        // Chords for mixed colors
+        orange: { chord: ['C4', 'E4'], frequencies: [261.63, 329.63] },
+        green: { chord: ['E4', 'G4'], frequencies: [329.63, 392.00] },
+        purple: { chord: ['C4', 'G4'], frequencies: [261.63, 392.00] }
+    },
+
+    // Particle emojis for celebration bursts
+    PARTICLE_EMOJIS: {
+        orange: ['🍊', '🧡', '🔶', '✨'],
+        green: ['🐸', '🍀', '🌿', '✨'],
+        purple: ['🍇', '💜', '🔮', '✨'],
+        brown: ['🧸', '🌰', '🍂', '✨'],
+        mud: ['💩', '🤢', '😖']
     },
 
     // Color mixing rules - only A+B=C patterns (no same-color effects)
@@ -65,7 +113,8 @@ export const CONFIG = {
     // Drag settings
     DRAG: {
         THRESHOLD: 10,
-        SNAP_DISTANCE: 50
+        SNAP_DISTANCE: 80,          // Increased for magnetic effect (easier for kids)
+        DRAG_Y_OFFSET: -40          // Ghost dragging: ball appears above finger
     },
 
     // Audio settings
@@ -126,6 +175,25 @@ export const CONFIG = {
             slots: 2,
             tutorial: 'none',
             sticker: 'chameleon'
+        },
+        // Chain mixing levels - require reusing mixed colors
+        6: {
+            name: 'make_brown',
+            availableColors: ['red', 'blue', 'yellow'],
+            goal: { type: 'secondary', color: 'brown', count: 1 },
+            slots: 2,
+            tutorial: 'none',
+            sticker: 'acorn',
+            chainMixing: true  // Hint: make orange first, then mix with blue
+        },
+        7: {
+            name: 'color_explorer',
+            availableColors: ['red', 'blue', 'yellow'],
+            goal: { type: 'tertiary', color: 'yellow-green', count: 1 },
+            slots: 2,
+            tutorial: 'none',
+            sticker: 'artist',
+            chainMixing: true  // Hint: make green first, then mix with yellow
         }
     },
 
@@ -142,7 +210,9 @@ export const CONFIG = {
         leaf: { emoji: '🍀', name: 'leaf', level: 2 },
         grape: { emoji: '🍇', name: 'grape', level: 3 },
         rainbow: { emoji: '🌈', name: 'rainbow', level: 4 },
-        chameleon: { emoji: '🦎', name: 'chameleon', level: 5 }
+        chameleon: { emoji: '🦎', name: 'chameleon', level: 5 },
+        acorn: { emoji: '🌰', name: 'acorn', level: 6 },
+        artist: { emoji: '🎨', name: 'artist', level: 7 }
     },
 
     // Storage keys
