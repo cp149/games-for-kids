@@ -34,44 +34,128 @@
 html, body {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--color-bg);
+  /* 动态彩虹糖背景 */
+  background: linear-gradient(-45deg, #FF9A9E, #FECFEF, #E0C3FC, #8EC5FC);
+  background-size: 400% 400%;
+  animation: rainbow-move 10s ease infinite;
   color: var(--color-text);
   overflow: hidden;
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
+  /* 居中容器 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes rainbow-move {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* === Game Container === */
 #game-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 16px;
-  gap: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  padding: 15px;
+  gap: 15px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* R2: 装饰云朵 */
+#game-container::before {
+  content: '☁️';
+  position: absolute;
+  top: 15%;
+  left: 5%;
+  font-size: 50px;
+  opacity: 0.6;
+  animation: cloud-float 8s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#game-container::after {
+  content: '✨';
+  position: absolute;
+  top: 40%;
+  right: 8%;
+  font-size: 35px;
+  animation: sparkle 2s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes cloud-float {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(15px) translateY(-10px); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0.4; transform: scale(1) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.3) rotate(180deg); }
 }
 
 /* === Header === */
+/* R4-5: 便签纸风格头部 */
 .game-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: white;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-soft);
-  font-size: 18px;
-  font-weight: 600;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #FFEB3B 0%, #FFF176 100%);
+  border-radius: 5px 5px 20px 20px;
+  border: none;
+  box-shadow: 
+    4px 4px 0px rgba(0, 0, 0, 0.15),
+    0 10px 20px rgba(255, 235, 59, 0.3);
+  font-size: 20px;
+  font-weight: 800;
+  transform: rotate(-1deg);
+  position: relative;
+  z-index: 10;
+}
+
+/* 便签纸胶带效果 */
+.game-header::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 20px;
+  background: rgba(255, 182, 193, 0.8);
+  border-radius: 3px;
 }
 
 .level-display {
-  color: var(--color-purple);
+  color: #7B1FA2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 24px;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
 }
 
 .score-display {
-  color: var(--color-orange);
+  color: #E65100;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 24px;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+}
+
+@keyframes wobble {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
 }
 
 /* === Main Game Area === */
@@ -84,125 +168,394 @@ html, body {
 }
 
 /* === Chameleon Area === */
+/* R1: 有机Blob形状 + R3: 悬挂效果 */
 .chameleon-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
+  gap: 12px;
+  padding: 24px 30px;
+  background: linear-gradient(135deg, #FFF9E6 0%, #FFE4B5 50%, #FFECD2 100%);
+  border: 5px solid #333;
+  /* 有机不规则形状 */
+  border-radius: 60% 40% 50% 50% / 50% 50% 40% 60%;
+  box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.25);
+  position: relative;
+  /* 移除干扰交互的动画 */
+  transform-origin: top center;
 }
 
+/* 悬挂线 */
+.chameleon-area::before {
+  content: '';
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 35px;
+  background: linear-gradient(to bottom, #666, #333);
+  border-radius: 3px;
+  z-index: -1;
+}
+
+/* 顶部挂钩 */
+.chameleon-area::after {
+  content: '◉';
+  position: absolute;
+  top: -45px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  color: #FF6B6B;
+}
+
+@keyframes blob-morph {
+  0%, 100% { border-radius: 60% 40% 50% 50% / 50% 50% 40% 60%; }
+  25% { border-radius: 50% 60% 40% 50% / 40% 60% 50% 50%; }
+  50% { border-radius: 40% 50% 60% 40% / 60% 40% 50% 50%; }
+  75% { border-radius: 50% 40% 50% 60% / 50% 50% 60% 40%; }
+}
+
+@keyframes swing-gentle {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50% { transform: rotate(1.5deg); }
+}
+
+/* R10: 超级变色龙主角 */
 .chameleon {
-  font-size: 64px;
+  font-size: 100px;
   line-height: 1;
-  transition: transform var(--transition-medium), color var(--transition-medium);
+  filter: drop-shadow(0 8px 0 rgba(0,0,0,0.3));
+  animation: chameleon-idle 3s ease-in-out infinite;
+  transition: color var(--transition-medium), filter var(--transition-medium);
+  position: relative;
+}
+
+/* 眨眼动画 */
+.chameleon::after {
+  content: '💫';
+  position: absolute;
+  top: -10px;
+  right: -20px;
+  font-size: 24px;
+  animation: twinkle 1.5s ease-in-out infinite;
 }
 
 .chameleon.celebrating {
-  animation: bounce 0.6s ease infinite;
+  animation: success-dance 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+  filter: drop-shadow(0 0 30px gold) drop-shadow(0 0 60px orange);
 }
 
-.speech-bubble {
-  padding: 8px 16px;
-  background: #FFF9C4;
-  border-radius: var(--radius-md);
-  font-size: 16px;
-  font-weight: 500;
-  text-align: center;
+.chameleon.celebrating::after {
+  content: '🎉';
+  animation: confetti 0.3s ease-in-out infinite;
 }
 
+@keyframes chameleon-idle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.05) rotate(-2deg); }
+  75% { transform: scale(0.98) rotate(2deg); }
+}
+
+@keyframes success-dance {
+  0% { transform: translateY(0) scale(1) rotate(0deg); }
+  25% { transform: translateY(-25px) scale(1.2) rotate(-15deg); }
+  50% { transform: translateY(-15px) scale(1.1) rotate(15deg); }
+  75% { transform: translateY(-20px) scale(1.15) rotate(-10deg); }
+  100% { transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes confetti {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.5); }
+}
+
+/* Target preview - main visual indicator */
 .target-preview {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   border-radius: var(--radius-round);
-  border: 3px solid white;
-  box-shadow: var(--shadow-soft);
+  border: 4px solid white;
+  box-shadow:
+    var(--shadow-soft),
+    0 0 0 6px rgba(255,255,255,0.4),
+    0 0 20px rgba(0,0,0,0.2);
   transition: background-color var(--transition-medium);
+  animation: pulse-halo 2s ease-in-out infinite;
+}
+
+@keyframes pulse-halo {
+  0%, 100% { box-shadow: var(--shadow-soft), 0 0 0 4px rgba(255,255,255,0.3); }
+  50% { box-shadow: var(--shadow-soft), 0 0 0 8px rgba(255,255,255,0.1), 0 0 20px rgba(255,200,0,0.3); }
 }
 
 /* === Bowl Area === */
+/* R6-7: 魔法漂浮碗区域 */
 .bowl-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  position: relative;
+  /* 静态碗更易交互 */
+  z-index: 5;
 }
 
+/* 魔法光环 */
+.bowl-area::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: glow-pulse 2s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes float-bowl {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* R6: 魔法大锅风格碗 */
 .bowl {
-  width: 140px;
-  height: 100px;
-  background: linear-gradient(to bottom, #DDD 0%, #BBB 100%);
-  border-radius: 0 0 70px 70px;
+  width: 160px;
+  height: 120px;
+  background: linear-gradient(180deg, 
+    #4A4A4A 0%, 
+    #2D2D2D 20%, 
+    #1A1A1A 100%);
+  border-radius: 20px 20px 80px 80px;
+  border: 6px solid #333;
+  border-top: 10px solid #555;
+  box-shadow: 
+    0 15px 30px rgba(0, 0, 0, 0.4),
+    inset 0 -20px 40px rgba(0, 0, 0, 0.5),
+    inset 0 10px 20px rgba(255, 255, 255, 0.1),
+    0 0 30px rgba(255, 200, 0, 0.2);
   overflow: hidden;
-  box-shadow: var(--shadow-soft), inset 0 -10px 20px rgba(0,0,0,0.1);
+  position: relative;
   transition: transform var(--transition-fast);
+}
+
+/* 锅边金属光泽 */
+.bowl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  width: 80%;
+  height: 12px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,0.4), 
+    rgba(255,255,255,0.6),
+    rgba(255,255,255,0.4),
+    transparent);
+  border-radius: 0 0 50% 50%;
+}
+
+/* 锅把手 */
+.bowl::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  right: -18px;
+  width: 20px;
+  height: 40px;
+  background: linear-gradient(90deg, #555, #333);
+  border-radius: 0 10px 10px 0;
+  border: 3px solid #222;
+  border-left: none;
 }
 
 .bowl.shaking {
   animation: shake 0.3s ease;
 }
 
+/* R8: 魔法药水液体 */
 .bowl-liquid {
-  width: 100%;
-  height: 70%;
-  margin-top: 30%;
+  width: 90%;
+  height: 65%;
+  margin: 25% auto 0;
   background-color: var(--color-empty);
-  border-radius: 0 0 60px 60px;
-  transition: background-color var(--transition-medium);
+  border-radius: 0 0 70px 70px;
+  transition: background-color var(--transition-medium), box-shadow var(--transition-medium);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 0 30px currentColor,
+    inset 0 -10px 20px rgba(0,0,0,0.3),
+    inset 0 5px 15px rgba(255,255,255,0.2);
 }
 
+/* 药水气泡 */
+.bowl-liquid::before {
+  content: '°º¤ø';
+  position: absolute;
+  bottom: 10%;
+  left: 20%;
+  font-size: 20px;
+  color: rgba(255,255,255,0.5);
+  animation: bubbles 3s ease-in-out infinite;
+}
+
+/* 液面波浪 */
+.bowl-liquid::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -10%;
+  width: 120%;
+  height: 20px;
+  background: linear-gradient(90deg, 
+    transparent 20%,
+    rgba(255,255,255,0.4) 50%,
+    transparent 80%);
+  border-radius: 50%;
+  animation: wave 2.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { transform: translateX(-10px) scaleY(1); }
+  50% { transform: translateX(10px) scaleY(0.6); }
+}
+
+@keyframes bubbles {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-15px); opacity: 0.7; }
+}
+
+/* 卡通清除按钮 */
 .clear-btn {
-  padding: 10px 24px;
-  background: #EEE;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 500;
+  padding: 14px 32px;
+  background: linear-gradient(to bottom, #FF6B6B, #EE5A5A);
+  border: 3px solid #333;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition-fast);
-  min-height: 44px;
+  transition: all 0.15s ease;
+  min-height: 48px;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: white;
 }
 
 .clear-btn:hover {
-  background: #DDD;
+  background: linear-gradient(to bottom, #FF8585, #FF6B6B);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.25);
 }
 
 .clear-btn:active {
-  background: #CCC;
+  background: linear-gradient(to bottom, #EE5A5A, #DD4A4A);
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
 }
 
 /* === Palette Area === */
+/* R1: 调色板有机形状 - 画家调色盘风格 */
 .palette-area {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  padding: 20px;
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
+  gap: 28px;
+  padding: 28px 40px;
+  /* 调色盘木纹色 */
+  background: linear-gradient(135deg, #DEB887 0%, #D2B48C 50%, #F5DEB3 100%);
+  border: 5px solid #8B4513;
+  /* 肾形调色盘 */
+  border-radius: 100px 60px 100px 60px / 60px 100px 60px 100px;
+  box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.3);
+  position: relative;
+  transform: rotate(3deg);
+  /* 静态调色盘更易交互 */
 }
 
+/* 调色盘拇指孔 */
+.palette-area::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 25px;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #FF9A9E, #FECFEF);
+  border-radius: 50%;
+  border: 4px solid #8B4513;
+  box-shadow: inset 3px 3px 6px rgba(0,0,0,0.3);
+}
+
+@keyframes float-palette {
+  0%, 100% { transform: rotate(3deg) translateY(0); }
+  50% { transform: rotate(2deg) translateY(-8px); }
+}
+
+/* 糖果球 - 无干扰动画 */
 .color-source {
-  width: var(--touch-target);
-  height: var(--touch-target);
-  border-radius: var(--radius-round);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
   cursor: grab;
-  box-shadow: var(--shadow-soft), inset 0 -4px 8px rgba(0,0,0,0.2);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    inset -8px -8px 15px rgba(0, 0, 0, 0.25),
+    inset 8px 8px 15px rgba(255, 255, 255, 0.6),
+    0 8px 0 rgba(0, 0, 0, 0.15),
+    0 12px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease-out;
+  position: relative;
+}
+
+/* 高光点 */
+.color-source::before {
+  content: '';
+  position: absolute;
+  top: 12%;
+  left: 20%;
+  width: 18px;
+  height: 10px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
 }
 
 .color-source:hover {
-  transform: scale(1.1);
+  transform: scale(1.15) translateY(-5px);
+  box-shadow: 
+    inset -8px -8px 15px rgba(0, 0, 0, 0.25),
+    inset 8px 8px 15px rgba(255, 255, 255, 0.6),
+    0 12px 0 rgba(0, 0, 0, 0.1),
+    0 18px 30px rgba(0, 0, 0, 0.25);
+  cursor: grab;
 }
 
 .color-source:active,
 .color-source.dragging {
   cursor: grabbing;
-  transform: scale(1.15);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  transform: scale(1.1);
+  box-shadow: 
+    inset -8px -8px 15px rgba(0, 0, 0, 0.25),
+    inset 8px 8px 15px rgba(255, 255, 255, 0.6),
+    0 4px 0 rgba(0, 0, 0, 0.2),
+    0 8px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* === Animations === */

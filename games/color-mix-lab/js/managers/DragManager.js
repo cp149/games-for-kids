@@ -75,10 +75,15 @@ class DragManager {
 
     if (!this.isDragging && Math.hypot(dx, dy) > this.threshold) {
       this.isDragging = true;
+      // Create drag clone
+      this._createDragClone();
       this.onDragStart(this.dragElement, this.dragElement._dragData);
     }
 
-    if (this.isDragging) {
+    if (this.isDragging && this.dragClone) {
+      // Move clone to follow cursor
+      this.dragClone.style.left = (this.currentPos.x - 35) + 'px';
+      this.dragClone.style.top = (this.currentPos.y - 35) + 'px';
       this.onDragMove(this.currentPos, this.dragElement._dragData);
     }
   }
@@ -96,10 +101,42 @@ class DragManager {
         this.onDrop(this.dragElement._dragData, dropTarget.element);
       }
       this.onDragEnd(this.dragElement._dragData);
+      this._removeDragClone();
     }
 
     this.isDragging = false;
     this.dragElement = null;
+  }
+
+  _createDragClone() {
+    if (this.dragClone) return;
+
+    const clone = this.dragElement.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.zIndex = '9999';
+    clone.style.pointerEvents = 'none';
+    clone.style.opacity = '0.9';
+    clone.style.transform = 'scale(1.1)';
+    clone.style.transition = 'none';
+    clone.style.left = (this.currentPos.x - 35) + 'px';
+    clone.style.top = (this.currentPos.y - 35) + 'px';
+    clone.classList.add('drag-clone');
+
+    document.body.appendChild(clone);
+    this.dragClone = clone;
+
+    // Dim original
+    this.dragElement.style.opacity = '0.4';
+  }
+
+  _removeDragClone() {
+    if (this.dragClone) {
+      this.dragClone.remove();
+      this.dragClone = null;
+    }
+    if (this.dragElement) {
+      this.dragElement.style.opacity = '';
+    }
   }
 
   _findDropTarget(pos) {

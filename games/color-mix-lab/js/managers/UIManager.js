@@ -12,20 +12,19 @@ class UIManager {
   _createUI() {
     this.container.innerHTML = `
       <header class="game-header">
-        <span class="level-display">Level 1</span>
-        <span class="score-display">Score: 0</span>
+        <span class="level-display">🎨 <span class="level-num">1</span></span>
+        <span class="score-display">⭐ <span class="score-num">0</span></span>
       </header>
       <main class="game-main">
         <div class="chameleon-area">
           <div class="chameleon">🦎</div>
-          <div class="speech-bubble">Make me orange!</div>
           <div class="target-preview"></div>
         </div>
         <div class="bowl-area">
           <div class="bowl">
             <div class="bowl-liquid"></div>
           </div>
-          <button class="clear-btn">Clear</button>
+          <button class="clear-btn">🗑️</button>
         </div>
         <div class="palette-area">
           <div class="color-source" data-color="RED"></div>
@@ -36,10 +35,9 @@ class UIManager {
     `;
 
     this.elements = {
-      levelDisplay: this.container.querySelector('.level-display'),
-      scoreDisplay: this.container.querySelector('.score-display'),
+      levelNum: this.container.querySelector('.level-num'),
+      scoreNum: this.container.querySelector('.score-num'),
       chameleon: this.container.querySelector('.chameleon'),
-      speechBubble: this.container.querySelector('.speech-bubble'),
       targetPreview: this.container.querySelector('.target-preview'),
       bowl: this.container.querySelector('.bowl'),
       bowlLiquid: this.container.querySelector('.bowl-liquid'),
@@ -49,15 +47,15 @@ class UIManager {
   }
 
   updateLevel(level) {
-    this.elements.levelDisplay.textContent = `Level ${level}`;
+    this.elements.levelNum.textContent = level;
   }
 
   updateScore(score) {
-    this.elements.scoreDisplay.textContent = `Score: ${score}`;
+    this.elements.scoreNum.textContent = score;
   }
 
   setInstruction(text) {
-    this.elements.speechBubble.textContent = text;
+    // No longer using text instructions - visual only
   }
 
   setTargetColor(hex) {
