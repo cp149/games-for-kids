@@ -248,3 +248,9 @@ export function createPerformanceMonitor(options = {}) {
 }
 
 export default PerformanceMonitor;
+
+// Browser global for non-module usage
+if (typeof window !== 'undefined') {
+  window.PerformanceMonitor = PerformanceMonitor;
+  window.createPerformanceMonitor = createPerformanceMonitor;
+}

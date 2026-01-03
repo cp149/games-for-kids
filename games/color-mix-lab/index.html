@@ -1,175 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎨 Color Mix Lab - Learn Colors Through Play</title>
-    <meta name="description" content="Mix colors, feed the chameleon, and discover the rainbow! Educational game for ages 5-8.">
-
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
-
-    <!-- Stats.js for performance monitoring (dev only) -->
-    <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Color Mix Lab - Learn color mixing through play!">
+  <title>Color Mix Lab</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Living Background Elements (decorative) -->
-    <div class="living-bg" aria-hidden="true">
-        <div class="cloud cloud-1">☁️</div>
-        <div class="cloud cloud-2">☁️</div>
-        <div class="butterfly butterfly-1">🦋</div>
-        <div class="butterfly butterfly-2">🦋</div>
-        <div class="leaf leaf-1">🍃</div>
-    </div>
+  <div id="game-container"></div>
 
-    <main id="game-container" class="game-container">
-        <!-- Header Area: Settings, Sound, Sticker Book, Free Play -->
-        <h1 class="visually-hidden">Color Mix Lab - Learn Colors Through Play</h1>
-        <header class="header-area">
-            <button class="icon-btn sticker-book-btn" aria-label="Sticker Book">
-                <span class="icon-sticker" aria-hidden="true">📖</span>
-            </button>
-            <button class="icon-btn free-play-btn hidden" aria-label="Free Play Mode">
-                <span class="icon-free-play" aria-hidden="true">🎨</span>
-            </button>
-            <button class="icon-btn settings-btn" aria-label="Settings">
-                <span class="icon-settings" aria-hidden="true"></span>
-            </button>
-            <button class="icon-btn sound-btn" aria-label="Toggle Sound">
-                <span class="icon-sound" aria-hidden="true"></span>
-            </button>
-        </header>
+  <!-- Shared libraries -->
+  <script src="../lib/stats.min.js"></script>
+  <script type="module">
+    import { Logger } from '../lib/utils/Logger.js';
+    import { PerformanceMonitor } from '../lib/performance-monitor.js';
+    window.Logger = Logger;
+    window.PerformanceMonitor = PerformanceMonitor;
+  </script>
 
-        <!-- Chameleon Area: Character & Goal -->
-        <section class="chameleon-area">
-            <div class="target-leaf">
-                <div class="chameleon" role="img" aria-label="A chameleon waiting for a new color">
-                    <div class="chameleon-body" aria-hidden="true"></div>
-                    <div class="chameleon-eyes" aria-hidden="true"></div>
-                </div>
-            </div>
-            <div class="progress-stars" role="status" aria-label="Progress: 0 of 3 stars collected">
-                <span class="star" aria-hidden="true"></span>
-                <span class="star" aria-hidden="true"></span>
-                <span class="star" aria-hidden="true"></span>
-            </div>
-        </section>
-
-        <!-- Mixing Area: Bowl & Buttons -->
-        <section class="mixing-area">
-            <div class="bowl" role="region" aria-label="Mixing Bowl - Drag colors here to mix them" tabindex="0">
-                <div class="liquid" aria-hidden="true"></div>
-                <div class="particles" aria-hidden="true"></div>
-            </div>
-            <div class="bowl-controls">
-                <button class="icon-btn undo-btn hidden" aria-label="Undo last color">
-                    <span class="icon-undo" aria-hidden="true">↩️</span>
-                </button>
-                <button class="icon-btn clear-btn" aria-label="Clear Bowl">
-                    <span class="icon-clear" aria-hidden="true"></span>
-                </button>
-            </div>
-        </section>
-
-        <!-- Palette Area: Two-Row Layout -->
-        <section class="palette-area" aria-label="Color Palette">
-            <!-- Row 1: Mixed Colors Tray (earned colors) -->
-            <div class="mixed-colors-tray" aria-label="Mixed Colors">
-                <!-- Mixed colors will be added here dynamically -->
-            </div>
-
-            <!-- Row 2: Primary Colors (always visible) -->
-            <div class="primary-sources">
-                <div class="color-source primary red-source" data-color="red" draggable="true" role="button" tabindex="0" aria-label="Red Color - Drag to bowl">
-                    <div class="color-blob" aria-hidden="true"></div>
-                    <div class="color-pattern pattern-zigzag" aria-hidden="true"></div>
-                </div>
-                <div class="color-source primary blue-source" data-color="blue" draggable="true" role="button" tabindex="0" aria-label="Blue Color - Drag to bowl">
-                    <div class="color-blob" aria-hidden="true"></div>
-                    <div class="color-pattern pattern-waves" aria-hidden="true"></div>
-                </div>
-                <div class="color-source primary yellow-source" data-color="yellow" draggable="true" role="button" tabindex="0" aria-label="Yellow Color - Drag to bowl">
-                    <div class="color-blob" aria-hidden="true"></div>
-                    <div class="color-pattern pattern-dots" aria-hidden="true"></div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- ES Module entry point -->
-    <script type="module">
-        // Import shared utilities
-        import { Logger, setLogLevel } from '../lib/utils/Logger.js';
-
-        // Import performance monitor
-        import { PerformanceMonitor } from '../lib/performance-monitor.js';
-
-        // Import game modules
-        import { TRANSLATIONS } from './js/i18n/translations.js';
-        import { initI18n } from './js/i18n/index.js';
-        import { ColorMixGame } from './js/ColorMixGame.js';
-
-        // Game instance (declared at top to avoid TDZ issues)
-        let game = null;
-
-        // Make Logger globally available for compatibility
-        window.Logger = Logger;
-
-        // Initialize performance monitor (dev mode only)
-        const perfMonitor = new PerformanceMonitor({
-            position: 'bottom-left',
-            showFPS: true,
-            showMS: true,
-            showMB: false,
-            logger: Logger
-        });
-        perfMonitor.init();
-
-        // Initialize i18n
-        const i18n = initI18n(TRANSLATIONS, 'en');
-
-        // Initialize game when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initGame);
-        } else {
-            initGame();
-        }
-
-        function initGame() {
-            try {
-                Logger.info('🎨 Color Mix Lab initializing...');
-                game = new ColorMixGame('game-container', i18n);
-                Logger.info('✅ Game initialized successfully');
-
-                // Start game loop for performance monitoring
-                if (perfMonitor.isEnabled()) {
-                    requestAnimationFrame(gameLoop);
-                }
-            } catch (error) {
-                Logger.error('❌ Failed to initialize game:', error);
-                document.getElementById('game-container').innerHTML = `
-                    <div class="game-loading">
-                        <div style="text-align: center; color: #E74C3C;">
-                            <h2>😕 ${i18n.t('game_title')}</h2>
-                            <p>Please refresh the page to try again.</p>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function gameLoop() {
-            perfMonitor.update();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (game) {
-                game.destroy();
-            }
-            perfMonitor.destroy();
-        });
-    </script>
+  <!-- Game scripts -->
+  <script src="js/config.js?v=3"></script>
+  <script src="js/systems/MixingSystem.js?v=3"></script>
+  <script src="js/managers/DragManager.js?v=3"></script>
+  <script src="js/managers/UIManager.js?v=3"></script>
+  <script src="js/managers/AudioManager.js?v=3"></script>
+  <script src="js/ColorMixGame.js?v=3"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      window.game = new ColorMixGame('game-container');
+      
+      // Cleanup on page unload
+      window.addEventListener('beforeunload', () => {
+        if (window.game) window.game.destroy();
+      });
+    });
+  </script>
 </body>
 </html>
