@@ -15,9 +15,14 @@
   <script type="module">
     import { Logger } from '../lib/utils/Logger.js';
     import { PerformanceMonitor } from '../lib/performance-monitor.js';
+    import { SimpleI18n } from '../lib/i18n/SimpleI18n.js';
     window.Logger = Logger;
     window.PerformanceMonitor = PerformanceMonitor;
+    window.SimpleI18n = SimpleI18n;
   </script>
+
+  <!-- i18n -->
+  <script src="js/i18n/translations.js?v=1"></script>
 
   <!-- Game scripts -->
   <script src="js/config.js?v=5"></script>
@@ -29,8 +34,15 @@
   
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // Initialize i18n with browser language detection
+      const browserLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+      const savedLang = localStorage.getItem('colorMixLab_language') || browserLang;
+
+      window.i18n = new SimpleI18n(savedLang);
+      window.i18n.addTranslations(TRANSLATIONS);
+
       window.game = new ColorMixGame('game-container');
-      
+
       // Cleanup on page unload
       window.addEventListener('beforeunload', () => {
         if (window.game) window.game.destroy();

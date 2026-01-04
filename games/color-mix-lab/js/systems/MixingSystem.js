@@ -1,6 +1,6 @@
 /**
- * MixingSystem - Pure color mixing logic
- * No DOM dependencies, fully testable
+ * MixingSystem - Ratio-based color mixing logic
+ * Supports gradient colors through color counting
  */
 
 class MixingSystem {
@@ -8,8 +8,9 @@ class MixingSystem {
     this.config = config;
     this.colors = config.COLORS;
     this.rules = config.MIXING_RULES;
+    this.maxColors = 4; // Max colors allowed in bowl
     this.bowlColors = [];
-    this.isMud = false;
+    this.colorCounts = { RED: 0, BLUE: 0, YELLOW: 0 };
   }
 
   /**
@@ -18,73 +19,85 @@ class MixingSystem {
    * @returns {string} Current bowl color hex
    */
   addColor(colorName) {
-    // If already have 2 colors and adding a 3rd different one = MUD
-    if (this.bowlColors.length >= 2) {
-      const existing = new Set(this.bowlColors);
-      if (!existing.has(colorName)) {
-        // Adding a third different color makes mud
-        this.bowlColors.push(colorName);
-        this.isMud = true;
-        return this.config.COLORS.MUD;
-      }
-      // Same color or resetting
-      this.bowlColors = [];
-      this.isMud = false;
+    // Max 4 colors
+    if (this.bowlColors.length >= this.maxColors) {
+      return this.getCurrentColor();
     }
+
     this.bowlColors.push(colorName);
+    this.colorCounts[colorName]++;
+
     return this.getCurrentColor();
   }
 
   /**
-   * Get current mixed color
+   * Get current mixed color based on ratios
    * @returns {string} Hex color value
    */
   getCurrentColor() {
-    if (this.bowlColors.length === 0) {
+    const total = this.bowlColors.length;
+
+    if (total === 0) {
       return this.colors.EMPTY;
     }
-    if (this.bowlColors.length === 1) {
+    if (total === 1) {
       return this.colors[this.bowlColors[0]];
     }
-    return this.mix(this.bowlColors[0], this.bowlColors[1]);
+
+    return this.colors[this._calculateResult()];
   }
 
   /**
-   * Mix two colors
-   * @param {string} c1 - First color name
-   * @param {string} c2 - Second color name
-   * @returns {string} Hex color of result
+   * Calculate result color name based on color counts
+   * @returns {string} Result color name
    */
-  mix(c1, c2) {
-    const key = `${c1}+${c2}`;
-    const resultName = this.rules[key];
-    if (resultName) {
-      return this.colors[resultName];
+  _calculateResult() {
+    const r = this.colorCounts.RED;
+    const b = this.colorCounts.BLUE;
+    const y = this.colorCounts.YELLOW;
+    const total = r + b + y;
+
+    // Single color (all same)
+    if (r === total) return 'RED';
+    if (b === total) return 'BLUE';
+    if (y === total) return 'YELLOW';
+
+    // Two-color mixes
+    if (y === 0) {
+      // Red + Blue combinations
+      if (r === b) return 'PURPLE';
+      if (r > b) return 'RED_PURPLE';
+      return 'BLUE_PURPLE';
     }
-    // Unknown combination = mud
-    return this.colors.MUD;
+    if (b === 0) {
+      // Red + Yellow combinations
+      if (r === y) return 'ORANGE';
+      if (r > y) return 'RED_ORANGE';
+      return 'YELLOW_ORANGE';
+    }
+    if (r === 0) {
+      // Blue + Yellow combinations
+      if (b === y) return 'GREEN';
+      if (b > y) return 'BLUE_GREEN';
+      return 'YELLOW_GREEN';
+    }
+
+    // Three-color mixes
+    if (r === 1 && b === 1 && y === 1) {
+      return 'BROWN'; // Perfect 1:1:1
+    }
+
+    // Unbalanced 3-color = MUD
+    return 'MUD';
   }
 
   /**
-   * Check if current color matches target
-   * @param {string} targetName - Target color name
-   * @returns {boolean}
-   */
-  matchesTarget(targetName) {
-    const current = this.getCurrentColor();
-    const target = this.colors[targetName];
-    return current === target;
-  }
-
-  /**
-   * Get result color name
-   * @returns {string|null} Color name or null
+   * Get result color name (for level checking)
+   * @returns {string|null} Color name or null if not enough colors
    */
   getResultName() {
-    if (this.isMud) return 'MUD';
     if (this.bowlColors.length < 2) return null;
-    const key = `${this.bowlColors[0]}+${this.bowlColors[1]}`;
-    return this.rules[key] || 'MUD';
+    return this._calculateResult();
   }
 
   /**
@@ -96,11 +109,27 @@ class MixingSystem {
   }
 
   /**
+   * Get color counts
+   * @returns {object} Counts of each color
+   */
+  getColorCounts() {
+    return { ...this.colorCounts };
+  }
+
+  /**
+   * Check if bowl is full
+   * @returns {boolean}
+   */
+  isFull() {
+    return this.bowlColors.length >= this.maxColors;
+  }
+
+  /**
    * Reset the bowl
    */
   reset() {
     this.bowlColors = [];
-    this.isMud = false;
+    this.colorCounts = { RED: 0, BLUE: 0, YELLOW: 0 };
   }
 
   /**
@@ -108,6 +137,7 @@ class MixingSystem {
    */
   destroy() {
     this.bowlColors = [];
+    this.colorCounts = { RED: 0, BLUE: 0, YELLOW: 0 };
   }
 }
 

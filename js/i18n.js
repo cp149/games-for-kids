@@ -61,12 +61,18 @@ const translations = {
         duration9: "2-5 min",
         age9: "5-8",
         difficulty9: "Easy-Medium",
+        // Game 10: Color Mix Lab
+        game10_title: "Color Mix Lab",
+        game10_desc: "Mix primary colors to create new ones! Learn color theory with a cute chameleon.",
+        duration10: "5-10 min",
+        age10: "4-8",
+        difficulty10: "Easy",
         // Badges
         new_badge: "NEW",
         hot_badge: "HOT",
         // Footer
         footer_text: "Made with love for kids around the world",
-        footer_count: "9 games available, more coming soon!",
+        footer_count: "10 games available, more coming soon!",
         footer_credits: "Images by",
         footer_music: "Music by"
     },
@@ -127,12 +133,18 @@ const translations = {
         duration9: "2-5分钟",
         age9: "5-8岁",
         difficulty9: "简单-中等",
+        // Game 10: Color Mix Lab
+        game10_title: "调色实验室",
+        game10_desc: "混合三原色创造新颜色！和可爱的变色龙一起学习色彩理论。",
+        duration10: "5-10分钟",
+        age10: "4-8岁",
+        difficulty10: "简单",
         // Badges
         new_badge: "新",
         hot_badge: "热门",
         // Footer
         footer_text: "用爱为全世界的孩子们制作",
-        footer_count: "9个游戏可玩，更多即将推出！",
+        footer_count: "10个游戏可玩，更多即将推出！",
         footer_credits: "图片来自",
         footer_music: "音乐来自"
     },
@@ -193,12 +205,18 @@ const translations = {
         duration9: "2-5分",
         age9: "5-8歳",
         difficulty9: "簡単-普通",
+        // Game 10: Color Mix Lab
+        game10_title: "カラーミックスラボ",
+        game10_desc: "三原色を混ぜて新しい色を作ろう！かわいいカメレオンと一緒に色彩理論を学ぼう。",
+        duration10: "5-10分",
+        age10: "4-8歳",
+        difficulty10: "簡単",
         // Badges
         new_badge: "新作",
         hot_badge: "人気",
         // Footer
         footer_text: "世界中の子供たちのために愛を込めて作りました",
-        footer_count: "9ゲームプレイ可能、もっと近日公開！",
+        footer_count: "10ゲームプレイ可能、もっと近日公開！",
         footer_credits: "画像:",
         footer_music: "音楽:"
     }

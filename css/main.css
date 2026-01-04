@@ -122,6 +122,8 @@ h1 {
 .game-header.music { background: linear-gradient(135deg, #FA8BFF 0%, #2BD2FF 50%, #2BFF88 100%); }
 .game-header.logic { background: linear-gradient(135deg, #0a0a1a 0%, #00ffff 50%, #ff00ff 100%); }
 .game-header.snake { background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%); }
+.game-header.pathrace { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); }
+.game-header.colormix { background: linear-gradient(135deg, #FF4136 0%, #FFDC00 50%, #0074D9 100%); }
 
 .game-icon {
     font-size: 4rem;
