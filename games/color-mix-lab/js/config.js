@@ -16,6 +16,17 @@ const CONFIG = {
     MUD: '#5D4037'
   },
 
+  // Color emoji for visual formulas
+  COLOR_EMOJI: {
+    RED: '🔴',
+    BLUE: '🔵',
+    YELLOW: '🟡',
+    PURPLE: '🟣',
+    ORANGE: '🟠',
+    GREEN: '🟢',
+    MUD: '💩'
+  },
+
   // Color mixing rules: [color1, color2] => result
   MIXING_RULES: {
     'RED+BLUE': 'PURPLE',
@@ -30,13 +41,20 @@ const CONFIG = {
   },
 
   // Level definitions
+  // type: 'mix' = standard mixing, 'quiz' = fill-in-the-blank
   LEVELS: [
-    { id: 1, target: 'ORANGE', hint: 'Mix red and yellow!' },
-    { id: 2, target: 'GREEN', hint: 'Mix blue and yellow!' },
-    { id: 3, target: 'PURPLE', hint: 'Mix red and blue!' },
-    { id: 4, target: 'ORANGE', hint: 'Can you remember?' },
-    { id: 5, target: 'GREEN', hint: 'Try again!' },
-    { id: 6, target: 'PURPLE', hint: 'You got this!' }
+    { id: 1, type: 'mix', target: 'ORANGE' },
+    { id: 2, type: 'mix', target: 'GREEN' },
+    { id: 3, type: 'mix', target: 'PURPLE' },
+    { id: 4, type: 'quiz', given: 'RED', missing: 'YELLOW', result: 'ORANGE' },
+    { id: 5, type: 'quiz', given: 'BLUE', missing: 'YELLOW', result: 'GREEN' },
+    { id: 6, type: 'quiz', given: 'RED', missing: 'BLUE', result: 'PURPLE' },
+    { id: 7, type: 'mix', target: 'ORANGE' },
+    { id: 8, type: 'mix', target: 'GREEN' },
+    { id: 9, type: 'quiz', given: 'YELLOW', missing: 'RED', result: 'ORANGE' },
+    { id: 10, type: 'quiz', given: 'YELLOW', missing: 'BLUE', result: 'GREEN' },
+    { id: 11, type: 'quiz', given: 'BLUE', missing: 'RED', result: 'PURPLE' },
+    { id: 12, type: 'mix', target: 'PURPLE' }
   ],
 
   // UI Settings
@@ -57,8 +75,25 @@ const CONFIG = {
   // Storage keys
   STORAGE: {
     LEVEL: 'colorMixLab_level',
-    SCORE: 'colorMixLab_score'
-  }
+    SCORE: 'colorMixLab_score',
+    RECIPES: 'colorMixLab_recipes',
+    ACHIEVEMENTS: 'colorMixLab_achievements'
+  },
+
+  // All discoverable recipes
+  RECIPES: [
+    { id: 'orange', colors: ['RED', 'YELLOW'], result: 'ORANGE', name: 'Orange' },
+    { id: 'green', colors: ['BLUE', 'YELLOW'], result: 'GREEN', name: 'Green' },
+    { id: 'purple', colors: ['RED', 'BLUE'], result: 'PURPLE', name: 'Purple' }
+  ],
+
+  // Achievements
+  ACHIEVEMENTS: [
+    { id: 'first_mix', icon: '🎨', name: 'First Mix', condition: 'levels >= 1' },
+    { id: 'recipe_hunter', icon: '📖', name: 'Recipe Hunter', condition: 'recipes >= 3' },
+    { id: 'color_master', icon: '🏆', name: 'Color Master', condition: 'levels >= 10' },
+    { id: 'high_scorer', icon: '⭐', name: 'High Scorer', condition: 'score >= 1000' }
+  ]
 };
 
 // Dual export pattern

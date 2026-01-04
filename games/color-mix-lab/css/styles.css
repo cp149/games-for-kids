@@ -43,10 +43,10 @@ html, body {
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
-  /* 居中容器 */
+  /* 顶部对齐，水平居中 */
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
 }
 
 @keyframes rainbow-move {
@@ -61,11 +61,12 @@ html, body {
   flex-direction: column;
   width: 100%;
   max-width: 500px;
-  max-height: 90vh;
-  padding: 15px;
-  gap: 15px;
+  height: 100vh;
+  height: 100dvh; /* 动态视口高度，避免移动端地址栏遮挡 */
+  padding: 12px 15px env(safe-area-inset-bottom, 8px);
+  gap: 10px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* R2: 装饰云朵 */
@@ -163,8 +164,10 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  overflow: hidden;
+  justify-content: space-between;
+  gap: 10px;
+  overflow: visible;
+  min-height: 0;
 }
 
 /* === Chameleon Area === */
@@ -301,9 +304,8 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   position: relative;
-  /* 静态碗更易交互 */
   z-index: 5;
 }
 
@@ -441,33 +443,250 @@ html, body {
   50% { transform: translateY(-15px); opacity: 0.7; }
 }
 
-/* 卡通清除按钮 */
-.clear-btn {
-  padding: 14px 32px;
-  background: linear-gradient(to bottom, #FF6B6B, #EE5A5A);
+/* 混合公式显示 */
+.formula-display {
+  font-size: 32px;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
   border: 3px solid #333;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: scale(0.8) translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.formula-display.show {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  min-height: 50px;
+  animation: formula-pop 0.4s ease-out;
+}
+
+.formula-display.quiz-mode {
+  background: linear-gradient(to bottom, #E3F2FD, #BBDEFB);
+  border-color: #1976D2;
+  animation: none;
+}
+
+@keyframes formula-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Header buttons container */
+.header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* 配方图鉴 Recipe Book */
+.recipe-btn {
+  font-size: 24px;
+  padding: 8px 12px;
+  background: linear-gradient(to bottom, #FFE082, #FFD54F);
+  border: 3px solid #333;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2);
+}
+
+.recipe-btn:hover {
+  transform: scale(1.1);
+}
+
+.recipe-btn.new-recipe {
+  animation: recipe-glow 0.5s ease 3;
+}
+
+@keyframes recipe-glow {
+  0%, 100% { box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2); }
+  50% { box-shadow: 0 0 20px #FFD700, 0 0 30px #FFA500; }
+}
+
+.reset-btn {
+  font-size: 20px;
+  padding: 8px 12px;
+  background: linear-gradient(to bottom, #E0E0E0, #BDBDBD);
+  border: 3px solid #333;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2);
+}
+
+.reset-btn:hover {
+  transform: scale(1.1);
+  background: linear-gradient(to bottom, #FFCDD2, #EF9A9A);
+}
+
+.recipe-book {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(to bottom, #FFF8E1, #FFECB3);
+  border: 4px solid #333;
+  border-radius: 20px;
+  padding: 20px;
+  min-width: 280px;
+  box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.recipe-book.hidden {
+  display: none;
+}
+
+.recipe-book-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 3px dashed #DDD;
+}
+
+.close-btn {
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  background: #FF6B6B;
+  border: 2px solid #333;
+  border-radius: 50%;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+}
+
+.recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-card {
+  font-size: 24px;
+  padding: 12px 16px;
+  background: white;
+  border: 3px solid #333;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.15);
+}
+
+.recipe-card.discovered {
+  background: linear-gradient(to bottom, #C8E6C9, #A5D6A7);
+}
+
+.recipe-card.locked {
+  background: #E0E0E0;
+  color: #999;
+}
+
+/* 泥巴怪 Mud Monster */
+.mud-monster {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 120px;
+  z-index: 999;
+  animation: mud-appear 0.3s ease forwards;
+  filter: drop-shadow(4px 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+.mud-monster.splat {
+  animation: mud-splat 0.8s ease forwards;
+}
+
+@keyframes mud-appear {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(-20deg); }
+  50% { transform: translate(-50%, -50%) scale(1.3) rotate(10deg); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+@keyframes mud-splat {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  30% { transform: translate(-50%, -50%) scale(1.2); }
+  100% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+}
+
+/* 成就徽章 Achievement Badge */
+.achievement-badge {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  background: linear-gradient(to bottom, #FFD700, #FFA500);
+  border: 4px solid #333;
   border-radius: 16px;
-  font-size: 16px;
-  font-weight: 700;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+
+.achievement-badge.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.achievement-icon {
+  font-size: 36px;
+}
+
+.achievement-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 清除按钮 - 碗的右边 */
+.clear-btn {
+  position: absolute;
+  top: 20px;
+  left: calc(50% + 75px);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: linear-gradient(to bottom, #FF6B6B, #EE5A5A);
+  border: 2px solid #333;
+  border-radius: 50%;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.15s ease;
-  min-height: 48px;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
   color: white;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .clear-btn:hover {
   background: linear-gradient(to bottom, #FF8585, #FF6B6B);
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.25);
+  transform: scale(1.15);
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2);
+  opacity: 1;
 }
 
 .clear-btn:active {
   background: linear-gradient(to bottom, #EE5A5A, #DD4A4A);
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
+  transform: scale(0.95);
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.2);
 }
 
 /* === Palette Area === */
@@ -551,11 +770,22 @@ html, body {
 .color-source.dragging {
   cursor: grabbing;
   transform: scale(1.1);
-  box-shadow: 
+  box-shadow:
     inset -8px -8px 15px rgba(0, 0, 0, 0.25),
     inset 8px 8px 15px rgba(255, 255, 255, 0.6),
     0 4px 0 rgba(0, 0, 0, 0.2),
     0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Click feedback animation */
+.color-source.clicked {
+  animation: color-pulse 0.3s ease-out;
+}
+
+@keyframes color-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  100% { transform: scale(1); }
 }
 
 /* === Animations === */
@@ -568,6 +798,47 @@ html, body {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-8px); }
   75% { transform: translateX(8px); }
+}
+
+/* === Small Mobile (Short Screens) === */
+@media (max-height: 700px) {
+  .chameleon-area {
+    padding: 16px 20px;
+  }
+
+  .chameleon {
+    font-size: 70px;
+  }
+
+  .chameleon::after {
+    font-size: 18px;
+    top: -5px;
+    right: -15px;
+  }
+
+  .bowl {
+    width: 120px;
+    height: 90px;
+  }
+
+  .color-source {
+    width: 55px;
+    height: 55px;
+  }
+
+  .target-preview {
+    width: 45px;
+    height: 45px;
+  }
+
+  .game-header {
+    padding: 12px 16px;
+    font-size: 18px;
+  }
+
+  .level-display, .score-display {
+    font-size: 20px;
+  }
 }
 
 /* === Tablet & Desktop === */

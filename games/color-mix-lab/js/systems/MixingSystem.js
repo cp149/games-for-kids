@@ -5,9 +5,11 @@
 
 class MixingSystem {
   constructor(config) {
+    this.config = config;
     this.colors = config.COLORS;
     this.rules = config.MIXING_RULES;
     this.bowlColors = [];
+    this.isMud = false;
   }
 
   /**
@@ -16,8 +18,18 @@ class MixingSystem {
    * @returns {string} Current bowl color hex
    */
   addColor(colorName) {
+    // If already have 2 colors and adding a 3rd different one = MUD
     if (this.bowlColors.length >= 2) {
+      const existing = new Set(this.bowlColors);
+      if (!existing.has(colorName)) {
+        // Adding a third different color makes mud
+        this.bowlColors.push(colorName);
+        this.isMud = true;
+        return this.config.COLORS.MUD;
+      }
+      // Same color or resetting
       this.bowlColors = [];
+      this.isMud = false;
     }
     this.bowlColors.push(colorName);
     return this.getCurrentColor();
@@ -69,9 +81,18 @@ class MixingSystem {
    * @returns {string|null} Color name or null
    */
   getResultName() {
+    if (this.isMud) return 'MUD';
     if (this.bowlColors.length < 2) return null;
     const key = `${this.bowlColors[0]}+${this.bowlColors[1]}`;
     return this.rules[key] || 'MUD';
+  }
+
+  /**
+   * Get current colors in bowl
+   * @returns {string[]} Array of color names
+   */
+  getColors() {
+    return [...this.bowlColors];
   }
 
   /**
@@ -79,6 +100,7 @@ class MixingSystem {
    */
   reset() {
     this.bowlColors = [];
+    this.isMud = false;
   }
 
   /**
