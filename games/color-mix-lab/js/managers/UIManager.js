@@ -167,13 +167,11 @@ class UIManager {
 
 
   _confirmReset() {
-    if (confirm('Reset all progress? 重置所有进度？')) {
-      localStorage.removeItem(CONFIG.STORAGE.LEVEL);
-      localStorage.removeItem(CONFIG.STORAGE.SCORE);
-      localStorage.removeItem(CONFIG.STORAGE.RECIPES);
-      localStorage.removeItem(CONFIG.STORAGE.ACHIEVEMENTS);
-      location.reload();
-    }
+    localStorage.removeItem(CONFIG.STORAGE.LEVEL);
+    localStorage.removeItem(CONFIG.STORAGE.SCORE);
+    localStorage.removeItem(CONFIG.STORAGE.RECIPES);
+    localStorage.removeItem(CONFIG.STORAGE.ACHIEVEMENTS);
+    location.reload();
   }
 
   setTargetColor(hex) {
