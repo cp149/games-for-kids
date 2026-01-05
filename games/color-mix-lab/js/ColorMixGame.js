@@ -6,7 +6,6 @@
 class ColorMixGame {
   constructor(containerId) {
     this.containerId = containerId;
-    this.currentLevel = 0;
     this.score = 0;
     this.isProcessing = false;
     this.discoveredRecipes = [];
@@ -27,6 +26,9 @@ class ColorMixGame {
       this.perfMonitor.init();
       this._startPerfLoop();
     }
+
+    // Initialize LevelManager (OOP level system)
+    this.levelManager = new LevelManager(CONFIG.LEVELS, CONFIG.STORAGE);
 
     // Initialize managers
     this.ui = new UIManager(containerId);
@@ -96,11 +98,13 @@ class ColorMixGame {
 
   _loadProgress() {
     try {
-      const savedLevel = localStorage.getItem(CONFIG.STORAGE.LEVEL);
+      // LevelManager handles its own level persistence
+      // We just need to sync currentLevel from it
+      this.currentLevel = this.levelManager.currentIndex;
+      
       const savedScore = localStorage.getItem(CONFIG.STORAGE.SCORE);
       const savedRecipes = localStorage.getItem(CONFIG.STORAGE.RECIPES);
       const savedAchievements = localStorage.getItem(CONFIG.STORAGE.ACHIEVEMENTS);
-      if (savedLevel) this.currentLevel = parseInt(savedLevel, 10);
       if (savedScore) this.score = parseInt(savedScore, 10);
       if (savedRecipes) this.discoveredRecipes = JSON.parse(savedRecipes);
       if (savedAchievements) this.earnedAchievements = JSON.parse(savedAchievements);
@@ -113,7 +117,9 @@ class ColorMixGame {
 
   _saveProgress() {
     try {
-      localStorage.setItem(CONFIG.STORAGE.LEVEL, this.currentLevel);
+      // LevelManager saves its own level progress
+      this.levelManager._saveProgress();
+      // We save score, recipes, and achievements
       localStorage.setItem(CONFIG.STORAGE.SCORE, this.score);
       localStorage.setItem(CONFIG.STORAGE.RECIPES, JSON.stringify(this.discoveredRecipes));
       localStorage.setItem(CONFIG.STORAGE.ACHIEVEMENTS, JSON.stringify(this.earnedAchievements));
@@ -123,27 +129,38 @@ class ColorMixGame {
   }
 
   _startLevel() {
-    const levelData = CONFIG.LEVELS[this.currentLevel % CONFIG.LEVELS.length];
-    this.currentLevelData = levelData;
+    // Use LevelManager to get current Level object
+    const level = this.levelManager.getCurrentLevel();
+    this.currentLevelData = level;
 
-    this.log.info(`Starting level ${this.currentLevel + 1}`, levelData);
+    this.log.info(`Starting level ${level.id}`, { 
+      type: level.type, 
+      target: level.target, 
+      slotCount: level.slotCount,
+      difficulty: level.difficulty 
+    });
 
-    this.ui.updateLevel(this.currentLevel + 1);
+    this.ui.updateLevel(level.id);
     this.ui.updateScore(this.score);
     this.ui.hideQuizQuestion();
     this.ui.setBowlColor(CONFIG.COLORS.EMPTY);
     this.mixing.reset();
 
-    if (levelData.type === 'quiz') {
+    // Set dynamic slot count (2 or 3)
+    this.ui.setSlotCount(level.slotCount);
+    this.ui.updateSlotProgress(0);
+
+    if (level.isQuiz()) {
       // Quiz mode: show question, pre-fill one color
-      this.ui.setTargetColor(CONFIG.COLORS[levelData.result]);
-      this.ui.showQuizQuestion(levelData.given, levelData.result);
+      this.ui.setTargetColor(CONFIG.COLORS[level.target]);
+      this.ui.showQuizQuestion(level.given, level.target);
       // Pre-add the given color to the bowl
-      this.mixing.addColor(levelData.given);
-      this.ui.setBowlColor(CONFIG.COLORS[levelData.given]);
+      this.mixing.addColor(level.given);
+      this.ui.setBowlColor(CONFIG.COLORS[level.given]);
+      this.ui.updateSlotProgress(1);
     } else {
       // Standard mix mode
-      this.ui.setTargetColor(CONFIG.COLORS[levelData.target]);
+      this.ui.setTargetColor(CONFIG.COLORS[level.target]);
     }
 
     // Start hint timer
@@ -193,6 +210,15 @@ class ColorMixGame {
   _handleColorDrop(colorName) {
     if (this.isProcessing) return;
 
+    const level = this.levelManager.getCurrentLevel();
+    const currentCount = this.mixing.getColors().length;
+    
+    // Check if bowl is full for current level
+    if (!this.freeplayMode && currentCount >= level.slotCount) {
+      this.log.debug('Bowl full for this level', { slotCount: level.slotCount });
+      return;
+    }
+
     // Reset hint timer on any action
     this._startHintTimer();
 
@@ -204,6 +230,10 @@ class ColorMixGame {
 
     const newColor = this.mixing.addColor(colorName);
     this.ui.setBowlColor(newColor);
+
+    // Update slot progress indicator
+    const newCount = this.mixing.getColors().length;
+    this.ui.updateSlotProgress(newCount);
 
     // Check if we have a mix result
     const resultName = this.mixing.getResultName();
@@ -247,29 +277,40 @@ class ColorMixGame {
       return;
     }
 
-    // Level mode: show formula at 2 colors
-    if (colors.length === 2) {
+    // Level mode: use Level object
+    const level = this.levelManager.getCurrentLevel();
+    const requiredSlots = level.slotCount;
+
+    // Show formula when we have enough colors
+    if (colors.length >= 2) {
       this.ui.hideQuizQuestion();
       this.ui.showFormula(colors, resultName);
     }
 
-    // Level mode: check against target
-    const levelData = this.currentLevelData;
-    const target = levelData.type === 'quiz' ? levelData.result : levelData.target;
+    // Only validate when we have the required number of colors
+    if (colors.length < requiredSlots) {
+      // Not enough colors yet for this level
+      return;
+    }
 
-    if (resultName === target) {
+    // Use Level.validate() method (OOP)
+    if (level.validate(resultName)) {
       this._onSuccess();
     } else if (resultName === 'MUD') {
       this._onWrongMix();
-    } else if (levelData.type === 'quiz') {
+    } else if (level.isQuiz()) {
       // Wrong answer in quiz mode
+      this._onWrongMix();
+    } else {
+      // Wrong color in mix mode
       this._onWrongMix();
     }
   }
 
   _onSuccess() {
     this.isProcessing = true;
-    this.log.info('Level complete!', { level: this.currentLevel + 1 });
+    const level = this.levelManager.getCurrentLevel();
+    this.log.info('Level complete!', { levelId: level.id, difficulty: level.difficulty });
     this.audio.play('SUCCESS');
     this.ui.playCelebration();
     this.ui.setChameleonColor(this.mixing.getCurrentColor());
@@ -284,7 +325,8 @@ class ColorMixGame {
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
 
     // Calculate score with combo multiplier
-    const basePoints = 100;
+    // Bonus for 3-slot levels
+    const basePoints = level.isThreeSlot() ? 150 : 100;
     const multiplier = Math.min(this.combo, 5); // Max 5x
     const bonusPoints = basePoints * multiplier;
 
@@ -297,7 +339,18 @@ class ColorMixGame {
     }
 
     setTimeout(() => {
-      this.currentLevel++;
+      // Use LevelManager for progression
+      this.levelManager.completeCurrentLevel();
+      
+      if (this.levelManager.hasNextLevel()) {
+        this.levelManager.nextLevel();
+        this.currentLevel = this.levelManager.currentIndex;
+      } else {
+        // Loop back or show completion
+        this.levelManager.currentIndex = 0;
+        this.currentLevel = 0;
+      }
+      
       this._saveProgress();
       this._checkAchievements();
       this.ui.setChameleonColor('');
@@ -357,6 +410,7 @@ class ColorMixGame {
   _resetBowl() {
     this.mixing.reset();
     this.ui.setBowlColor(CONFIG.COLORS.EMPTY);
+    this.ui.updateSlotProgress(0);
   }
 
   _onDragStart(element, data) {

@@ -61,18 +61,30 @@ const CONFIG = {
   // Level definitions
   // type: 'mix' = standard mixing, 'quiz' = fill-in-the-blank
   LEVELS: [
-    { id: 1, type: 'mix', target: 'ORANGE' },
-    { id: 2, type: 'mix', target: 'GREEN' },
-    { id: 3, type: 'mix', target: 'PURPLE' },
-    { id: 4, type: 'quiz', given: 'RED', missing: 'YELLOW', result: 'ORANGE' },
-    { id: 5, type: 'quiz', given: 'BLUE', missing: 'YELLOW', result: 'GREEN' },
-    { id: 6, type: 'quiz', given: 'RED', missing: 'BLUE', result: 'PURPLE' },
-    { id: 7, type: 'mix', target: 'ORANGE' },
-    { id: 8, type: 'mix', target: 'GREEN' },
-    { id: 9, type: 'quiz', given: 'YELLOW', missing: 'RED', result: 'ORANGE' },
-    { id: 10, type: 'quiz', given: 'YELLOW', missing: 'BLUE', result: 'GREEN' },
-    { id: 11, type: 'quiz', given: 'BLUE', missing: 'RED', result: 'PURPLE' },
-    { id: 12, type: 'mix', target: 'PURPLE' }
+    // === Tutorial (2-slot, easy) ===
+    { id: 1, type: 'mix', target: 'ORANGE', slotCount: 2, difficulty: 'easy' },
+    { id: 2, type: 'mix', target: 'GREEN', slotCount: 2, difficulty: 'easy' },
+    { id: 3, type: 'mix', target: 'PURPLE', slotCount: 2, difficulty: 'easy' },
+    
+    // === Basic Quiz (2-slot, easy) ===
+    { id: 4, type: 'quiz', target: 'ORANGE', given: 'RED', missing: 'YELLOW', slotCount: 2, difficulty: 'easy' },
+    { id: 5, type: 'quiz', target: 'GREEN', given: 'BLUE', missing: 'YELLOW', slotCount: 2, difficulty: 'easy' },
+    { id: 6, type: 'quiz', target: 'PURPLE', given: 'RED', missing: 'BLUE', slotCount: 2, difficulty: 'easy' },
+    
+    // === Intermediate (2-slot, medium) ===
+    { id: 7, type: 'quiz', target: 'ORANGE', given: 'YELLOW', missing: 'RED', slotCount: 2, difficulty: 'medium' },
+    { id: 8, type: 'quiz', target: 'GREEN', given: 'YELLOW', missing: 'BLUE', slotCount: 2, difficulty: 'medium' },
+    { id: 9, type: 'quiz', target: 'PURPLE', given: 'BLUE', missing: 'RED', slotCount: 2, difficulty: 'medium' },
+    
+    // === Advanced 3-Color (3-slot, medium) ===
+    { id: 10, type: 'mix', target: 'BROWN', slotCount: 3, difficulty: 'medium' },
+    { id: 11, type: 'mix', target: 'RED_ORANGE', slotCount: 3, difficulty: 'medium' },
+    { id: 12, type: 'mix', target: 'YELLOW_GREEN', slotCount: 3, difficulty: 'medium' },
+    
+    // === Master 3-Color (3-slot, hard) ===
+    { id: 13, type: 'mix', target: 'BLUE_GREEN', slotCount: 3, difficulty: 'hard' },
+    { id: 14, type: 'mix', target: 'RED_PURPLE', slotCount: 3, difficulty: 'hard' },
+    { id: 15, type: 'mix', target: 'BLUE_PURPLE', slotCount: 3, difficulty: 'hard' }
   ],
 
   // UI Settings
@@ -95,7 +107,8 @@ const CONFIG = {
     LEVEL: 'colorMixLab_level',
     SCORE: 'colorMixLab_score',
     RECIPES: 'colorMixLab_recipes',
-    ACHIEVEMENTS: 'colorMixLab_achievements'
+    ACHIEVEMENTS: 'colorMixLab_achievements',
+    COMPLETED_LEVELS: 'colorMixLab_completedLevels'
   },
 
   // All discoverable recipes

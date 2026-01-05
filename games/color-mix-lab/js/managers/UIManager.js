@@ -280,6 +280,59 @@ class UIManager {
     }
   }
 
+
+  /**
+   * Set the number of mixing slots (2 or 3)
+   * Updates UI to show visual indicator for multi-color mixing
+   * @param {2|3} count - Number of slots
+   */
+  setSlotCount(count) {
+    this.currentSlotCount = count;
+    const bowl = this.elements.bowl;
+    
+    // Update bowl class for styling
+    bowl.classList.remove('slots-2', 'slots-3');
+    bowl.classList.add(`slots-${count}`);
+    
+    // Create or update slot indicator
+    let indicator = this.container.querySelector('.slot-indicator');
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.className = 'slot-indicator';
+      this.elements.bowl.parentElement.insertBefore(indicator, this.elements.bowl);
+      this.elements.slotIndicator = indicator;
+    }
+    
+    // Show dots for required colors
+    const dots = Array(count).fill('○').join(' ');
+    indicator.innerHTML = `<span class="slot-dots">${dots}</span>`;
+    indicator.dataset.slotCount = count;
+  }
+
+  /**
+   * Update slot indicator to show filled colors
+   * @param {number} filledCount - Number of colors added
+   */
+  updateSlotProgress(filledCount) {
+    const indicator = this.elements.slotIndicator;
+    if (!indicator) return;
+    
+    const total = this.currentSlotCount || 2;
+    const dots = [];
+    for (let i = 0; i < total; i++) {
+      dots.push(i < filledCount ? '●' : '○');
+    }
+    indicator.innerHTML = `<span class="slot-dots">${dots.join(' ')}</span>`;
+  }
+
+  /**
+   * Get current slot count
+   * @returns {number}
+   */
+  getSlotCount() {
+    return this.currentSlotCount || 2;
+  }
+
   showHint(colorName) {
     // Find the color source with matching color
     this.elements.colorSources.forEach(source => {
