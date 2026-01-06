@@ -442,6 +442,64 @@ class UIManager {
     }
   }
 
+  /**
+   * Show confetti celebration for level completion
+   * @param {number} count - Number of confetti pieces (default 30)
+   */
+  showConfetti(count = 30) {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+
+    const colors = ['#FF4136', '#0074D9', '#FFDC00', '#2ECC40', '#FF851B', '#B10DC9'];
+    const shapes = ['circle', 'square'];
+
+    for (let i = 0; i < count; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = `confetti ${shapes[Math.floor(Math.random() * shapes.length)]}`;
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.left = `${Math.random() * 100}%`;
+      confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+      confetti.style.animationDuration = `${1 + Math.random() * 1}s`;
+      container.appendChild(confetti);
+    }
+
+    // Remove container after animation
+    setTimeout(() => container.remove(), 2500);
+
+    // Trigger haptic feedback if supported
+    if (navigator.vibrate) {
+      navigator.vibrate([50, 30, 50]);
+    }
+  }
+
+  /**
+   * Show level complete celebration overlay
+   * @param {number} level - Completed level number
+   * @param {number} stars - Stars earned (1-3)
+   */
+  showLevelComplete(level, stars = 3) {
+    const overlay = document.createElement('div');
+    overlay.className = 'level-complete-overlay';
+    overlay.innerHTML = `
+      <span class="level-complete-emoji">🎉</span>
+      <span class="level-complete-stars">${'⭐'.repeat(stars)}</span>
+    `;
+    document.body.appendChild(overlay);
+
+    // Trigger confetti
+    this.showConfetti(40);
+
+    // Show overlay
+    setTimeout(() => overlay.classList.add('show'), 100);
+
+    // Hide and remove
+    setTimeout(() => {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 400);
+    }, 1800);
+  }
+
 
   _updateI18nTexts() {
     if (!this.i18n) return;

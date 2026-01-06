@@ -33,7 +33,8 @@
 
 html, body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Playful rounded fonts for children's app */
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   /* 动态彩虹糖背景 */
   background: linear-gradient(-45deg, #FF9A9E, #FECFEF, #E0C3FC, #8EC5FC);
   background-size: 400% 400%;
@@ -113,11 +114,13 @@ html, body {
   background: linear-gradient(135deg, #FFEB3B 0%, #FFF176 100%);
   border-radius: 5px 5px 20px 20px;
   border: none;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px rgba(0, 0, 0, 0.15),
     0 10px 20px rgba(255, 235, 59, 0.3);
+  /* Playful heading font */
+  font-family: 'Fredoka', 'Nunito', sans-serif;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
   transform: rotate(-1deg);
   position: relative;
   z-index: 10;
@@ -179,10 +182,14 @@ html, body {
   gap: 12px;
   padding: 24px 30px;
   background: linear-gradient(135deg, #FFF9E6 0%, #FFE4B5 50%, #FFECD2 100%);
-  border: 5px solid #333;
+  /* Claymorphism: 柔和边框和阴影 */
+  border: 4px solid rgba(255, 255, 255, 0.5);
   /* 有机不规则形状 */
   border-radius: 60% 40% 50% 50% / 50% 50% 40% 60%;
-  box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.12),
+    0 20px 45px rgba(0, 0, 0, 0.08),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.05);
   position: relative;
   /* 移除干扰交互的动画 */
   transform-origin: top center;
@@ -334,22 +341,25 @@ html, body {
   50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
 }
 
-/* R6: 魔法大锅风格碗 */
+/* R6: 魔法大锅风格碗 - Claymorphism */
 .bowl {
   width: 160px;
   height: 120px;
-  background: linear-gradient(180deg, 
-    #4A4A4A 0%, 
-    #2D2D2D 20%, 
-    #1A1A1A 100%);
+  background: linear-gradient(180deg,
+    #5A5A5A 0%,
+    #3D3D3D 20%,
+    #2A2A2A 100%);
   border-radius: 20px 20px 80px 80px;
-  border: 6px solid #333;
-  border-top: 10px solid #555;
-  box-shadow: 
-    0 15px 30px rgba(0, 0, 0, 0.4),
-    inset 0 -20px 40px rgba(0, 0, 0, 0.5),
-    inset 0 10px 20px rgba(255, 255, 255, 0.1),
-    0 0 30px rgba(255, 200, 0, 0.2);
+  /* Claymorphism: 柔和边框 */
+  border: 5px solid rgba(100, 100, 100, 0.5);
+  border-top: 7px solid rgba(150, 150, 150, 0.4);
+  /* Claymorphism: 柔和双层阴影 */
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.2),
+    0 18px 40px rgba(0, 0, 0, 0.12),
+    inset 0 -15px 30px rgba(0, 0, 0, 0.35),
+    inset 0 8px 18px rgba(255, 255, 255, 0.08),
+    0 0 25px rgba(255, 200, 0, 0.15);
   overflow: hidden;
   position: relative;
   transition: transform var(--transition-fast);
@@ -372,7 +382,7 @@ html, body {
   border-radius: 0 0 50% 50%;
 }
 
-/* 锅把手 */
+/* 锅把手 - Claymorphism */
 .bowl::after {
   content: '';
   position: absolute;
@@ -380,10 +390,12 @@ html, body {
   right: -18px;
   width: 20px;
   height: 40px;
-  background: linear-gradient(90deg, #555, #333);
+  background: linear-gradient(90deg, #606060, #404040);
   border-radius: 0 10px 10px 0;
-  border: 3px solid #222;
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(100, 100, 100, 0.4);
   border-left: none;
+  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .bowl.shaking {
@@ -444,14 +456,22 @@ html, body {
 }
 
 /* 槽位指示器 - 显示需要几个颜色 */
+/* Slot indicator - larger and more visible for children */
 .slot-indicator {
   text-align: center;
-  margin-bottom: 8px;
-  font-size: 24px;
-  letter-spacing: 8px;
-  color: rgba(255, 255, 255, 0.8);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin-bottom: 10px;
+  font-size: 32px;
+  letter-spacing: 12px;
+  color: #5D4037;
+  text-shadow: 
+    0 2px 0 rgba(255, 255, 255, 0.8),
+    0 -1px 0 rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 3px solid rgba(93, 64, 55, 0.3);
+  display: inline-block;
 }
 
 .slot-indicator .slot-dots {
@@ -470,15 +490,20 @@ html, body {
   height: 135px;
 }
 
-/* 混合公式显示 */
+/* 混合公式显示 - Claymorphism */
 .formula-display {
   font-size: 32px;
   text-align: center;
   padding: 8px 16px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 20px;
-  border: 3px solid #333;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(200, 200, 200, 0.5);
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 8px 20px rgba(0, 0, 0, 0.06),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.04);
   opacity: 0;
   transform: scale(0.8) translateY(10px);
   transition: all 0.3s ease;
@@ -512,20 +537,74 @@ html, body {
   gap: 8px;
 }
 
-/* 配方图鉴 Recipe Book */
+/* Home & Language buttons (44px touch target for children) */
+.home-btn,
+.lang-btn {
+  font-size: 20px;
+  padding: 10px 14px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(to bottom, #B3E5FC, #81D4FA);
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(79, 195, 247, 0.3),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.home-btn:hover,
+.lang-btn:hover {
+  transform: scale(1.06) translateY(-2px);
+  background: linear-gradient(to bottom, #81D4FA, #4FC3F7);
+  box-shadow:
+    0 6px 16px rgba(79, 195, 247, 0.4),
+    0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.home-btn:active,
+.lang-btn:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 2px 8px rgba(79, 195, 247, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 配方图鉴 Recipe Book (min 44px touch target) */
 .recipe-btn {
   font-size: 24px;
-  padding: 8px 12px;
+  padding: 10px 14px;
+  min-width: 44px;
+  min-height: 44px;
   background: linear-gradient(to bottom, #FFE082, #FFD54F);
-  border: 3px solid #333;
-  border-radius: 12px;
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-out;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(255, 213, 79, 0.3),
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .recipe-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.06) translateY(-2px);
+  box-shadow:
+    0 6px 16px rgba(255, 213, 79, 0.4),
+    0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+.recipe-btn:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 2px 8px rgba(255, 213, 79, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .recipe-btn.new-recipe {
@@ -533,39 +612,70 @@ html, body {
 }
 
 @keyframes recipe-glow {
-  0%, 100% { box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2); }
-  50% { box-shadow: 0 0 20px #FFD700, 0 0 30px #FFA500; }
+  0%, 100% { box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3), 0 8px 20px rgba(0, 0, 0, 0.12); }
+  50% { box-shadow: 0 0 25px #FFD700, 0 0 40px rgba(255, 165, 0, 0.5); }
 }
 
 .reset-btn {
   font-size: 20px;
-  padding: 8px 12px;
+  padding: 10px 14px;
+  min-width: 44px;
+  min-height: 44px;
   background: linear-gradient(to bottom, #E0E0E0, #BDBDBD);
-  border: 3px solid #333;
-  border-radius: 12px;
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-out;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 8px 20px rgba(0, 0, 0, 0.08),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .reset-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.06) translateY(-2px);
   background: linear-gradient(to bottom, #FFCDD2, #EF9A9A);
+  box-shadow:
+    0 6px 16px rgba(239, 154, 154, 0.3),
+    0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.reset-btn:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .freeplay-btn {
   font-size: 20px;
-  padding: 8px 12px;
+  padding: 10px 14px;
+  min-width: 44px;
+  min-height: 44px;
   background: linear-gradient(to bottom, #E1BEE7, #CE93D8);
-  border: 3px solid #333;
-  border-radius: 12px;
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-out;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(206, 147, 216, 0.3),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .freeplay-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.06) translateY(-2px);
+  box-shadow:
+    0 6px 16px rgba(206, 147, 216, 0.4),
+    0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.freeplay-btn:active {
+  transform: scale(0.95);
 }
 
 .freeplay-btn.active {
@@ -579,11 +689,16 @@ html, body {
   left: 50%;
   transform: translate(-50%, -50%);
   background: linear-gradient(to bottom, #FFF8E1, #FFECB3);
-  border: 4px solid #333;
+  /* Claymorphism: 柔和边框 */
+  border: 4px solid rgba(255, 255, 255, 0.5);
   border-radius: 20px;
   padding: 20px;
   min-width: 280px;
-  box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.3);
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.15),
+    0 20px 50px rgba(0, 0, 0, 0.1),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.05);
   z-index: 1000;
 }
 
@@ -603,15 +718,36 @@ html, body {
 }
 
 .close-btn {
-  font-size: 18px;
-  width: 32px;
-  height: 32px;
-  background: #FF6B6B;
-  border: 2px solid #333;
+  font-size: 20px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(to bottom, #FF6B6B, #EE5A5A);
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
   cursor: pointer;
   color: white;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-out;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(238, 90, 90, 0.3),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn:hover {
+  transform: scale(1.1);
+  background: linear-gradient(to bottom, #FF8585, #FF6B6B);
+}
+
+.close-btn:active {
+  transform: scale(0.95);
 }
 
 .recipe-list {
@@ -624,10 +760,14 @@ html, body {
   font-size: 24px;
   padding: 12px 16px;
   background: white;
-  border: 3px solid #333;
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(200, 200, 200, 0.4);
   border-radius: 12px;
   text-align: center;
-  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.15);
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.08),
+    0 8px 20px rgba(0, 0, 0, 0.05);
 }
 
 .recipe-card.discovered {
@@ -667,20 +807,25 @@ html, body {
   100% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
 }
 
-/* 成就徽章 Achievement Badge */
+/* 成就徽章 Achievement Badge - Claymorphism */
 .achievement-badge {
   position: fixed;
   top: 80px;
   left: 50%;
   transform: translateX(-50%) translateY(-100px);
   background: linear-gradient(to bottom, #FFD700, #FFA500);
-  border: 4px solid #333;
+  /* Claymorphism: 柔和边框 */
+  border: 4px solid rgba(255, 255, 255, 0.5);
   border-radius: 16px;
   padding: 12px 24px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 6px 18px rgba(255, 165, 0, 0.3),
+    0 12px 30px rgba(0, 0, 0, 0.15),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
   z-index: 1001;
   opacity: 0;
   transition: all 0.5s ease;
@@ -701,23 +846,30 @@ html, body {
   color: #333;
 }
 
-/* 清除按钮 - 碗的右边 */
+/* 清除按钮 - 碗的右边 (min 44px touch target for children) */
 .clear-btn {
   position: absolute;
-  top: 20px;
-  left: calc(50% + 75px);
-  width: 28px;
-  height: 28px;
+  top: 15px;
+  left: calc(50% + 85px);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   background: linear-gradient(to bottom, #FF6B6B, #EE5A5A);
-  border: 2px solid #333;
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  font-size: 12px;
+  font-size: 18px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-out;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(238, 90, 90, 0.3),
+    0 8px 20px rgba(0, 0, 0, 0.15),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
   color: white;
-  opacity: 0.6;
+  opacity: 0.85;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -725,15 +877,19 @@ html, body {
 
 .clear-btn:hover {
   background: linear-gradient(to bottom, #FF8585, #FF6B6B);
-  transform: scale(1.15);
-  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2);
+  transform: scale(1.08) translateY(-2px);
+  box-shadow:
+    0 6px 16px rgba(238, 90, 90, 0.4),
+    0 12px 28px rgba(0, 0, 0, 0.18);
   opacity: 1;
 }
 
 .clear-btn:active {
   background: linear-gradient(to bottom, #EE5A5A, #DD4A4A);
-  transform: scale(0.95);
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.2);
+  transform: scale(0.96);
+  box-shadow:
+    0 2px 8px rgba(238, 90, 90, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* === Palette Area === */
@@ -745,10 +901,15 @@ html, body {
   padding: 28px 40px;
   /* 调色盘木纹色 */
   background: linear-gradient(135deg, #DEB887 0%, #D2B48C 50%, #F5DEB3 100%);
-  border: 5px solid #8B4513;
+  /* Claymorphism: 柔和边框 */
+  border: 4px solid rgba(139, 69, 19, 0.4);
   /* 肾形调色盘 */
   border-radius: 100px 60px 100px 60px / 60px 100px 60px 100px;
-  box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.3);
+  /* Claymorphism: 柔和双层阴影 */
+  box-shadow:
+    0 8px 20px rgba(139, 69, 19, 0.2),
+    0 15px 40px rgba(0, 0, 0, 0.15),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.08);
   position: relative;
   transform: rotate(3deg);
   /* 静态调色盘更易交互 */
@@ -764,8 +925,11 @@ html, body {
   height: 30px;
   background: linear-gradient(135deg, #FF9A9E, #FECFEF);
   border-radius: 50%;
-  border: 4px solid #8B4513;
-  box-shadow: inset 3px 3px 6px rgba(0,0,0,0.3);
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(139, 69, 19, 0.3);
+  box-shadow:
+    inset 2px 2px 4px rgba(0,0,0,0.15),
+    0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes float-palette {
@@ -774,17 +938,22 @@ html, body {
 }
 
 /* 糖果球 - 无干扰动画 */
+/* Claymorphism color balls - chunky, toy-like */
 .color-source {
-  width: 70px;
-  height: 70px;
+  width: 75px;
+  height: 75px;
   border-radius: 50%;
   cursor: grab;
-  border: 4px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 
-    inset -8px -8px 15px rgba(0, 0, 0, 0.25),
-    inset 8px 8px 15px rgba(255, 255, 255, 0.6),
-    0 8px 0 rgba(0, 0, 0, 0.15),
-    0 12px 20px rgba(0, 0, 0, 0.2);
+  /* Claymorphism: 柔和边框，无硬边界 */
+  border: 4px solid rgba(255, 255, 255, 0.5);
+  /* 双层柔和阴影 - Claymorphism 核心特征 */
+  box-shadow:
+    /* 内阴影营造3D凹凸感 */
+    inset -8px -8px 16px rgba(0, 0, 0, 0.2),
+    inset 8px 8px 16px rgba(255, 255, 255, 0.6),
+    /* 外层柔和阴影 (无硬边) */
+    0 8px 20px rgba(0, 0, 0, 0.15),
+    0 15px 35px rgba(0, 0, 0, 0.1);
   transition: all 0.15s ease-out;
   position: relative;
 }
@@ -804,24 +973,24 @@ html, body {
 }
 
 .color-source:hover {
-  transform: scale(1.15) translateY(-5px);
-  box-shadow: 
-    inset -8px -8px 15px rgba(0, 0, 0, 0.25),
-    inset 8px 8px 15px rgba(255, 255, 255, 0.6),
-    0 12px 0 rgba(0, 0, 0, 0.1),
-    0 18px 30px rgba(0, 0, 0, 0.25);
+  transform: scale(1.12) translateY(-4px);
+  box-shadow:
+    inset -6px -6px 12px rgba(0, 0, 0, 0.15),
+    inset 6px 6px 12px rgba(255, 255, 255, 0.7),
+    0 12px 25px rgba(0, 0, 0, 0.2),
+    0 20px 40px rgba(0, 0, 0, 0.12);
   cursor: grab;
 }
 
 .color-source:active,
 .color-source.dragging {
   cursor: grabbing;
-  transform: scale(1.1);
+  transform: scale(1.08);
   box-shadow:
-    inset -8px -8px 15px rgba(0, 0, 0, 0.25),
-    inset 8px 8px 15px rgba(255, 255, 255, 0.6),
-    0 4px 0 rgba(0, 0, 0, 0.2),
-    0 8px 15px rgba(0, 0, 0, 0.3);
+    inset -6px -6px 12px rgba(0, 0, 0, 0.2),
+    inset 6px 6px 12px rgba(255, 255, 255, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* Click feedback animation */
@@ -844,20 +1013,20 @@ html, body {
 @keyframes hint-glow {
   0%, 100% {
     box-shadow:
-      inset -8px -8px 15px rgba(0, 0, 0, 0.25),
-      inset 8px 8px 15px rgba(255, 255, 255, 0.6),
-      0 8px 0 rgba(0, 0, 0, 0.15),
-      0 0 0 4px rgba(255, 215, 0, 0.5),
-      0 0 20px rgba(255, 215, 0, 0.4);
+      inset -8px -8px 16px rgba(0, 0, 0, 0.2),
+      inset 8px 8px 16px rgba(255, 255, 255, 0.6),
+      0 8px 20px rgba(0, 0, 0, 0.15),
+      0 0 0 6px rgba(255, 215, 0, 0.4),
+      0 0 25px rgba(255, 215, 0, 0.3);
   }
   50% {
     box-shadow:
-      inset -8px -8px 15px rgba(0, 0, 0, 0.25),
-      inset 8px 8px 15px rgba(255, 255, 255, 0.6),
-      0 8px 0 rgba(0, 0, 0, 0.15),
-      0 0 0 8px rgba(255, 215, 0, 0.8),
-      0 0 40px rgba(255, 215, 0, 0.6);
-    transform: scale(1.08);
+      inset -8px -8px 16px rgba(0, 0, 0, 0.2),
+      inset 8px 8px 16px rgba(255, 255, 255, 0.6),
+      0 8px 20px rgba(0, 0, 0, 0.15),
+      0 0 0 10px rgba(255, 215, 0, 0.6),
+      0 0 45px rgba(255, 215, 0, 0.5);
+    transform: scale(1.06);
   }
 }
 
@@ -884,7 +1053,7 @@ html, body {
   }
 }
 
-/* Combo popup */
+/* Combo popup - Claymorphism */
 .combo-popup {
   position: absolute;
   top: 50%;
@@ -896,9 +1065,14 @@ html, body {
   gap: 4px;
   padding: 16px 24px;
   background: linear-gradient(135deg, #FFD700, #FFA500);
-  border: 4px solid #333;
+  /* Claymorphism: 柔和边框 */
+  border: 4px solid rgba(255, 255, 255, 0.5);
   border-radius: 20px;
-  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.3);
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 6px 18px rgba(255, 165, 0, 0.3),
+    0 12px 30px rgba(0, 0, 0, 0.15),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
   z-index: 100;
   opacity: 0;
   transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -922,7 +1096,7 @@ html, body {
   color: #333;
 }
 
-/* Combo break */
+/* Combo break - Claymorphism */
 .combo-break {
   position: absolute;
   top: 40%;
@@ -930,7 +1104,8 @@ html, body {
   transform: translate(-50%, -50%) scale(0);
   padding: 12px 20px;
   background: linear-gradient(135deg, #757575, #616161);
-  border: 3px solid #333;
+  /* Claymorphism: 柔和边框 */
+  border: 3px solid rgba(150, 150, 150, 0.5);
   border-radius: 12px;
   color: white;
   font-size: 16px;
@@ -938,6 +1113,10 @@ html, body {
   z-index: 100;
   opacity: 0;
   transition: all 0.2s ease;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .combo-break.show {
@@ -1068,19 +1247,25 @@ html, body {
   transform: translateX(-50%) scale(0);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  background: linear-gradient(to bottom, #FFFFFF, #F5F5F5);
-  border: 4px solid #333;
-  border-radius: 20px;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
-  font-size: 16px;
+  gap: 12px;
+  padding: 14px 20px;
+  /* Claymorphism-style bubble - soft shadows, no hard borders */
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8E1 100%);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    0 15px 35px rgba(0, 0, 0, 0.08),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.05),
+    0 0 25px rgba(255, 215, 0, 0.2);
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: #5D4037;
   white-space: nowrap;
   z-index: 20;
   opacity: 0;
-  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 /* Speech bubble pointer - pointing down toward chameleon */
@@ -1114,12 +1299,22 @@ html, body {
 .story-bubble.show {
   transform: translateX(-50%) scale(1);
   opacity: 1;
+  animation: bubble-attention 3s ease-in-out 1s infinite;
+}
+
+@keyframes bubble-attention {
+  0%, 100% { transform: translateX(-50%) scale(1) rotate(0deg); }
+  10% { transform: translateX(-50%) scale(1.02) rotate(-1deg); }
+  20% { transform: translateX(-50%) scale(1) rotate(1deg); }
+  30% { transform: translateX(-50%) scale(1) rotate(0deg); }
 }
 
 .story-char {
-  font-size: 32px;
+  font-size: 36px;
   line-height: 1;
   animation: story-char-bounce 0.6s ease-out;
+  /* Subtle idle animation */
+  filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.1));
 }
 
 .story-text {
@@ -1127,23 +1322,26 @@ html, body {
   align-items: center;
 }
 
-/* Target color indicator in story bubble */
+/* Target color indicator in story bubble - Claymorphism */
 .story-color {
   display: inline-block;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  border: 3px solid #333;
-  box-shadow: 
-    inset -4px -4px 8px rgba(0, 0, 0, 0.2),
-    inset 4px 4px 8px rgba(255, 255, 255, 0.4),
-    2px 2px 4px rgba(0, 0, 0, 0.2);
-  animation: color-want 1.5s ease-in-out infinite;
+  /* Claymorphism: 柔和边框 */
+  border: 4px solid rgba(255, 255, 255, 0.5);
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    inset -5px -5px 10px rgba(0, 0, 0, 0.2),
+    inset 5px 5px 10px rgba(255, 255, 255, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 0 15px rgba(255, 200, 0, 0.4);
+  animation: color-want 1.2s ease-in-out infinite;
 }
 
 @keyframes color-want {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%, 100% { transform: scale(1); box-shadow: inset -5px -5px 10px rgba(0, 0, 0, 0.2), inset 5px 5px 10px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(0, 0, 0, 0.12), 0 0 15px rgba(255, 200, 0, 0.4); }
+  50% { transform: scale(1.12); box-shadow: inset -5px -5px 10px rgba(0, 0, 0, 0.2), inset 5px 5px 10px rgba(255, 255, 255, 0.5), 0 6px 16px rgba(0, 0, 0, 0.15), 0 0 25px rgba(255, 200, 0, 0.6); }
 }
 
 @keyframes story-char-bounce {
@@ -1169,6 +1367,90 @@ html, body {
   }
 }
 
+/* === Success Celebration Confetti === */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  animation: confetti-fall 1.5s ease-out forwards;
+}
+
+.confetti.circle { border-radius: 50%; }
+.confetti.square { border-radius: 2px; }
+.confetti.star {
+  background: transparent !important;
+  font-size: 12px;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(-20px) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(720deg) scale(0.5);
+  }
+}
+
+/* Level complete celebration overlay - Claymorphism */
+.level-complete-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 36px;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  /* Claymorphism: 柔和边框 */
+  border: 5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  /* Claymorphism: 柔和阴影 */
+  box-shadow:
+    0 10px 30px rgba(255, 165, 0, 0.3),
+    0 20px 50px rgba(0, 0, 0, 0.2),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.level-complete-overlay.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+.level-complete-emoji {
+  font-size: 64px;
+  animation: level-emoji-bounce 0.6s ease-out;
+}
+
+.level-complete-stars {
+  font-size: 32px;
+  letter-spacing: 8px;
+}
+
+@keyframes level-emoji-bounce {
+  0% { transform: scale(0) rotate(-180deg); }
+  60% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
 /* === Accessibility === */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1181,14 +1463,15 @@ html, body {
 /* === High Contrast Mode === */
 @media (prefers-contrast: high) {
   .color-source {
-    border: 3px solid black;
+    /* 高对比度模式保留可访问性边框 */
+    border: 3px solid currentColor;
   }
 
   .bowl {
-    border: 3px solid black;
+    border: 3px solid currentColor;
   }
 
   .target-preview {
-    border: 3px solid black;
+    border: 3px solid currentColor;
   }
 }

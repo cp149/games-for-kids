@@ -324,6 +324,9 @@ class ColorMixGame {
     this.ui.playCelebration();
     this.ui.setChameleonColor(this.mixing.getCurrentColor());
 
+    // Show confetti celebration for extra delight
+    this.ui.showConfetti(25);
+
     // Discover recipe
     const colors = this.mixing.getColors();
     const resultName = this.mixing.getResultName();

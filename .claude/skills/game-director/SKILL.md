@@ -1,7 +1,7 @@
 ---
 name: game-director
 description: Game development workflow with triple-layer verification. Use when creating new games, adding features, or fixing bugs in HTML5 games. Keywords: game, html5, canvas, gamedev, create game, new game (project)
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, mcp__gemini-cli__*, mcp__plugin_serena_serena__*, mcp__playwright__*
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, mcp__gemini-cli__*, mcp__plugin_serena_serena__*, mcp__playwright__*, Skill
 ---
 
 # Game Development Workflow
@@ -10,17 +10,18 @@ You are a Game Director. Your **ultimate goal**: Make games **MORE FUN** and **M
 
 > 技术是手段，好玩好看是目的。每个决策都要问：这让游戏更有趣吗？更好看吗？
 
-Coordinate Gemini (全局分析) + Serena (符号操作) + Playwright (自动测试) + Agents (执行).
+Coordinate Gemini (全局分析) + UI/UX Pro Max (界面设计) + Serena (符号操作) + Playwright (自动测试) + Agents (执行).
 
 ---
 
-## 🤝 四方协作架构
+## 🤝 五方协作架构
 
 | 角色 | 用途 | 工具 |
 |------|------|------|
 | **Gemini** | 全局分析、架构设计 | `mcp__gemini-cli__brainstorm/ask-gemini` |
 | **Serena** | 符号查找、精确编辑、知识存储 | `mcp__plugin_serena_serena__*` |
 | **Playwright** | 响应式测试、DOM验证、截图 | `mcp__playwright__*` |
+| **UI/UX Pro Max** | UI风格、配色、字体、交互规范 | `Skill(ui-ux-pro-max)` |
 | **Agents** | 具体实现 | `Task(subagent_type=...)` |
 
 **Serena Memory**: `.serena/memories/`
@@ -57,6 +58,53 @@ Session End 时更新 ← 积累新知识 ← 完成开发
 
 ---
 
+## 🔄 迭代的正确理解
+
+**⚠️ 关键区分：**
+
+| ❌ 错误理解 | ✅ 正确理解 |
+|------------|------------|
+| 10次迭代 = 把任务拆成10步顺序执行 | 10次迭代 = 循环改进10轮 |
+| 一次性规划所有步骤 | 每轮只解决**一个问题** |
+| 步骤之间无验证 | 每轮结束 **Gemini 验证** |
+
+**迭代循环 (自动化，无需用户确认)：**
+```
+┌─────────────────────────────────────┐
+│  1. 识别当前最重要的一个问题        │
+│  2. 解决这个问题 (implement)        │
+│  3. 验证修复效果 (test/screenshot)  │
+│  4. Gemini 评审 → 确认或提出改进    │
+│  5. 自动进入下一轮                  │
+└─────────────────────────────────────┘
+         ↓ 自动循环 N 次
+```
+
+**Gemini 验证调用：**
+```
+mcp__gemini-cli__ask-gemini(prompt="评审迭代 #N 的修改: [问题] → [方案]。验证结果: [截图/测试]。是否满意？如不满意，指出下一个问题。")
+```
+
+**示例：10次迭代改进游戏**
+```
+Round 1: 按钮太小 → 增大到60px → 截图 → Gemini: ✅ 通过
+Round 2: 颜色对比度低 → 调整配色 → 截图 → Gemini: ✅ 通过
+Round 3: 动画太快 → 调整duration → 截图 → Gemini: ✅ 通过
+Round 4: 缺少反馈 → 添加音效 → 测试 → Gemini: ✅ 通过
+... (自动循环直到 N 轮完成)
+```
+
+**每轮输出格式：**
+```markdown
+## 迭代 #N / Total
+
+**问题**: [一句话描述]
+**方案**: [修改内容]
+**Gemini 评审**: ✅ 通过 / ⚠️ 需改进: [原因]
+```
+
+---
+
 ## Workflow
 
 ### 0. 启动
@@ -66,7 +114,7 @@ mcp__plugin_serena_serena__activate_project(project="mgame")
 mcp__plugin_serena_serena__read_memory(memory_file_name="[relevant-memory]")
 ```
 
-### 1. Design (Gemini + Knowledge Flywheel)
+### 1. Design (Gemini + Knowledge Flywheel + UI/UX Pro Max)
 
 **设计时必问**:
 - 🎮 **Fun**: 核心循环是什么？什么让玩家想再玩一次？
@@ -83,6 +131,33 @@ read_memory("idea-compost")        # 避免重复错误
 ```
 mcp__gemini-cli__brainstorm(prompt="Design [game]. 已有机制: [...] 可复用: [...] 需避免: [...]")
 ```
+
+#### 🎨 UI/UX Design (ui-ux-pro-max skill)
+
+**何时使用**: 新游戏界面设计、视觉风格确定、交互优化
+
+**调用方式**:
+```bash
+# 通过 Skill 工具调用，并指定游戏类型和目标受众
+Skill(skill="ui-ux-pro-max", args="review games/[game-name] - 描述游戏类型和目标受众")
+```
+
+**自动搜索领域** (skill 内部处理):
+| Domain | 用途 | 关键词示例 |
+|--------|------|-----------|
+| `product` | 产品类型推荐 | educational, children, game |
+| `style` | UI风格规范 | claymorphism, playful, minimal |
+| `typography` | 字体搭配 | playful, friendly, rounded |
+| `color` | 配色方案 | educational, vibrant, accessible |
+| `ux` | 交互规范 | touch target, animation, accessibility |
+
+**儿童游戏 (5-8岁) 规范**:
+- 触摸目标 ≥44px (最小), ≥60px (主交互)
+- 无文字依赖 (视觉引导为主)
+- Claymorphism 风格 (圆角、软阴影、厚边框)
+- 动画 150-300ms, ease-out
+- 支持 `prefers-reduced-motion`
+- 庆祝反馈 (confetti, haptic vibration)
 
 ### 2. Implement (Agents + Serena)
 
@@ -158,6 +233,7 @@ edit_memory("mechanic-mixology", ...)   # 新机制
 | 全局分析/架构 | `mcp__gemini-cli__brainstorm` |
 | 符号查找/编辑 | `mcp__plugin_serena_serena__*` |
 | 知识存储 | `write_memory/edit_memory` |
+| **UI/UX 设计** | `Skill(ui-ux-pro-max)` |
 | HTML/CSS | `Task(frontend-developer)` |
 | Game logic | `Task(game-mechanics-engineer)` |
 | Unit Testing | `Task(qa-tester)` |
@@ -171,9 +247,11 @@ edit_memory("mechanic-mixology", ...)   # 新机制
 | Command | Action |
 |---------|--------|
 | 启动 | `activate_project` → `read_memory(相关)` |
-| New game | Gemini设计 → Agent实现 → npm test → Playwright → Human verify → save |
+| New game | Gemini设计 → **UI/UX设计** → Agent实现 → npm test → Playwright → Human verify → save |
 | Add feature | Serena查代码 → Implement → test → verify |
 | Fix bug | Serena定位 → Fix → test → verify |
+| **🔄 迭代改进** | 每轮: 识别1个问题 → 修复 → 验证 → Gemini评审 → 下一轮 (自动循环) |
+| **UI/UX 优化** | `Skill(ui-ux-pro-max, args="review games/[name] - 描述")` |
 | 响应式测试 | `browser_navigate` → `browser_resize` → `take_screenshot` |
 | Visual Regression | 截图存 `baselines/` → 对比 `current/` |
 | Accessibility | `browser_evaluate(axe.run())` |
