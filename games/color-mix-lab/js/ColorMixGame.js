@@ -90,6 +90,7 @@ class ColorMixGame {
     if (this.freeplayMode) {
       this.log.info('Entering Free Play mode');
       this.ui.hideQuizQuestion();
+      this.ui.hideStory(); // Hide story in free play
     } else {
       this.log.info('Returning to Level mode');
       this._startLevel();
@@ -161,6 +162,13 @@ class ColorMixGame {
     } else {
       // Standard mix mode
       this.ui.setTargetColor(CONFIG.COLORS[level.target]);
+    }
+
+    // Show story character with target color (visual only)
+    if (level.story) {
+      this.ui.updateStory(level.story, CONFIG.COLORS[level.target]);
+    } else {
+      this.ui.hideStory();
     }
 
     // Start hint timer
@@ -312,6 +320,7 @@ class ColorMixGame {
     const level = this.levelManager.getCurrentLevel();
     this.log.info('Level complete!', { levelId: level.id, difficulty: level.difficulty });
     this.audio.play('SUCCESS');
+    this.ui.hideStory(); // Hide story during celebration
     this.ui.playCelebration();
     this.ui.setChameleonColor(this.mixing.getCurrentColor());
 

@@ -45,46 +45,66 @@ const CONFIG = {
     MUD: '💩'
   },
 
-  // Color mixing rules: [color1, color2] => result
+  // Color mixing rules: sorted colors => result (for hint lookup)
+  // Keys are alphabetically sorted to simplify lookup
   MIXING_RULES: {
-    'RED+BLUE': 'PURPLE',
+    // 2-color secondary (sorted: BLUE < RED < YELLOW)
     'BLUE+RED': 'PURPLE',
     'RED+YELLOW': 'ORANGE',
-    'YELLOW+RED': 'ORANGE',
     'BLUE+YELLOW': 'GREEN',
-    'YELLOW+BLUE': 'GREEN',
-    'RED+RED': 'RED',
-    'BLUE+BLUE': 'BLUE',
-    'YELLOW+YELLOW': 'YELLOW'
+    // 3-color brown
+    'BLUE+RED+YELLOW': 'BROWN',
+    // 3-color tertiary (2:1 ratios, sorted)
+    'RED+RED+YELLOW': 'RED_ORANGE',
+    'BLUE+YELLOW+YELLOW': 'YELLOW_GREEN',
+    'BLUE+BLUE+YELLOW': 'BLUE_GREEN',
+    'BLUE+RED+RED': 'RED_PURPLE',
+    'BLUE+BLUE+RED': 'BLUE_PURPLE'
   },
 
-  // Level definitions
+  // Level definitions with narrative story
   // type: 'mix' = standard mixing, 'quiz' = fill-in-the-blank
+  // story: { char: emoji, text: i18n key } - narrative for engagement
   LEVELS: [
     // === Tutorial (2-slot, easy) ===
-    { id: 1, type: 'mix', target: 'ORANGE', slotCount: 2, difficulty: 'easy' },
-    { id: 2, type: 'mix', target: 'GREEN', slotCount: 2, difficulty: 'easy' },
-    { id: 3, type: 'mix', target: 'PURPLE', slotCount: 2, difficulty: 'easy' },
+    { id: 1, type: 'mix', target: 'ORANGE', slotCount: 2, difficulty: 'easy',
+      story: { char: '🐯', text: 'story_tiger_orange' } },
+    { id: 2, type: 'mix', target: 'GREEN', slotCount: 2, difficulty: 'easy',
+      story: { char: '🐸', text: 'story_frog_green' } },
+    { id: 3, type: 'mix', target: 'PURPLE', slotCount: 2, difficulty: 'easy',
+      story: { char: '🦄', text: 'story_unicorn_purple' } },
     
     // === Basic Quiz (2-slot, easy) ===
-    { id: 4, type: 'quiz', target: 'ORANGE', given: 'RED', missing: 'YELLOW', slotCount: 2, difficulty: 'easy' },
-    { id: 5, type: 'quiz', target: 'GREEN', given: 'BLUE', missing: 'YELLOW', slotCount: 2, difficulty: 'easy' },
-    { id: 6, type: 'quiz', target: 'PURPLE', given: 'RED', missing: 'BLUE', slotCount: 2, difficulty: 'easy' },
+    { id: 4, type: 'quiz', target: 'ORANGE', given: 'RED', missing: 'YELLOW', slotCount: 2, difficulty: 'easy',
+      story: { char: '🦊', text: 'story_fox_orange' } },
+    { id: 5, type: 'quiz', target: 'GREEN', given: 'BLUE', missing: 'YELLOW', slotCount: 2, difficulty: 'easy',
+      story: { char: '🐢', text: 'story_turtle_green' } },
+    { id: 6, type: 'quiz', target: 'PURPLE', given: 'RED', missing: 'BLUE', slotCount: 2, difficulty: 'easy',
+      story: { char: '🦋', text: 'story_butterfly_purple' } },
     
     // === Intermediate (2-slot, medium) ===
-    { id: 7, type: 'quiz', target: 'ORANGE', given: 'YELLOW', missing: 'RED', slotCount: 2, difficulty: 'medium' },
-    { id: 8, type: 'quiz', target: 'GREEN', given: 'YELLOW', missing: 'BLUE', slotCount: 2, difficulty: 'medium' },
-    { id: 9, type: 'quiz', target: 'PURPLE', given: 'BLUE', missing: 'RED', slotCount: 2, difficulty: 'medium' },
+    { id: 7, type: 'quiz', target: 'ORANGE', given: 'YELLOW', missing: 'RED', slotCount: 2, difficulty: 'medium',
+      story: { char: '🐿️', text: 'story_squirrel_orange' } },
+    { id: 8, type: 'quiz', target: 'GREEN', given: 'YELLOW', missing: 'BLUE', slotCount: 2, difficulty: 'medium',
+      story: { char: '🦜', text: 'story_parrot_green' } },
+    { id: 9, type: 'quiz', target: 'PURPLE', given: 'BLUE', missing: 'RED', slotCount: 2, difficulty: 'medium',
+      story: { char: '🐙', text: 'story_octopus_purple' } },
     
     // === Advanced 3-Color (3-slot, medium) ===
-    { id: 10, type: 'mix', target: 'BROWN', slotCount: 3, difficulty: 'medium' },
-    { id: 11, type: 'mix', target: 'RED_ORANGE', slotCount: 3, difficulty: 'medium' },
-    { id: 12, type: 'mix', target: 'YELLOW_GREEN', slotCount: 3, difficulty: 'medium' },
+    { id: 10, type: 'mix', target: 'BROWN', slotCount: 3, difficulty: 'medium',
+      story: { char: '🐻', text: 'story_bear_brown' } },
+    { id: 11, type: 'mix', target: 'RED_ORANGE', slotCount: 3, difficulty: 'medium',
+      story: { char: '🦁', text: 'story_lion_redorange' } },
+    { id: 12, type: 'mix', target: 'YELLOW_GREEN', slotCount: 3, difficulty: 'medium',
+      story: { char: '🐛', text: 'story_caterpillar_lime' } },
     
     // === Master 3-Color (3-slot, hard) ===
-    { id: 13, type: 'mix', target: 'BLUE_GREEN', slotCount: 3, difficulty: 'hard' },
-    { id: 14, type: 'mix', target: 'RED_PURPLE', slotCount: 3, difficulty: 'hard' },
-    { id: 15, type: 'mix', target: 'BLUE_PURPLE', slotCount: 3, difficulty: 'hard' }
+    { id: 13, type: 'mix', target: 'BLUE_GREEN', slotCount: 3, difficulty: 'hard',
+      story: { char: '🐬', text: 'story_dolphin_teal' } },
+    { id: 14, type: 'mix', target: 'RED_PURPLE', slotCount: 3, difficulty: 'hard',
+      story: { char: '🦩', text: 'story_flamingo_magenta' } },
+    { id: 15, type: 'mix', target: 'BLUE_PURPLE', slotCount: 3, difficulty: 'hard',
+      story: { char: '🦚', text: 'story_peacock_indigo' } }
   ],
 
   // UI Settings

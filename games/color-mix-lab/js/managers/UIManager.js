@@ -34,6 +34,10 @@ class UIManager {
       </div>
       <main class="game-main">
         <div class="chameleon-area">
+          <div class="story-bubble">
+            <span class="story-char"></span>
+            <span class="story-text"></span>
+          </div>
           <div class="chameleon">🦎</div>
           <div class="target-preview"></div>
         </div>
@@ -57,6 +61,9 @@ class UIManager {
       scoreNum: this.container.querySelector('.score-num'),
       chameleon: this.container.querySelector('.chameleon'),
       targetPreview: this.container.querySelector('.target-preview'),
+      storyBubble: this.container.querySelector('.story-bubble'),
+      storyChar: this.container.querySelector('.story-char'),
+      storyText: this.container.querySelector('.story-text'),
       bowl: this.container.querySelector('.bowl'),
       bowlLiquid: this.container.querySelector('.bowl-liquid'),
       formulaDisplay: this.container.querySelector('.formula-display'),
@@ -217,6 +224,34 @@ class UIManager {
     this.elements.targetPreview.style.backgroundColor = hex;
   }
 
+  /**
+   * Show story bubble with character and target color (visual only, no text)
+   * @param {object} storyData - { char: emoji }
+   * @param {string} targetColorHex - target color hex value
+   */
+  updateStory(storyData, targetColorHex) {
+    if (!storyData || !storyData.char) {
+      this.hideStory();
+      return;
+    }
+    
+    this.elements.storyChar.textContent = storyData.char;
+    // Show target color as visual indicator instead of text
+    this.elements.storyText.innerHTML = `<span class="story-color" style="background-color: ${targetColorHex || '#ccc'}"></span>`;
+    
+    // Show with animation
+    this.elements.storyBubble.classList.remove('show');
+    // Force reflow for animation restart
+    void this.elements.storyBubble.offsetWidth;
+    this.elements.storyBubble.classList.add('show');
+  }
+
+  /**
+   * Hide story bubble
+   */
+  hideStory() {
+    this.elements.storyBubble.classList.remove('show');
+  }
 
   showQuizQuestion(givenColor, resultColor) {
     const emoji = CONFIG.COLOR_EMOJI;

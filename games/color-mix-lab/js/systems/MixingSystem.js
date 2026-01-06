@@ -82,7 +82,7 @@ class MixingSystem {
       return 'YELLOW_GREEN';
     }
 
-    // Three-color mixes
+    // Three-color mixes (all three present)
     if (r === 1 && b === 1 && y === 1) {
       return 'BROWN'; // Perfect 1:1:1
     }

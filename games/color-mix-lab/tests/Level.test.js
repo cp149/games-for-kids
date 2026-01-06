@@ -111,12 +111,12 @@ test('Level - isThreeSlot()', async (t) => {
 });
 
 test('Level - getHintColors()', async (t) => {
-  // Use same format as CONFIG.MIXING_RULES (+ separator)
+  // Use same format as CONFIG.MIXING_RULES (sorted keys)
   const mockMixingRules = {
     'RED+YELLOW': 'ORANGE',
     'BLUE+YELLOW': 'GREEN',
-    'RED+BLUE': 'PURPLE',
-    'RED+BLUE+YELLOW': 'BROWN'
+    'BLUE+RED': 'PURPLE',
+    'BLUE+RED+YELLOW': 'BROWN'
   };
 
   await t.test('returns colors for 2-color mix level', () => {

@@ -21,6 +21,7 @@ class Level {
     this.given = config.given || null;
     this.missing = config.missing || null;
     this.difficulty = config.difficulty || 'easy';
+    this.story = config.story || null; // Narrative story data
   }
 
   /**
@@ -50,7 +51,7 @@ class Level {
 
   /**
    * Get the hint colors for this level (what colors to use)
-   * @param {object} mixingRules - CONFIG.MIXING_RULES
+   * @param {object} mixingRules - CONFIG.MIXING_RULES (keys are sorted)
    * @returns {string[]} Array of color names
    */
   getHintColors(mixingRules) {
@@ -58,10 +59,12 @@ class Level {
     if (this.type === 'quiz' && this.missing) {
       return [this.missing];
     }
-    
+
     // For mix type, find colors that create target
+    // Keys in mixingRules are sorted alphabetically
     for (const [combo, result] of Object.entries(mixingRules)) {
       if (result === this.target) {
+        // Return colors in original (sorted) order
         return combo.split('+');
       }
     }
